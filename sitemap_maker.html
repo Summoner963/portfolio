@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sitemap Generator | Suman Dangal</title>
+  <style>
+    body { font-family: system-ui; padding: 50px; background: #0f172a; color: white; text-align: center; }
+    button { padding: 15px 30px; font-size: 1.2rem; cursor: pointer; background: #3b82f6; color: white; border: none; border-radius: 8px; }
+    button:hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>🗺️ XML Sitemap Generator</h1>
+  <p>Click below to fetch your live blogs and generate sitemap.xml</p>
+  <button id="genBtn" onclick="generateSitemap()">Generate & Download Sitemap</button>
+
+  <script>
+    // 1. YOUR SETUP
+    const DOMAIN = 'https://www.suman-dangal.com.np';
+    // PASTE YOUR BLOG CSV LINK HERE:
+    const BLOG_CSV_URL = 'YOUR_GOOGLE_SHEET_BLOG_CSV_LINK_HERE'; 
+
+    // 2. YOUR STATIC PAGES
+    const STATIC_ROUTES = [
+      { path: '/', priority: '1.0', freq: 'weekly' },
+      { path: '/about', priority: '0.8', freq: 'monthly' },
+      { path: '/projects', priority: '0.9', freq: 'weekly' },
+      { path: '/skills', priority: '0.8', freq: 'monthly' },
+      { path: '/experience', priority: '0.8', freq: 'monthly' },
+      { path: '/blog', priority: '0.9', freq: 'daily' },
+      { path: '/contact', priority: '0.7', freq: 'yearly' }
+    ];
+
+    async function generateSitemap() {
+      const btn = document.getElementById('genBtn');
+      btn.innerText = "Fetching Data...";
+      
+      const today = new Date().toISOString().split('T')[0];
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+      // 3. ADD STATIC PAGES
+      STATIC_ROUTES.forEach(route => {
+        xml += `  <url>\n    <loc>${DOMAIN}${route.path}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${route.freq}</changefreq>\n    <priority>${route.priority}</priority>\n  </url>\n`;
+      });
+
+      // 4. FETCH AND ADD DYNAMIC BLOG PAGES
+      try {
+        const res = await fetch(BLOG_CSV_URL);
+        const text = await res.text();
+        const rows = text.split('\\n');
+        
+        // Find which column has the "Slug" and "Date"
+        const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+        const slugIdx = headers.indexOf('slug');
+        const dateIdx = headers.indexOf('date');
+
+        if(slugIdx > -1) {
+          for (let i = 1; i < rows.length; i++) {
+            const cols = rows[i].split(',');
+            const slug = cols[slugIdx]?.trim();
+            let date = cols[dateIdx]?.trim() || today;
+            
+            // Basic date format safety
+            if(!date.match(/^\\d{4}-\\d{2}-\\d{2}$/)) date = today;
+
+            if (slug) {
+              xml += `  <url>\n    <loc>${DOMAIN}/blog/${slug}</loc>\n    <lastmod>${date}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+            }
+          }
+        }
+      } catch (err) {
+        alert("Error fetching Google Sheet. Make sure the link is correct and public.");
+        console.error(err);
+      }
+
+      xml += `</urlset>`;
+
+      // 5. TRIGGER DOWNLOAD
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'sitemap.xml';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      btn.innerText = "✅ Download Complete! (Click again to regenerate)";
+    }
+  </script>
+</body>
+</html>

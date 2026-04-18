@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://sumanportfolio-4tq.pages.dev/sitemap.xml
