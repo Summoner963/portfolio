@@ -14,6 +14,31 @@ export default {
     const url  = new URL(request.url);
     const path = url.pathname;
 
+    // ── CSV proxy — fixes CORS when Googlebot/browser fetches sheets ──
+    // Your index.html calls /api/sheet?url=... instead of Google directly.
+    // The worker fetches it server-side (no CORS) and returns it with
+    // the correct Access-Control-Allow-Origin header.
+    if (path === '/api/sheet') {
+      const target = url.searchParams.get('url');
+      if (!target || !target.startsWith('https://docs.google.com/spreadsheets/')) {
+        return new Response('Bad request', { status: 400 });
+      }
+      try {
+        const resp = await fetch(target, { redirect: 'follow' });
+        const text = await resp.text();
+        return new Response(text, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/csv;charset=UTF-8',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=600'
+          }
+        });
+      } catch (e) {
+        return new Response('Fetch failed: ' + e.message, { status: 502 });
+      }
+    }
+
     // ── Static assets — serve directly (sitemap.xml excluded) ──
     if (path !== '/sitemap.xml' && path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
       try { return await env.ASSETS.fetch(request); }

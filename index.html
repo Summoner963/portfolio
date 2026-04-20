@@ -578,7 +578,12 @@ function cSet(key, data) {
 }
 async function _doFetch(url, key) {
   try {
-    const r = await fetch(url);
+    /* Route through our own worker proxy so Google's CORS redirect is avoided.
+       The worker fetches server-side (no CORS) and returns with correct headers.
+       Falls back to direct fetch if proxy returns an error (local dev, etc.). */
+    const proxyUrl = `/api/sheet?url=${encodeURIComponent(url)}`;
+    let r = await fetch(proxyUrl);
+    if (!r.ok) r = await fetch(url); /* fallback direct */
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = parseCSV(await r.text());
     cSet(key, data);
