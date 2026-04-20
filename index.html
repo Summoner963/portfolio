@@ -724,7 +724,7 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
     robotsMeta.name = 'robots';
     document.head.appendChild(robotsMeta);
   }
-  const is404 = title === '404 — Not Found' || title === 'Post Not Found';
+  const is404 = title === '404 — Not Found';
   robotsMeta.content = is404 ? 'noindex, nofollow' : 'index, follow';
 
   h1El.classList.toggle('h1-hidden', !(!path || path === '/'));
@@ -1181,7 +1181,7 @@ async function renderArticle(slug) {
         `<a href="/blog" class="btn btn-solid" data-link>← Browse all posts</a>` +
       `</div>`;
     $('artBack').addEventListener('click', () => navigate('/blog'));
-    updateSEO({ title: 'Post Not Found', path: `/blog/${slug}` });
+    updateSEO({ title: `${slug} | Suman Dangal`, desc: 'Blog post by Suman Dangal.', path: `/blog/${slug}` });
     const oldFaq = $('faq-schema');
     if (oldFaq) oldFaq.remove();
     return;
