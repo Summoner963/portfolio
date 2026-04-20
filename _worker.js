@@ -387,13 +387,30 @@ function fixImgUrl(url) {
   return url;
 }
 function parseCSV(raw) {
-  const lines = raw.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const headers = splitRow(lines[0]);
-  return lines.slice(1).map(line => {
-    const vals = splitRow(line);
-    const obj  = {};
-    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? '').trim(); });
+  const rows = [];
+  let cur = '', inQ = false, row = [];
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (c === '"') {
+      if (inQ && raw[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      row.push(cur); cur = '';
+    } else if ((c === '\n' || (c === '\r' && raw[i+1] === '\n')) && !inQ) {
+      if (c === '\r') i++;
+      row.push(cur); cur = '';
+      rows.push(row); row = [];
+    } else {
+      cur += c;
+    }
+  }
+  row.push(cur);
+  if (row.some(v => v)) rows.push(row);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(vals => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] ?? '').trim(); });
     return obj;
   }).filter(r => Object.values(r).some(v => v));
 }
