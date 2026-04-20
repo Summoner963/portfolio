@@ -623,7 +623,7 @@ function md(text, imgMap = {}) {
     if (inUL) { out += '</ul>'; inUL = false; }
     if (inOL) { out += '</ol>'; inOL = false; }
   };
-  for (const raw of text.split(/\n|\|/)) {
+  for (const raw of text.split(/\n/).map(l => l.startsWith('|') ? l.slice(1) : l)) {
     const trimmed = raw.trim();
     if (toks[trimmed]) { closeL(); out += toks[trimmed]; continue; }
     if (trimmed === '```') {

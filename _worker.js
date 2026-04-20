@@ -1,9 +1,10 @@
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1132024800&single=true&output=csv';
-const SITE_URL  = 'https://suman-dangal.com.np';
+const BLOG_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1132024800&single=true&output=csv';
+const FAQ_SHEET_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv';
+const SITE_URL       = 'https://suman-dangal.com.np';
 
-// Cache sheet data for 10 minutes so Worker doesn't fetch on every request
-let sheetCache = null;
-let sheetCacheTime = 0;
+// Separate caches for blog and FAQ sheets
+let blogCache = null, blogCacheTime = 0;
+let faqCache  = null, faqCacheTime  = 0;
 const CACHE_MS = 10 * 60 * 1000;
 
 export default {
@@ -11,7 +12,7 @@ export default {
     const url  = new URL(request.url);
     const path = url.pathname;
 
-    // ── Static assets — serve directly (sitemap.xml excluded — handled dynamically below) ──
+    // ── Static assets — serve directly (sitemap.xml excluded) ──
     if (path !== '/sitemap.xml' && path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
       try { return await env.ASSETS.fetch(request); }
       catch { return new Response('Not found', { status: 404 }); }
@@ -22,15 +23,13 @@ export default {
       return await generateSitemap();
     }
 
-    // ── Blog post route — ALWAYS prerender (bots + humans get full HTML) ──
-    // The SPA will hydrate on top for humans via the inline script below.
+    // ── Blog post route — prerender for ALL visitors ──
     const blogMatch = path.match(/^\/blog\/([^/]+)\/?$/);
     if (blogMatch) {
-      const slug = blogMatch[1];
-      return await prerenderBlogPost(slug, env, request);
+      return await prerenderBlogPost(blogMatch[1], env, request);
     }
 
-    // ── All other SPA routes — serve index.html with 200 ──
+    // ── All other SPA routes — serve index.html ──
     return await serveIndex(env, request);
   }
 };
@@ -39,37 +38,47 @@ export default {
 async function serveIndex(env, request) {
   const indexUrl = new URL('/', new URL(request.url).origin);
   const response = await env.ASSETS.fetch(new Request(indexUrl, request));
-  return new Response(response.body, {
-    status: 200,
-    headers: response.headers,
-  });
+  return new Response(response.body, { status: 200, headers: response.headers });
 }
 
-// ── Fetch + cache Google Sheet ──
-async function getSheetData() {
+// ── Fetch + cache blog sheet ──
+async function getBlogData() {
   const now = Date.now();
-  if (sheetCache && (now - sheetCacheTime) < CACHE_MS) return sheetCache;
+  if (blogCache && (now - blogCacheTime) < CACHE_MS) return blogCache;
   try {
-    const res  = await fetch(SHEET_URL);
-    const text = await res.text();
-    sheetCache     = parseCSV(text);
-    sheetCacheTime = now;
-    return sheetCache;
+    const text = await fetch(BLOG_SHEET_URL).then(r => r.text());
+    blogCache = parseCSV(text);
+    blogCacheTime = now;
+    return blogCache;
   } catch (e) {
-    console.warn('Worker: sheet fetch failed', e.message);
-    return sheetCache || [];
+    console.warn('Worker: blog sheet fetch failed', e.message);
+    return blogCache || [];
   }
 }
 
-// ── Prerender blog post — served to ALL visitors ──
-// Bots get full content for indexing.
-// Humans: the inline <script> at the bottom loads your SPA over the top seamlessly.
+// ── Fetch + cache FAQ sheet ──
+async function getFaqData() {
+  const now = Date.now();
+  if (faqCache && (now - faqCacheTime) < CACHE_MS) return faqCache;
+  try {
+    const text = await fetch(FAQ_SHEET_URL).then(r => r.text());
+    faqCache = parseCSV(text);
+    faqCacheTime = now;
+    return faqCache;
+  } catch (e) {
+    console.warn('Worker: faq sheet fetch failed', e.message);
+    return faqCache || [];
+  }
+}
+
+// ── Prerender blog post ──
 async function prerenderBlogPost(slug, env, request) {
-  const rows = await getSheetData();
-  const post = rows.find(r => (r.Slug || '').trim() === slug);
+  // Fetch blog + FAQ in parallel
+  const [blogRows, faqRows] = await Promise.all([getBlogData(), getFaqData()]);
+
+  const post = blogRows.find(r => (r.Slug || '').trim() === slug);
 
   if (!post) {
-    // Real 404 — post doesn't exist in the sheet
     const html = `<!DOCTYPE html><html lang="en"><head>
       <meta charset="UTF-8">
       <title>Post Not Found | Suman Dangal</title>
@@ -79,36 +88,63 @@ async function prerenderBlogPost(slug, env, request) {
       <p>No post with slug "${slug}" exists.</p>
       <a href="${SITE_URL}/blog">← Back to Blog</a>
     </body></html>`;
-    return new Response(html, {
-      status: 404,
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' }
-    });
+    return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
 
-  // Build full prerendered HTML for this post
   const title    = post.Title    || '';
   const excerpt  = post.Excerpt  || '';
   const date     = post.Date     || '';
   const category = post.Category || 'Post';
-  const content  = post.Content  || '';
   const postUrl  = `${SITE_URL}/blog/${slug}`;
   const imageUrl = fixImgUrl(post.Image_URL || '');
 
-  // Convert markdown-ish content to basic HTML for bots
-  const bodyHTML = simpleMarkdown(content);
-
-  // Fetch the real index.html so we can embed the full SPA shell
-  // This lets the SPA hydrate for real users without a second redirect
-  let spaShell = '';
-  try {
-    const indexUrl = new URL('/', new URL(request.url).origin);
-    const spaRes = await env.ASSETS.fetch(new Request(indexUrl, request));
-    spaShell = await spaRes.text();
-    // Remove the <head> open tag and everything before <body> — we only want the scripts/body
-    // Actually we'll inject SPA differently — see below
-  } catch (e) {
-    console.warn('Worker: could not fetch SPA shell', e.message);
+  // Build imgMap from Img1_URL, Img2_URL ... columns
+  const imgMap = {};
+  for (const key of Object.keys(post)) {
+    const m = key.match(/^[Ii]mg(\d+)_[Uu][Rr][Ll]$/);
+    if (m) imgMap[`img${m[1]}`] = post[key];
   }
+
+  const bodyHTML = renderMarkdown(post.Content || '', imgMap);
+
+  // FAQ rows for this slug, sorted by FAQ_Number
+  const faqItems = faqRows
+    .filter(r => (r.Blog_Slug || '').trim() === slug)
+    .sort((a, b) => Number(a.FAQ_Number) - Number(b.FAQ_Number));
+
+  // Build FAQ HTML section
+  const faqSectionHTML = faqItems.length ? `
+  <section style="margin-top:2.5rem">
+    <h2 style="font-size:1.4rem;color:#1b4332;margin-bottom:1rem">Frequently Asked Questions</h2>
+    ${faqItems.map(f => `
+    <details style="border:1px solid #e2e6df;border-radius:.5rem;margin-bottom:.75rem;overflow:hidden">
+      <summary style="padding:.9rem 1rem;font-weight:600;cursor:pointer;background:#f7f8f6;color:#1a1e1a;list-style:none">
+        ${escHtml(f.FAQ_Question || '')}
+      </summary>
+      <div style="padding:.9rem 1rem;color:#5a6659;line-height:1.7">
+        ${escHtml(f.FAQ_Answer || '')}
+      </div>
+    </details>`).join('')}
+  </section>` : '';
+
+  // FAQ JSON-LD schema — only inject if there are FAQ items
+  const faqSchemaTag = faqItems.length ? `
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      ${faqItems.map(f => `{
+        "@type": "Question",
+        "name": "${escJson(f.FAQ_Question || '')}",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "${escJson(f.FAQ_Answer || '')}"
+        }
+      }`).join(',\n      ')}
+    ]
+  }
+  </script>` : '';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -124,6 +160,7 @@ async function prerenderBlogPost(slug, env, request) {
   <meta property="og:url"         content="${postUrl}">
   <meta property="og:type"        content="article">
   ${imageUrl ? `<meta property="og:image" content="${escHtml(imageUrl)}">` : ''}
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -132,14 +169,11 @@ async function prerenderBlogPost(slug, env, request) {
     "description": "${escJson(excerpt)}",
     "datePublished": "${escJson(date)}",
     "url": "${postUrl}",
-    "author": {
-      "@type": "Person",
-      "name": "Suman Dangal",
-      "url": "${SITE_URL}"
-    }
+    "author": { "@type": "Person", "name": "Suman Dangal", "url": "${SITE_URL}" }
     ${imageUrl ? `,"image": "${escJson(imageUrl)}"` : ''}
   }
   </script>
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -151,6 +185,9 @@ async function prerenderBlogPost(slug, env, request) {
     ]
   }
   </script>
+
+  ${faqSchemaTag}
+
   <style>
     body{font-family:sans-serif;max-width:740px;margin:0 auto;padding:2rem;color:#1a1e1a;line-height:1.7}
     h1{font-size:2rem;margin-bottom:.5rem;color:#1b4332}
@@ -162,56 +199,31 @@ async function prerenderBlogPost(slug, env, request) {
     img{max-width:100%;border-radius:.5rem;margin:1rem 0}
     a{color:#2d6a4f}
     nav{margin-bottom:2rem;font-size:.85rem}
-    /* Hide the static shell once SPA loads */
-    #static-shell.spa-loaded{display:none}
   </style>
 </head>
 <body>
-  <!-- Static shell: visible to bots and before JS loads -->
-  <div id="static-shell">
-    <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog">Blog</a> → ${escHtml(title)}</nav>
-    <h1>${escHtml(title)}</h1>
-    <div class="meta">
-      <span class="cat">${escHtml(category)}</span>
-      <time datetime="${escHtml(date)}">${escHtml(date)}</time>
-    </div>
-    ${imageUrl ? `<img src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400">` : ''}
-    <div>${bodyHTML}</div>
-    <hr>
-    <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
+  <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog">Blog</a> → ${escHtml(title)}</nav>
+  <h1>${escHtml(title)}</h1>
+  <div class="meta">
+    <span class="cat">${escHtml(category)}</span>
+    <time datetime="${escHtml(date)}">${escHtml(date)}</time>
   </div>
-
-  <!-- SPA app root — hidden until hydrated -->
-  <div id="spa-root" style="display:none"></div>
+  ${imageUrl ? `<img src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400">` : ''}
+  <div>${bodyHTML}</div>
+  ${faqSectionHTML}
+  <hr>
+  <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
 
   <script>
-    // Load the full SPA only for real human browsers.
-    // Any hint of a bot = stay on the static shell, don't touch the network.
+    // Load full SPA only for real human browsers — bots stay on static shell
     (function() {
       var ua = navigator.userAgent || '';
-
-      // Broad bot pattern — covers Googlebot, GSC renderer, AdsBot, APIs-Google,
-      // social crawlers, and generic spiders. When in doubt, treat as bot.
-      var isBot = /google|bing|yandex|baidu|duckduck|slurp|facebook|twitter|linkedin|whatsapp|telegram|apple|pinterest|reddit|slack|discord|crawler|spider|bot|headless|prerender|fetch|python|curl|wget|java|ruby|go-http|node-fetch/i.test(ua);
-
-      // Also bail out if there's no real window interaction capability
-      // (headless Chrome used by GSC has window but no real user gesture history)
-      var looksReal = typeof window !== 'undefined'
-        && typeof document !== 'undefined'
-        && typeof history !== 'undefined'
-        && navigator.cookieEnabled;
-
+      var isBot = /google|bing|yandex|baidu|duckduck|slurp|facebook|twitter|linkedin|whatsapp|telegram|apple|pinterest|reddit|slack|discord|crawler|spider|bot|headless|prerender|python|curl|wget|java|ruby|go-http|node-fetch/i.test(ua);
+      var looksReal = typeof window !== 'undefined' && typeof history !== 'undefined' && navigator.cookieEnabled;
       if (!isBot && looksReal) {
-        fetch('/')
-          .then(function(r){ return r.text(); })
-          .then(function(html){
-            document.open();
-            document.write(html);
-            document.close();
-          })
-          .catch(function(){
-            // SPA failed — static shell stays, user still sees content
-          });
+        fetch('/').then(function(r){ return r.text(); }).then(function(html){
+          document.open(); document.write(html); document.close();
+        }).catch(function(){});
       }
     })();
   </script>
@@ -220,10 +232,7 @@ async function prerenderBlogPost(slug, env, request) {
 
   return new Response(html, {
     status: 200,
-    headers: {
-      'Content-Type': 'text/html;charset=UTF-8',
-      'Cache-Control': 'public, max-age=3600',
-    }
+    headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=3600' }
   });
 }
 
@@ -240,7 +249,7 @@ async function generateSitemap() {
   ];
   let blogUrls = [];
   try {
-    const rows = await getSheetData();
+    const rows = await getBlogData();
     blogUrls = rows
       .filter(r => r.Slug && r.Slug.trim())
       .map(r => ({
@@ -266,12 +275,105 @@ ${all.map(p => `  <url>
   });
 }
 
+// ── Markdown renderer ──
+// Rules:
+//   Lines starting with | are content lines — strip the | first
+//   Lines NOT starting with | (e.g. bare ## headings) are also processed
+//   Blank line or "|" alone = spacer <br>
+function renderMarkdown(text, imgMap) {
+  if (!text) return '';
+
+  function inlineFmt(raw) {
+    return escHtml(raw)
+      .replace(/&#124;/g, '|')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code style="font-family:monospace;background:#f0f4f0;padding:.1em .35em;border-radius:.25em;font-size:.9em">$1</code>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
+  }
+
+  const lines = text.split(/\n/);
+  const out   = [];
+  let inList  = false;
+  let inOl    = false;
+
+  function closeList() {
+    if (inList) { out.push('</ul>'); inList = false; }
+    if (inOl)   { out.push('</ol>'); inOl   = false; }
+  }
+
+  for (const raw of lines) {
+    // Strip leading | if present — it's just the content delimiter
+    const l = raw.startsWith('|') ? raw.slice(1) : raw;
+
+    // Blank / spacer
+    if (l.trim() === '') {
+      closeList();
+      out.push('<br>');
+      continue;
+    }
+
+    // Headings
+    if (l.startsWith('## ')) {
+      closeList();
+      out.push(`<h2 style="font-size:1.4rem;margin:2rem 0 .6rem;color:#1a1e1a">${inlineFmt(l.slice(3))}</h2>`);
+      continue;
+    }
+    if (l.startsWith('### ')) {
+      closeList();
+      out.push(`<h3 style="font-size:1.1rem;margin:1.5rem 0 .4rem;color:#2d6a4f">${inlineFmt(l.slice(4))}</h3>`);
+      continue;
+    }
+
+    // Bullet  "- text"
+    if (l.startsWith('- ')) {
+      if (inOl) { out.push('</ol>'); inOl = false; }
+      if (!inList) { out.push('<ul style="margin:.6rem 0 .6rem 1.4rem;padding:0">'); inList = true; }
+      out.push(`<li style="margin-bottom:.35rem">${inlineFmt(l.slice(2))}</li>`);
+      continue;
+    }
+
+    // Numbered step  "1. text"
+    if (/^\d+\.\s/.test(l)) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      if (!inOl) { out.push('<ol style="margin:.6rem 0 .6rem 1.4rem;padding:0">'); inOl = true; }
+      out.push(`<li style="margin-bottom:.35rem">${inlineFmt(l.replace(/^\d+\.\s/, ''))}</li>`);
+      continue;
+    }
+
+    // Tip / callout  "> text"
+    if (l.startsWith('> ')) {
+      closeList();
+      out.push(`<blockquote style="border-left:3px solid #52b788;margin:1.2rem 0;padding:.7rem 1rem;background:#edf5f0;border-radius:0 .4rem .4rem 0;color:#2d6a4f;font-style:italic">${inlineFmt(l.slice(2))}</blockquote>`);
+      continue;
+    }
+
+    // Image  "[img1]" "[img2]" etc
+    const imgMatch = l.trim().match(/^\[img(\d+)\]$/i);
+    if (imgMatch && imgMap) {
+      closeList();
+      const src = fixImgUrl(imgMap[`img${imgMatch[1]}`] || '');
+      if (src) {
+        out.push(`<img src="${escHtml(src)}" alt="article image ${imgMatch[1]}" style="max-width:100%;border-radius:.5rem;margin:1rem 0;display:block" loading="lazy">`);
+      }
+      continue;
+    }
+
+    // Normal paragraph
+    closeList();
+    out.push(`<p style="color:#5a6659;margin-bottom:1rem;line-height:1.75">${inlineFmt(l)}</p>`);
+  }
+
+  closeList();
+  return out.join('\n');
+}
+
 // ── Helpers ──
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function escJson(s) {
-  return String(s || '').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n');
+  return String(s || '').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'');
 }
 function fixImgUrl(url) {
   if (!url) return '';
@@ -283,23 +385,6 @@ function fixImgUrl(url) {
   const m3 = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
   if (m3) return `https://lh3.googleusercontent.com/d/${m3[1]}`;
   return url;
-}
-function simpleMarkdown(text) {
-  if (!text) return '';
-  return text
-    .split(/\n/)
-    .map(line => {
-      const l = line.trim();
-      if (!l) return '';
-      if (l.startsWith('## '))  return `<h2>${escHtml(l.slice(3))}</h2>`;
-      if (l.startsWith('### ')) return `<h3>${escHtml(l.slice(4))}</h3>`;
-      if (l.startsWith('- '))   return `<li>${escHtml(l.slice(2))}</li>`;
-      return `<p>${escHtml(l)
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      }</p>`;
-    })
-    .join('\n');
 }
 function parseCSV(raw) {
   const lines = raw.trim().split(/\r?\n/);
