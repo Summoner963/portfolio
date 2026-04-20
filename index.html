@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Suman Dangal — Dev &amp; QA Engineer</title>
   <meta name="description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships in Nepal." />
+  <meta name="robots" content="index, follow" />
   <link id="canonical" rel="canonical" href="https://suman-dangal.com.np/" />
   <meta property="og:type"        content="website" />
   <meta property="og:site_name"   content="Suman Dangal" />
@@ -47,13 +48,13 @@
   --card:#ffffff;
   --border:#e2e6df;
   --border-dark:#c8d0c4;
-  --accent:#2d6a4f;       /* Forest Green */
-  --accent-light:#52b788; /* lighter green for hover states */
-  --accent-bg:#edf5f0;    /* very light green tint */
-  --accent2:#1b4332;      /* Deep forest — headings/bold */
-  --accent3:#b7791f;      /* Amber for highlights */
-  --text:#1a1e1a;         /* Deep Charcoal */
-  --muted:#5a6659;        /* Muted charcoal-green */
+  --accent:#2d6a4f;
+  --accent-light:#52b788;
+  --accent-bg:#edf5f0;
+  --accent2:#1b4332;
+  --accent3:#b7791f;
+  --text:#1a1e1a;
+  --muted:#5a6659;
   --muted-light:#8a9688;
   --serif:'DM Serif Display',serif;
   --mono:'DM Mono',monospace;
@@ -152,9 +153,7 @@ h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;lin
 .proj-visual{background:var(--surface);border-radius:.5rem;border:1.5px solid var(--border);height:190px;display:grid;place-items:center;font-size:2.8rem}
 .proj-note{font-size:.75rem;color:var(--muted-light);margin-top:.45rem;font-style:italic}
 
-/* ══════════════════════════════════════════════
-   BLOG — SEARCH + FILTER + SORT BAR
-   ══════════════════════════════════════════════ */
+/* ── Blog toolbar ── */
 .blog-toolbar{display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;margin-bottom:2rem;padding:1.2rem 1.4rem;background:var(--surface);border:1.5px solid var(--border);border-radius:.8rem}
 .blog-search-wrap{flex:1;min-width:200px;position:relative;display:flex;align-items:center}
 .blog-search-wrap svg{position:absolute;left:.75rem;width:15px;height:15px;stroke:var(--muted);fill:none;pointer-events:none;flex-shrink:0}
@@ -368,8 +367,6 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
     <section class="container">
       <div class="section-eyebrow">Writing &amp; Notes</div>
       <h2 class="section-heading">Blog</h2>
-
-      <!-- ── Search · Filter · Sort toolbar ── -->
       <div class="blog-toolbar" id="blogToolbar" style="display:none" role="search" aria-label="Blog search and filters">
         <div class="blog-search-wrap">
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -377,7 +374,6 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
         </div>
         <div class="blog-filters" id="blogFilters" aria-label="Filter by category">
           <span class="filter-label">Filter:</span>
-          <!-- chips injected by JS -->
         </div>
         <div class="blog-sort-wrap">
           <select id="blogSort" aria-label="Sort posts">
@@ -389,7 +385,6 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
         </div>
         <span class="blog-results-count" id="blogResultsCount" aria-live="polite"></span>
       </div>
-
       <div id="blogGrid" class="blog-grid" aria-live="polite" aria-label="Blog post list">
         <div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>
       </div>
@@ -487,10 +482,12 @@ const burger  = $('burger');
 const navList = $('navLinks');
 const h1El    = $('site-h1');
 
+/* ── Escape HTML ── */
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+/* ── Progress bar ── */
 let pTimer, pVal = 0;
 function pStart() {
   pVal = 0; bar.style.width = '0%'; bar.style.opacity = '1';
@@ -501,6 +498,7 @@ function pEnd() {
   setTimeout(() => { bar.style.opacity = '0'; }, 380);
 }
 
+/* ── Fix Google Drive image URLs ── */
 function fixImgUrl(url) {
   if (!url) return '';
   url = url.trim();
@@ -513,6 +511,7 @@ function fixImgUrl(url) {
   return url;
 }
 
+/* ── CSV parser ── */
 function parseCSV(raw) {
   const lines = raw.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
@@ -536,6 +535,7 @@ function splitRow(line) {
   return cols.map(s => s.replace(/^"|"$/g, '').replace(/""/g, '"'));
 }
 
+/* ── Cache (localStorage) ── */
 const NS = 'sd3_';
 function cGet(key) {
   try {
@@ -569,6 +569,7 @@ async function fetchSheet(url, key, onRevalidate) {
   return _doFetch(url, key);
 }
 
+/* ── HTML sanitizer ── */
 const SAFE_TAGS = new Set(['table','thead','tbody','tfoot','tr','th','td','strong','em','b','i','br','p','ul','ol','li','a','span']);
 function sanitizeHTML(raw) {
   if (!raw) return '';
@@ -590,6 +591,7 @@ function sanitizeHTML(raw) {
   return doc.body.innerHTML;
 }
 
+/* ── Inline image map builder ── */
 function buildImgMap(post) {
   const map = {};
   let n = 1;
@@ -606,6 +608,7 @@ function buildImgMap(post) {
   return map;
 }
 
+/* ── Markdown parser ── */
 function md(text, imgMap = {}) {
   if (!text) return '';
   const toks = {};
@@ -651,46 +654,55 @@ function md(text, imgMap = {}) {
   return out;
 }
 
-async function buildFAQ(slug) {
+/* ── FAQ builder — accepts pre-fetched rows ── */
+async function buildFAQ(slug, prefetchedRows) {
   const old = $('faq-schema');
   if (old) old.remove();
-  if (!CFG.faqSheet) return '';
-  const allFaqs = await fetchSheet(CFG.faqSheet, 'faq');
+
+  const allFaqs = prefetchedRows || await fetchSheet(CFG.faqSheet, 'faq');
   if (!allFaqs?.length) return '';
+
   const pairs = allFaqs
     .filter(r => (r.Blog_Slug || '').trim() === slug)
     .sort((a, b) => Number(a.FAQ_Number || 0) - Number(b.FAQ_Number || 0))
     .map(r => ({ q: (r.FAQ_Question || '').trim(), a: (r.FAQ_Answer || '').trim() }))
     .filter(p => p.q && p.a);
+
   if (!pairs.length) return '';
+
+  /* Inject FAQ schema into <head> */
   const faqSd = document.createElement('script');
   faqSd.id   = 'faq-schema';
   faqSd.type = 'application/ld+json';
   faqSd.textContent = JSON.stringify({
-    '@context':   'https://schema.org',
-    '@type':      'FAQPage',
+    '@context':  'https://schema.org',
+    '@type':     'FAQPage',
     mainEntity: pairs.map(p => ({
-      '@type':          'Question',
-      name:             p.q,
+      '@type':         'Question',
+      name:            p.q,
       acceptedAnswer: { '@type': 'Answer', text: p.a }
     }))
   });
   document.head.appendChild(faqSd);
+
   const items = pairs.map(p => `
     <details class="faq-item">
       <summary class="faq-question">${esc(p.q)}</summary>
       <div class="faq-answer">${esc(p.a)}</div>
     </details>`).join('');
+
   return `<section class="faq-section" aria-label="Frequently Asked Questions">
     <h2>Frequently Asked Questions</h2>
     ${items}
   </section>`;
 }
 
+/* ── SEO updater ── */
 function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   const ft  = title ? `${title} | Suman Dangal` : 'Suman Dangal — Dev & QA Engineer';
   const md_ = desc  || 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.';
   const url = `${CFG.siteUrl}${path || '/'}`;
+
   document.title = ft;
   qs('meta[name="description"]').content        = md_;
   $('canonical').href                           = url;
@@ -699,11 +711,25 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   qs('meta[property="og:url"]').content         = url;
   qs('meta[name="twitter:title"]').content       = ft;
   qs('meta[name="twitter:description"]').content = md_;
+
   if (ogImage) {
-    qs('meta[property="og:image"]').content     = ogImage;
-    qs('meta[name="twitter:image"]').content    = ogImage;
+    qs('meta[property="og:image"]').content  = ogImage;
+    qs('meta[name="twitter:image"]').content = ogImage;
   }
+
+  /* ── FIX: robots meta — noindex 404 pages, index everything else ── */
+  let robotsMeta = qs('meta[name="robots"]');
+  if (!robotsMeta) {
+    robotsMeta = document.createElement('meta');
+    robotsMeta.name = 'robots';
+    document.head.appendChild(robotsMeta);
+  }
+  const is404 = title === '404 — Not Found' || title === 'Post Not Found';
+  robotsMeta.content = is404 ? 'noindex, nofollow' : 'index, follow';
+
   h1El.classList.toggle('h1-hidden', !(!path || path === '/'));
+
+  /* ── Article schema (BlogPosting) ── */
   let dynSd = $('dyn-schema');
   if (articleMeta) {
     if (!dynSd) {
@@ -725,6 +751,8 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   } else if (dynSd) {
     dynSd.remove();
   }
+
+  /* ── Breadcrumb schema ── */
   let bcSd = $('bc-schema');
   if (!bcSd) {
     bcSd = document.createElement('script');
@@ -743,6 +771,7 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   });
 }
 
+/* ── Scroll reveal ── */
 const rvObs = new IntersectionObserver(entries => {
   entries.forEach((e, i) => {
     if (e.isIntersecting) {
@@ -771,8 +800,6 @@ function parseDateForSort(dateStr) {
 
 function applyBlogFilters(rows) {
   let result = [...rows];
-
-  /* Search — title + excerpt + category */
   if (blogState.query) {
     const q = blogState.query.toLowerCase();
     result = result.filter(p =>
@@ -781,15 +808,11 @@ function applyBlogFilters(rows) {
       (p.Category || '').toLowerCase().includes(q)
     );
   }
-
-  /* Category filter */
   if (blogState.category !== 'all') {
     result = result.filter(p =>
       (p.Category || '').trim().toLowerCase() === blogState.category.toLowerCase()
     );
   }
-
-  /* Sort */
   result.sort((a, b) => {
     switch (blogState.sort) {
       case 'newest': return parseDateForSort(b.Date) - parseDateForSort(a.Date);
@@ -799,21 +822,15 @@ function applyBlogFilters(rows) {
       default:       return 0;
     }
   });
-
   return result;
 }
 
 function buildCategoryChips(rows) {
   const container = $('blogFilters');
   if (!container) return;
-
-  /* Collect unique categories */
   const cats = new Set();
   rows.forEach(r => { if (r.Category) cats.add(r.Category.trim()); });
-
-  /* Rebuild chips */
   container.innerHTML = '<span class="filter-label">Filter:</span>';
-
   const allChip = document.createElement('button');
   allChip.className = 'filter-chip' + (blogState.category === 'all' ? ' active' : '');
   allChip.textContent = 'All';
@@ -823,7 +840,6 @@ function buildCategoryChips(rows) {
     renderFilteredBlog();
   });
   container.appendChild(allChip);
-
   [...cats].sort().forEach(cat => {
     const chip = document.createElement('button');
     chip.className = 'filter-chip' + (blogState.category === cat ? ' active' : '');
@@ -851,20 +867,14 @@ function initBlogToolbar(rows) {
   const search  = $('blogSearch');
   const sort    = $('blogSort');
   if (!toolbar || !search || !sort) return;
-
   toolbar.style.display = '';
-
   buildCategoryChips(rows);
-
   search.value = blogState.query;
   sort.value   = blogState.sort;
-
-  /* Remove old listeners by cloning */
   const freshSearch = search.cloneNode(true);
   search.parentNode.replaceChild(freshSearch, search);
   const freshSort = sort.cloneNode(true);
   sort.parentNode.replaceChild(freshSort, sort);
-
   freshSearch.addEventListener('input', e => {
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
@@ -873,7 +883,6 @@ function initBlogToolbar(rows) {
       renderFilteredBlog();
     }, 260);
   });
-
   freshSort.addEventListener('change', e => {
     blogState.sort = e.target.value;
     blogState.page = 1;
@@ -886,28 +895,20 @@ function renderFilteredBlog() {
   const g   = $('blogGrid');
   const nav = $('blogPagination');
   const cnt = $('blogResultsCount');
-
   const filtered = applyBlogFilters(blogRows);
   const total    = Math.ceil(filtered.length / CFG.postsPerPage);
   const safe     = Math.max(1, Math.min(blogState.page, total || 1));
   const slice    = filtered.slice((safe - 1) * CFG.postsPerPage, safe * CFG.postsPerPage);
-
-  /* Results count */
   if (cnt) {
-    if (blogState.query || blogState.category !== 'all') {
-      cnt.textContent = `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`;
-    } else {
-      cnt.textContent = '';
-    }
+    cnt.textContent = (blogState.query || blogState.category !== 'all')
+      ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`
+      : '';
   }
-
-  /* Empty state */
   if (!slice.length) {
     g.innerHTML = '<p class="empty-state">No posts match your search — try different keywords or filters.</p>';
     if (nav) nav.innerHTML = '';
     return;
   }
-
   g.innerHTML = '';
   slice.forEach(post => {
     const card = document.createElement('article');
@@ -933,8 +934,6 @@ function renderFilteredBlog() {
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     g.appendChild(card);
   });
-
-  /* Pagination */
   if (nav) {
     nav.innerHTML = '';
     if (total > 1) {
@@ -948,7 +947,6 @@ function renderFilteredBlog() {
       if (next) next.addEventListener('click', () => { blogState.page = safe + 1; renderFilteredBlog(); window.scrollTo({top:0,behavior:'smooth'}); });
     }
   }
-
   watchReveals();
 }
 
@@ -1048,6 +1046,7 @@ async function navigate(rawPath, push = true) {
     watchReveals();
 
   } else {
+    /* ── Unknown route → 404 overlay on home ── */
     const heroSec = $('heroSection');
     if (heroSec && !$('spa-404-overlay')) {
       heroSec.style.position = 'relative';
@@ -1069,6 +1068,7 @@ async function navigate(rawPath, push = true) {
   pEnd();
 }
 
+/* ── Link interception ── */
 document.addEventListener('click', e => {
   const a = e.target.closest('[data-link]');
   if (!a) return;
@@ -1132,7 +1132,7 @@ async function renderProjects() {
 }
 
 async function renderBlogList() {
-  const g   = $('blogGrid');
+  const g = $('blogGrid');
   g.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
 
   blogRows = await fetchSheet(CFG.blogSheet, 'blog', fresh => {
@@ -1153,6 +1153,7 @@ async function renderBlogList() {
   renderFilteredBlog();
 }
 
+/* ── FIX: renderArticle — parallel fetch of blog + FAQ ── */
 async function renderArticle(slug) {
   const wrap = $('articleWrap');
   wrap.innerHTML =
@@ -1161,7 +1162,13 @@ async function renderArticle(slug) {
     `<div class="skel skel-card" style="height:320px;margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-line"></div><div class="skel skel-line m"></div><div class="skel skel-line s"></div>`;
 
-  if (!blogRows) blogRows = await fetchSheet(CFG.blogSheet, 'blog');
+  /* Fetch blog + FAQ in parallel — faster and better for GSC detection */
+  const [blogData, faqData] = await Promise.all([
+    blogRows ? Promise.resolve(blogRows) : fetchSheet(CFG.blogSheet, 'blog'),
+    fetchSheet(CFG.faqSheet, 'faq')
+  ]);
+
+  if (!blogRows) blogRows = blogData;
   const post = blogRows?.find(p => p.Slug === slug);
 
   if (!post) {
@@ -1188,8 +1195,8 @@ async function renderArticle(slug) {
   const tableHTML = post.Table_HTML
     ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>`
     : '';
-  const faqHTML = await buildFAQ(slug);
 
+  /* Update SEO before FAQ so schema is in head ASAP */
   updateSEO({
     title:       post.Title,
     desc:        post.Excerpt,
@@ -1197,6 +1204,9 @@ async function renderArticle(slug) {
     ogImage:     coverUrl || '',
     articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl }
   });
+
+  /* Build FAQ using pre-fetched data — no extra network request */
+  const faqHTML = await buildFAQ(slug, faqData);
 
   wrap.innerHTML =
     `<button class="article-back" id="artBack">← Back to Blog</button>` +
@@ -1241,6 +1251,7 @@ async function renderAbout() {
   el.innerHTML = ps.length ? ps.map(p => `<p>${esc(p)}</p>`).join('') : FB.about;
 }
 
+/* ── Burger menu ── */
 burger.addEventListener('click', () => {
   const open = !navList.classList.contains('open');
   burger.classList.toggle('open', open);
