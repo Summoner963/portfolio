@@ -22,17 +22,12 @@ export default {
       return await generateSitemap();
     }
 
-    // ── Blog post route — prerender for bots ──
+    // ── Blog post route — ALWAYS prerender (bots + humans get full HTML) ──
+    // The SPA will hydrate on top for humans via the inline script below.
     const blogMatch = path.match(/^\/blog\/([^/]+)\/?$/);
     if (blogMatch) {
       const slug = blogMatch[1];
-      const ua   = request.headers.get('user-agent') || '';
-      const isBot = /googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|facebot|twitterbot|linkedinbot|whatsapp|telegram|crawler|spider|bot/i.test(ua);
-
-      if (isBot) {
-        // Serve prerendered HTML for bots/GSC
-        return await prerenderBlogPost(slug, env, request);
-      }
+      return await prerenderBlogPost(slug, env, request);
     }
 
     // ── All other SPA routes — serve index.html with 200 ──
@@ -66,13 +61,15 @@ async function getSheetData() {
   }
 }
 
-// ── Prerender blog post for bots ──
+// ── Prerender blog post — served to ALL visitors ──
+// Bots get full content for indexing.
+// Humans: the inline <script> at the bottom loads your SPA over the top seamlessly.
 async function prerenderBlogPost(slug, env, request) {
   const rows = await getSheetData();
   const post = rows.find(r => (r.Slug || '').trim() === slug);
 
   if (!post) {
-    // Real 404 — post doesn't exist
+    // Real 404 — post doesn't exist in the sheet
     const html = `<!DOCTYPE html><html lang="en"><head>
       <meta charset="UTF-8">
       <title>Post Not Found | Suman Dangal</title>
@@ -99,6 +96,19 @@ async function prerenderBlogPost(slug, env, request) {
 
   // Convert markdown-ish content to basic HTML for bots
   const bodyHTML = simpleMarkdown(content);
+
+  // Fetch the real index.html so we can embed the full SPA shell
+  // This lets the SPA hydrate for real users without a second redirect
+  let spaShell = '';
+  try {
+    const indexUrl = new URL('/', new URL(request.url).origin);
+    const spaRes = await env.ASSETS.fetch(new Request(indexUrl, request));
+    spaShell = await spaRes.text();
+    // Remove the <head> open tag and everything before <body> — we only want the scripts/body
+    // Actually we'll inject SPA differently — see below
+  } catch (e) {
+    console.warn('Worker: could not fetch SPA shell', e.message);
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -152,27 +162,49 @@ async function prerenderBlogPost(slug, env, request) {
     img{max-width:100%;border-radius:.5rem;margin:1rem 0}
     a{color:#2d6a4f}
     nav{margin-bottom:2rem;font-size:.85rem}
+    /* Hide the static shell once SPA loads */
+    #static-shell.spa-loaded{display:none}
   </style>
 </head>
 <body>
-  <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog">Blog</a> → ${escHtml(title)}</nav>
-  <h1>${escHtml(title)}</h1>
-  <div class="meta">
-    <span class="cat">${escHtml(category)}</span>
-    <time datetime="${escHtml(date)}">${escHtml(date)}</time>
+  <!-- Static shell: visible to bots and before JS loads -->
+  <div id="static-shell">
+    <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog">Blog</a> → ${escHtml(title)}</nav>
+    <h1>${escHtml(title)}</h1>
+    <div class="meta">
+      <span class="cat">${escHtml(category)}</span>
+      <time datetime="${escHtml(date)}">${escHtml(date)}</time>
+    </div>
+    ${imageUrl ? `<img src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400">` : ''}
+    <div>${bodyHTML}</div>
+    <hr>
+    <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
   </div>
-  ${imageUrl ? `<img src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400">` : ''}
-  <div>${bodyHTML}</div>
-  <hr>
-  <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
 
-  <!-- Load full SPA for human visitors who have JS -->
+  <!-- SPA app root — hidden until hydrated -->
+  <div id="spa-root" style="display:none"></div>
+
   <script>
-    // If this is a real browser (not a bot), redirect to SPA
-    if (typeof window !== 'undefined' && window.history) {
-      // Already on the right URL, just load the SPA assets
-      window.location.reload();
-    }
+    // Only load the full SPA for real browsers (not bots)
+    // Bots will read the static shell above and leave — no reload, no redirect.
+    (function() {
+      var ua = navigator.userAgent || '';
+      var isBot = /googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|facebot|twitterbot|linkedinbot|crawler|spider/i.test(ua);
+      if (!isBot && typeof fetch === 'function') {
+        // Fetch the SPA shell (index.html) and replace the page content
+        fetch('/')
+          .then(function(r){ return r.text(); })
+          .then(function(html){
+            // Replace entire document with the SPA
+            document.open();
+            document.write(html);
+            document.close();
+          })
+          .catch(function(){
+            // SPA failed to load — static shell stays visible, that's fine
+          });
+      }
+    })();
   </script>
 </body>
 </html>`;
