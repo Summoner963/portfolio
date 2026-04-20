@@ -181,11 +181,6 @@ h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;lin
 .blog-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
 h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem;line-height:1.25;flex:1;color:var(--accent2)}
 .blog-card-excerpt{font-size:.83rem;color:var(--muted);line-height:1.65}
-.blog-card-tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.75rem}
-.blog-tag{font-family:var(--mono);font-size:.63rem;padding:.18rem .55rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted-light);letter-spacing:.03em;transition:border-color .15s,color .15s}
-.blog-tag:hover{border-color:var(--accent);color:var(--accent)}
-.article-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.6rem}
-.article-tag{font-family:var(--mono);font-size:.68rem;padding:.22rem .65rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)}
 
 /* ── Pagination ── */
 .pagination{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:3rem;font-family:var(--mono);font-size:.85rem;color:var(--muted);min-height:52px}
@@ -476,7 +471,8 @@ const CFG = {
   projectsSheet: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=0&single=true&output=csv',
   expSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=245982630&single=true&output=csv',
   aboutSheet:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1066410604&single=true&output=csv',
-  faqSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv'
+  faqSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv',
+  imagesSheet:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1267436347&single=true&output=csv'
 };
 
 const $   = id => document.getElementById(id);
@@ -617,9 +613,16 @@ function sanitizeHTML(raw) {
   return doc.body.innerHTML;
 }
 
-/* ── Inline image map builder ── */
-function buildImgMap(post) {
+/* ── Build image map from external BlogImages sheet rows for this slug ──
+   Falls back to inline Img1_URL/Img2_URL columns on the post row so old
+   posts without a BlogImages entry still work without any changes.
+   Priority: BlogImages sheet wins over inline columns (higher Img_Number
+   simply adds more entries). Both sets are merged into one map so
+   [img1], [img2] … [imgN] all resolve correctly in content. ── */
+function buildImgMap(post, imageRows) {
   const map = {};
+
+  /* 1. Seed from inline Img1_URL … Img4_URL columns (backwards compat) */
   let n = 1;
   while (post[`Img${n}_URL`]) {
     const url = fixImgUrl(post[`Img${n}_URL`]);
@@ -631,6 +634,28 @@ function buildImgMap(post) {
       `</figure>`;
     n++;
   }
+
+  /* 2. Overlay / extend with BlogImages sheet rows for this slug.
+        Sheet rows always win — they overwrite same index and add new ones. */
+  if (imageRows?.length) {
+    const slug = (post.Slug || '').trim();
+    imageRows
+      .filter(r => (r.Blog_Slug || '').trim() === slug)
+      .sort((a, b) => Number(a.Img_Number || 0) - Number(b.Img_Number || 0))
+      .forEach(r => {
+        const num = Number(r.Img_Number || 0);
+        if (!num) return;
+        const url = fixImgUrl((r.Img_URL || '').trim());
+        const alt = esc((r.Img_Alt || post.Title || '').trim());
+        if (!url) return;
+        map[`[img${num}]`] =
+          `<figure class="blog-figure">` +
+            `<img class="blog-inline-img" src="${esc(url)}" alt="${alt}" loading="lazy" decoding="async" width="680" height="383">` +
+            `<figcaption>${alt}</figcaption>` +
+          `</figure>`;
+      });
+  }
+
   return map;
 }
 
@@ -773,7 +798,6 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
       datePublished:   articleMeta.date,
       image:           articleMeta.imageUrl || `${CFG.siteUrl}/og.png`,
       url,
-      keywords:        (articleMeta.tags || []).join(', '),
       author: { '@type': 'Person', name: 'Suman Dangal', url: CFG.siteUrl }
     });
   } else if (dynSd) {
@@ -833,8 +857,7 @@ function applyBlogFilters(rows) {
     result = result.filter(p =>
       (p.Title    || '').toLowerCase().includes(q) ||
       (p.Excerpt  || '').toLowerCase().includes(q) ||
-      (p.Category || '').toLowerCase().includes(q) ||
-      (p.Tags     || '').toLowerCase().includes(q)
+      (p.Category || '').toLowerCase().includes(q)
     );
   }
   if (blogState.category !== 'all') {
@@ -948,10 +971,6 @@ function renderFilteredBlog() {
     const thumb  = imgUrl
       ? `<div class="blog-card-thumb"><img src="${esc(imgUrl)}" alt="${esc(post.Image_Alt || post.Title + ' cover')}" loading="lazy" decoding="async" width="310" height="172"></div>`
       : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`;
-    const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
-    const tagsHTML = tagList.length
-      ? `<div class="blog-card-tags">${tagList.map(t => `<span class="blog-tag">${esc(t)}</span>`).join('')}</div>`
-      : '';
     card.innerHTML =
       `${thumb}` +
       `<div class="blog-card-body">` +
@@ -961,7 +980,6 @@ function renderFilteredBlog() {
         `</div>` +
         `<h3 class="blog-card-title">${esc(post.Title || '')}</h3>` +
         `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>` +
-        tagsHTML +
       `</div>`;
     const go = () => navigate(`/blog/${post.Slug}`);
     card.addEventListener('click', go);
@@ -1196,10 +1214,11 @@ async function renderArticle(slug) {
     `<div class="skel skel-card" style="height:320px;margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-line"></div><div class="skel skel-line m"></div><div class="skel skel-line s"></div>`;
 
-  /* Fetch blog + FAQ in parallel — faster and better for GSC detection */
-  const [blogData, faqData] = await Promise.all([
+  /* Fetch blog + FAQ + BlogImages in parallel — faster, no timing issues */
+  const [blogData, faqData, imageData] = await Promise.all([
     blogRows ? Promise.resolve(blogRows) : fetchSheet(CFG.blogSheet, 'blog'),
-    fetchSheet(CFG.faqSheet, 'faq')
+    fetchSheet(CFG.faqSheet, 'faq'),
+    fetchSheet(CFG.imagesSheet, 'blogimages')
   ]);
 
   if (!blogRows) blogRows = blogData;
@@ -1221,7 +1240,7 @@ async function renderArticle(slug) {
     return;
   }
 
-  const imgMap   = buildImgMap(post);
+  const imgMap   = buildImgMap(post, imageData);
   const coverUrl = fixImgUrl(post.Image_URL);
   const cover    = coverUrl
     ? `<img class="article-cover" src="${esc(coverUrl)}" alt="${esc(post.Image_Alt || post.Title + ' featured image')}" loading="lazy" decoding="async" width="720" height="420">`
@@ -1230,18 +1249,13 @@ async function renderArticle(slug) {
     ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>`
     : '';
 
-  const tagList   = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
-  const tagsHTML  = tagList.length
-    ? `<div class="article-tags">${tagList.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>`
-    : '';
-
   /* Update SEO before FAQ so schema is in head ASAP */
   updateSEO({
     title:       post.Title,
     desc:        post.Excerpt,
     path:        `/blog/${post.Slug}`,
     ogImage:     coverUrl || '',
-    articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl, tags: tagList }
+    articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl }
   });
 
   /* Build FAQ using pre-fetched data — no extra network request */
@@ -1254,7 +1268,6 @@ async function renderArticle(slug) {
       `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
     `</div>` +
     `<h2 class="article-title">${esc(post.Title || '')}</h2>` +
-    tagsHTML +
     cover +
     `<div class="article-body">${md(post.Content || '', imgMap)}${tableHTML}</div>` +
     faqHTML;

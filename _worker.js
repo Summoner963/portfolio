@@ -1,10 +1,12 @@
-const BLOG_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1132024800&single=true&output=csv';
-const FAQ_SHEET_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv';
-const SITE_URL       = 'https://suman-dangal.com.np';
+const BLOG_SHEET_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1132024800&single=true&output=csv';
+const FAQ_SHEET_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv';
+const IMAGES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1267436347&single=true&output=csv';
+const SITE_URL         = 'https://suman-dangal.com.np';
 
-// Separate caches for blog and FAQ sheets
+// Separate caches for blog, FAQ and BlogImages sheets
 let blogCache = null, blogCacheTime = 0;
 let faqCache  = null, faqCacheTime  = 0;
+let imgCache  = null, imgCacheTime  = 0;
 const CACHE_MS = 10 * 60 * 1000;
 
 export default {
@@ -71,10 +73,27 @@ async function getFaqData() {
   }
 }
 
+// ── Fetch + cache BlogImages sheet ──
+async function getImageData() {
+  // If no sheet URL configured yet, return empty array gracefully
+  if (!IMAGES_SHEET_URL || IMAGES_SHEET_URL.includes('PASTE_YOUR')) return [];
+  const now = Date.now();
+  if (imgCache && (now - imgCacheTime) < CACHE_MS) return imgCache;
+  try {
+    const text = await fetch(IMAGES_SHEET_URL).then(r => r.text());
+    imgCache = parseCSV(text);
+    imgCacheTime = now;
+    return imgCache;
+  } catch (e) {
+    console.warn('Worker: images sheet fetch failed', e.message);
+    return imgCache || [];
+  }
+}
+
 // ── Prerender blog post ──
 async function prerenderBlogPost(slug, env, request) {
-  // Fetch blog + FAQ in parallel
-  const [blogRows, faqRows] = await Promise.all([getBlogData(), getFaqData()]);
+  // Fetch blog + FAQ + BlogImages in parallel — all three cached independently
+  const [blogRows, faqRows, imageRows] = await Promise.all([getBlogData(), getFaqData(), getImageData()]);
 
   const post = blogRows.find(r => (r.Slug || '').trim() === slug);
 
@@ -97,14 +116,27 @@ async function prerenderBlogPost(slug, env, request) {
   const category = post.Category || 'Post';
   const postUrl  = `${SITE_URL}/blog/${slug}`;
   const imageUrl = fixImgUrl(post.Image_URL || '');
-  const tagList  = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
-  const keywordsStr = tagList.join(', ');
 
-  // Build imgMap from Img1_URL, Img2_URL ... columns
+  // Build imgMap — merge inline Img1_URL cols (fallback) with BlogImages sheet rows.
+  // BlogImages sheet rows always win and can add unlimited images.
   const imgMap = {};
+
+  // Step 1: seed from inline columns Img1_URL … for backwards compatibility
   for (const key of Object.keys(post)) {
     const m = key.match(/^[Ii]mg(\d+)_[Uu][Rr][Ll]$/);
-    if (m) imgMap[`img${m[1]}`] = post[key];
+    if (m) imgMap[`img${m[1]}`] = { url: post[key], alt: post[`Img${m[1]}_Alt`] || '' };
+  }
+
+  // Step 2: overlay with BlogImages sheet rows — sorted by Img_Number
+  if (imageRows?.length) {
+    imageRows
+      .filter(r => (r.Blog_Slug || '').trim() === slug)
+      .sort((a, b) => Number(a.Img_Number || 0) - Number(b.Img_Number || 0))
+      .forEach(r => {
+        const num = Number(r.Img_Number || 0);
+        if (!num || !r.Img_URL) return;
+        imgMap[`img${num}`] = { url: (r.Img_URL || '').trim(), alt: (r.Img_Alt || '').trim() };
+      });
   }
 
   const bodyHTML = renderMarkdown(post.Content || '', imgMap);
@@ -156,7 +188,6 @@ async function prerenderBlogPost(slug, env, request) {
   <title>${escHtml(title)} | Suman Dangal</title>
   <meta name="description" content="${escHtml(excerpt)}">
   <meta name="robots" content="index, follow">
-  ${keywordsStr ? `<meta name="keywords" content="${escHtml(keywordsStr)}">` : ''}
   <link rel="canonical" href="${postUrl}">
   <meta property="og:title"       content="${escHtml(title)} | Suman Dangal">
   <meta property="og:description" content="${escHtml(excerpt)}">
@@ -174,7 +205,6 @@ async function prerenderBlogPost(slug, env, request) {
     "url": "${postUrl}",
     "author": { "@type": "Person", "name": "Suman Dangal", "url": "${SITE_URL}" }
     ${imageUrl ? `,"image": "${escJson(imageUrl)}"` : ''}
-    ${keywordsStr ? `,"keywords": "${escJson(keywordsStr)}"` : ''}
   }
   </script>
 
@@ -212,7 +242,6 @@ async function prerenderBlogPost(slug, env, request) {
     <span class="cat">${escHtml(category)}</span>
     <time datetime="${escHtml(date)}">${escHtml(date)}</time>
   </div>
-  ${tagList.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem">${tagList.map(t => `<span style="font-family:monospace;font-size:.7rem;padding:.2rem .55rem;border-radius:.25rem;background:#edf5f0;border:1px solid rgba(45,106,79,.2);color:#2d6a4f">${escHtml(t)}</span>`).join('')}</div>` : ''}
   ${imageUrl ? `<img src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400">` : ''}
   <div>${bodyHTML}</div>
   ${faqSectionHTML}
@@ -357,9 +386,13 @@ function renderMarkdown(text, imgMap) {
     const imgMatch = l.trim().match(/^\[img(\d+)\]$/i);
     if (imgMatch && imgMap) {
       closeList();
-      const src = fixImgUrl(imgMap[`img${imgMatch[1]}`] || '');
-      if (src) {
-        out.push(`<img src="${escHtml(src)}" alt="article image ${imgMatch[1]}" style="max-width:100%;border-radius:.5rem;margin:1rem 0;display:block" loading="lazy">`);
+      const entry = imgMap[`img${imgMatch[1]}`];
+      if (entry) {
+        const src    = fixImgUrl(typeof entry === 'object' ? entry.url : entry);
+        const altTxt = (typeof entry === 'object' && entry.alt) ? entry.alt : `article image ${imgMatch[1]}`;
+        if (src) {
+          out.push(`<figure style="margin:1.5rem 0"><img src="${escHtml(src)}" alt="${escHtml(altTxt)}" style="max-width:100%;border-radius:.5rem;display:block" loading="lazy"><figcaption style="font-size:.75rem;color:#8a9688;text-align:center;margin-top:.4rem;font-style:italic">${escHtml(altTxt)}</figcaption></figure>`);
+        }
       }
       continue;
     }
