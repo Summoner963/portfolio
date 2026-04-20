@@ -11,8 +11,8 @@ export default {
     const url  = new URL(request.url);
     const path = url.pathname;
 
-    // ── Static assets — serve directly ──
-    if (path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
+    // ── Static assets — serve directly (sitemap.xml excluded — handled dynamically below) ──
+    if (path !== '/sitemap.xml' && path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
       try { return await env.ASSETS.fetch(request); }
       catch { return new Response('Not found', { status: 404 }); }
     }
@@ -185,23 +185,32 @@ async function prerenderBlogPost(slug, env, request) {
   <div id="spa-root" style="display:none"></div>
 
   <script>
-    // Only load the full SPA for real browsers (not bots)
-    // Bots will read the static shell above and leave — no reload, no redirect.
+    // Load the full SPA only for real human browsers.
+    // Any hint of a bot = stay on the static shell, don't touch the network.
     (function() {
       var ua = navigator.userAgent || '';
-      var isBot = /googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex|facebot|twitterbot|linkedinbot|crawler|spider/i.test(ua);
-      if (!isBot && typeof fetch === 'function') {
-        // Fetch the SPA shell (index.html) and replace the page content
+
+      // Broad bot pattern — covers Googlebot, GSC renderer, AdsBot, APIs-Google,
+      // social crawlers, and generic spiders. When in doubt, treat as bot.
+      var isBot = /google|bing|yandex|baidu|duckduck|slurp|facebook|twitter|linkedin|whatsapp|telegram|apple|pinterest|reddit|slack|discord|crawler|spider|bot|headless|prerender|fetch|python|curl|wget|java|ruby|go-http|node-fetch/i.test(ua);
+
+      // Also bail out if there's no real window interaction capability
+      // (headless Chrome used by GSC has window but no real user gesture history)
+      var looksReal = typeof window !== 'undefined'
+        && typeof document !== 'undefined'
+        && typeof history !== 'undefined'
+        && navigator.cookieEnabled;
+
+      if (!isBot && looksReal) {
         fetch('/')
           .then(function(r){ return r.text(); })
           .then(function(html){
-            // Replace entire document with the SPA
             document.open();
             document.write(html);
             document.close();
           })
           .catch(function(){
-            // SPA failed to load — static shell stays visible, that's fine
+            // SPA failed — static shell stays, user still sees content
           });
       }
     })();
