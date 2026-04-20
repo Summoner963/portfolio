@@ -644,7 +644,8 @@ function md(text, imgMap = {}) {
     if (inUL) { out += '</ul>'; inUL = false; }
     if (inOL) { out += '</ol>'; inOL = false; }
   };
-  for (const raw of text.split(/\n|\|/)) {
+  const lines = text.includes('\n') ? text.split(/\n/).map(l => l.startsWith('|') ? l.slice(1) : l) : text.split('|');
+  for (const raw of lines) {
     const trimmed = raw.trim();
     if (toks[trimmed]) { closeL(); out += toks[trimmed]; continue; }
     if (trimmed === '```') {
