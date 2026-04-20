@@ -181,6 +181,11 @@ h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;lin
 .blog-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
 h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem;line-height:1.25;flex:1;color:var(--accent2)}
 .blog-card-excerpt{font-size:.83rem;color:var(--muted);line-height:1.65}
+.blog-card-tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.75rem}
+.blog-tag{font-family:var(--mono);font-size:.63rem;padding:.18rem .55rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted-light);letter-spacing:.03em;transition:border-color .15s,color .15s}
+.blog-tag:hover{border-color:var(--accent);color:var(--accent)}
+.article-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.6rem}
+.article-tag{font-family:var(--mono);font-size:.68rem;padding:.22rem .65rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)}
 
 /* ── Pagination ── */
 .pagination{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:3rem;font-family:var(--mono);font-size:.85rem;color:var(--muted);min-height:52px}
@@ -472,7 +477,7 @@ const CFG = {
   expSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=245982630&single=true&output=csv',
   aboutSheet:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1066410604&single=true&output=csv',
   faqSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv',
-  imagesSheet:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1267436347&single=true&output=csv'
+  imagesSheet:   'PASTE_YOUR_BLOG_IMAGES_SHEET_GID_URL_HERE'
 };
 
 const $   = id => document.getElementById(id);
@@ -798,6 +803,7 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
       datePublished:   articleMeta.date,
       image:           articleMeta.imageUrl || `${CFG.siteUrl}/og.png`,
       url,
+      keywords:        (articleMeta.tags || []).join(', '),
       author: { '@type': 'Person', name: 'Suman Dangal', url: CFG.siteUrl }
     });
   } else if (dynSd) {
@@ -857,7 +863,8 @@ function applyBlogFilters(rows) {
     result = result.filter(p =>
       (p.Title    || '').toLowerCase().includes(q) ||
       (p.Excerpt  || '').toLowerCase().includes(q) ||
-      (p.Category || '').toLowerCase().includes(q)
+      (p.Category || '').toLowerCase().includes(q) ||
+      (p.Tags     || '').toLowerCase().includes(q)
     );
   }
   if (blogState.category !== 'all') {
@@ -971,6 +978,10 @@ function renderFilteredBlog() {
     const thumb  = imgUrl
       ? `<div class="blog-card-thumb"><img src="${esc(imgUrl)}" alt="${esc(post.Image_Alt || post.Title + ' cover')}" loading="lazy" decoding="async" width="310" height="172"></div>`
       : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`;
+    const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+    const tagsHTML = tagList.length
+      ? `<div class="blog-card-tags">${tagList.map(t => `<span class="blog-tag">${esc(t)}</span>`).join('')}</div>`
+      : '';
     card.innerHTML =
       `${thumb}` +
       `<div class="blog-card-body">` +
@@ -980,6 +991,7 @@ function renderFilteredBlog() {
         `</div>` +
         `<h3 class="blog-card-title">${esc(post.Title || '')}</h3>` +
         `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>` +
+        tagsHTML +
       `</div>`;
     const go = () => navigate(`/blog/${post.Slug}`);
     card.addEventListener('click', go);
@@ -1250,12 +1262,17 @@ async function renderArticle(slug) {
     : '';
 
   /* Update SEO before FAQ so schema is in head ASAP */
+  const tagList   = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  const tagsHTML  = tagList.length
+    ? `<div class="article-tags">${tagList.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>`
+    : '';
+
   updateSEO({
     title:       post.Title,
     desc:        post.Excerpt,
     path:        `/blog/${post.Slug}`,
     ogImage:     coverUrl || '',
-    articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl }
+    articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl, tags: tagList }
   });
 
   /* Build FAQ using pre-fetched data — no extra network request */
@@ -1268,6 +1285,7 @@ async function renderArticle(slug) {
       `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
     `</div>` +
     `<h2 class="article-title">${esc(post.Title || '')}</h2>` +
+    tagsHTML +
     cover +
     `<div class="article-body">${md(post.Content || '', imgMap)}${tableHTML}</div>` +
     faqHTML;
