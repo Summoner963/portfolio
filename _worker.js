@@ -97,6 +97,8 @@ async function prerenderBlogPost(slug, env, request) {
   const category = post.Category || 'Post';
   const postUrl  = `${SITE_URL}/blog/${slug}`;
   const imageUrl = fixImgUrl(post.Image_URL || '');
+  const tagList  = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  const keywordsStr = tagList.join(', ');
 
   // Build imgMap from Img1_URL, Img2_URL ... columns
   const imgMap = {};
@@ -154,6 +156,7 @@ async function prerenderBlogPost(slug, env, request) {
   <title>${escHtml(title)} | Suman Dangal</title>
   <meta name="description" content="${escHtml(excerpt)}">
   <meta name="robots" content="index, follow">
+  ${keywordsStr ? `<meta name="keywords" content="${escHtml(keywordsStr)}">` : ''}
   <link rel="canonical" href="${postUrl}">
   <meta property="og:title"       content="${escHtml(title)} | Suman Dangal">
   <meta property="og:description" content="${escHtml(excerpt)}">
@@ -171,6 +174,7 @@ async function prerenderBlogPost(slug, env, request) {
     "url": "${postUrl}",
     "author": { "@type": "Person", "name": "Suman Dangal", "url": "${SITE_URL}" }
     ${imageUrl ? `,"image": "${escJson(imageUrl)}"` : ''}
+    ${keywordsStr ? `,"keywords": "${escJson(keywordsStr)}"` : ''}
   }
   </script>
 
@@ -208,6 +212,7 @@ async function prerenderBlogPost(slug, env, request) {
     <span class="cat">${escHtml(category)}</span>
     <time datetime="${escHtml(date)}">${escHtml(date)}</time>
   </div>
+  ${tagList.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem">${tagList.map(t => `<span style="font-family:monospace;font-size:.7rem;padding:.2rem .55rem;border-radius:.25rem;background:#edf5f0;border:1px solid rgba(45,106,79,.2);color:#2d6a4f">${escHtml(t)}</span>`).join('')}</div>` : ''}
   ${imageUrl ? `<img src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400">` : ''}
   <div>${bodyHTML}</div>
   ${faqSectionHTML}
