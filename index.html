@@ -505,11 +505,11 @@ function fixImgUrl(url) {
   if (!url) return '';
   url = url.trim();
   const m1 = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
-  if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+  if (m1) return `https://lh3.googleusercontent.com/d/${m1[1]}`;
   const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+  if (m2) return `https://lh3.googleusercontent.com/d/${m2[1]}`;
   const m3 = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
-  if (m3) return `https://drive.google.com/uc?export=view&id=${m3[1]}`;
+  if (m3) return `https://lh3.googleusercontent.com/d/${m3[1]}`;
   return url;
 }
 
@@ -620,7 +620,7 @@ function md(text, imgMap = {}) {
     if (inUL) { out += '</ul>'; inUL = false; }
     if (inOL) { out += '</ol>'; inOL = false; }
   };
-  for (const raw of text.split('\n')) {
+  for (const raw of text.split(/\n|\|/)) {
     const trimmed = raw.trim();
     if (toks[trimmed]) { closeL(); out += toks[trimmed]; continue; }
     if (trimmed === '```') {
