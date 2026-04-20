@@ -5,25 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Suman Dangal — Dev &amp; QA Engineer</title>
   <meta name="description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships in Nepal." />
-  <link id="canonical" rel="canonical" href="https://sumanportfolio-4tq.pages.dev/" />
+  <link id="canonical" rel="canonical" href="https://suman-dangal.com.np/" />
   <meta property="og:type"        content="website" />
   <meta property="og:site_name"   content="Suman Dangal" />
   <meta property="og:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
   <meta property="og:description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships." />
-  <meta property="og:url"         content="https://sumanportfolio-4tq.pages.dev/" />
-  <meta property="og:image"       content="https://sumanportfolio-4tq.pages.dev/og.png" />
+  <meta property="og:url"         content="https://suman-dangal.com.np/" />
+  <meta property="og:image"       content="https://suman-dangal.com.np/og.png" />
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
   <meta name="twitter:description" content="Final-year BCA student. Full-stack Dev &amp; QA." />
-  <meta name="twitter:image"       content="https://sumanportfolio-4tq.pages.dev/og.png" />
+  <meta name="twitter:image"       content="https://suman-dangal.com.np/og.png" />
 
-  <!-- ── Static Person schema (always present) ── -->
   <script type="application/ld+json" id="static-person-schema">
   {
     "@context": "https://schema.org",
     "@type": "Person",
     "name": "Suman Dangal",
-    "url": "https://sumanportfolio-4tq.pages.dev/",
+    "url": "https://suman-dangal.com.np/",
     "email": "sumandangal888@gmail.com",
     "jobTitle": "Dev & QA Engineer",
     "address": {
@@ -34,105 +33,167 @@
     "sameAs": ["https://linkedin.com/in/sumandangal963"]
   }
   </script>
-  <!-- Dynamic schemas injected here by JS: dyn-schema, bc-schema, faq-schema -->
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
   <style>
-:root{--bg:#0c0f0d;--surface:#131613;--card:#191d19;--border:#272d27;--accent:#7bffa0;--accent2:#4fd8ff;--accent3:#ffcf6b;--text:#e6ece7;--muted:#78896b;--serif:'DM Serif Display',serif;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--nav-h:62px;--max:1080px;--ease:cubic-bezier(.4,0,.2,1)}
+/* ══════════════════════════════════════════════
+   CLEAN MINIMAL THEME — White / Charcoal / Forest Green
+   ══════════════════════════════════════════════ */
+:root{
+  --bg:#ffffff;
+  --surface:#f7f8f6;
+  --card:#ffffff;
+  --border:#e2e6df;
+  --border-dark:#c8d0c4;
+  --accent:#2d6a4f;       /* Forest Green */
+  --accent-light:#52b788; /* lighter green for hover states */
+  --accent-bg:#edf5f0;    /* very light green tint */
+  --accent2:#1b4332;      /* Deep forest — headings/bold */
+  --accent3:#b7791f;      /* Amber for highlights */
+  --text:#1a1e1a;         /* Deep Charcoal */
+  --muted:#5a6659;        /* Muted charcoal-green */
+  --muted-light:#8a9688;
+  --serif:'DM Serif Display',serif;
+  --mono:'DM Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+  --nav-h:62px;
+  --max:1080px;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.05);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.1),0 4px 12px rgba(0,0,0,.06);
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;overflow-x:hidden}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.04'/%3E%3C/svg%3E");opacity:.35}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
-#nprogress{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--accent);z-index:10001;box-shadow:0 0 8px rgba(123,255,160,.6);transition:width .25s var(--ease),opacity .4s;pointer-events:none}
-nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;background:rgba(12,15,13,.85);backdrop-filter:blur(18px) saturate(1.2);border-bottom:1px solid rgba(255,255,255,.04)}
-.nav-brand{font-family:var(--mono);font-size:.84rem;color:var(--accent);letter-spacing:.06em;text-decoration:none;cursor:pointer}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+#nprogress{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--accent);z-index:10001;box-shadow:0 0 6px rgba(45,106,79,.4);transition:width .25s var(--ease),opacity .4s;pointer-events:none}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;background:rgba(255,255,255,.92);backdrop-filter:blur(18px) saturate(1.2);border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.nav-brand{font-family:var(--mono);font-size:.84rem;color:var(--accent);letter-spacing:.06em;text-decoration:none;cursor:pointer;font-weight:500}
 .nav-links{display:flex;gap:2.4rem;list-style:none}
 .nav-links a{font-family:var(--mono);font-size:.75rem;color:var(--muted);text-decoration:none;letter-spacing:.09em;text-transform:uppercase;transition:color .2s;cursor:pointer}
 .nav-links a:hover,.nav-links a[aria-current="page"]{color:var(--accent)}
+.nav-links a[aria-current="page"]{font-weight:500}
 .nav-burger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
 .nav-burger span{display:block;width:21px;height:1.5px;background:var(--text);border-radius:1px;transition:all .3s}
 .nav-burger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
 .nav-burger.open span:nth-child(2){opacity:0}
 .nav-burger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+
+/* ── App shell ── */
 #app{padding-top:var(--nav-h);min-height:100vh}
 .view{display:none}
 .view.active{display:block;animation:viewIn .32s var(--ease) both}
-@keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-/* H1 hidden on non-home views — toggled by JS */
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 h1.hero-title.h1-hidden{display:none}
 .container{max-width:var(--max);margin:0 auto;padding:5rem 4rem}
-.section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem}
+.section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;font-weight:500}
 .section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border);max-width:64px}
-h2.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem}
-.hero{min-height:calc(100vh - var(--nav-h));display:grid;place-items:center;padding:4rem;position:relative;overflow:hidden}
-.hero-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(123,255,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(123,255,160,.025) 1px,transparent 1px);background-size:56px 56px}
-.hero-glow{position:absolute;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(123,255,160,.055) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+h2.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
+
+/* ── Hero ── */
+.hero{min-height:calc(100vh - var(--nav-h));display:grid;place-items:center;padding:4rem;position:relative;overflow:hidden;background:linear-gradient(160deg, #f0f7f2 0%, #ffffff 55%, #f7f8f6 100%)}
+.hero-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:.45}
+.hero-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(45,106,79,.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
 .hero-inner{position:relative;max-width:860px;width:100%}
-.hero-badge{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.7rem;color:var(--accent);background:rgba(123,255,160,.07);border:1px solid rgba(123,255,160,.18);padding:.3rem .9rem;border-radius:2rem;letter-spacing:.13em;text-transform:uppercase;margin-bottom:1.8rem;animation:fadeUp .55s ease both}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.7rem;color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.3rem .9rem;border-radius:2rem;letter-spacing:.13em;text-transform:uppercase;margin-bottom:1.8rem;animation:fadeUp .55s ease both;font-weight:500}
 .hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-h1.hero-title{font-family:var(--serif);font-size:clamp(3rem,8.5vw,7rem);line-height:1.04;letter-spacing:-.02em;margin-bottom:1.5rem;animation:fadeUp .55s .08s ease both}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+h1.hero-title{font-family:var(--serif);font-size:clamp(3rem,8.5vw,7rem);line-height:1.04;letter-spacing:-.02em;margin-bottom:1.5rem;animation:fadeUp .55s .08s ease both;color:var(--accent2)}
 h1.hero-title em{font-style:italic;color:var(--accent)}
 .hero-sub{font-size:1.05rem;color:var(--muted);max-width:500px;line-height:1.75;margin-bottom:2.4rem;animation:fadeUp .55s .15s ease both}
 .hero-ctas{display:flex;gap:1rem;flex-wrap:wrap;animation:fadeUp .55s .22s ease both}
 .hero-stats{display:flex;gap:3rem;flex-wrap:wrap;margin-top:4rem;padding-top:2.5rem;border-top:1px solid var(--border);animation:fadeUp .55s .3s ease both}
 .stat-num{font-family:var(--serif);font-size:2.1rem;color:var(--accent);display:block}
 .stat-lbl{font-family:var(--mono);font-size:.67rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
-@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Buttons ── */
 .btn{display:inline-flex;align-items:center;gap:.45rem;font-family:var(--mono);font-size:.8rem;font-weight:500;letter-spacing:.05em;padding:.8rem 1.8rem;border-radius:.4rem;text-decoration:none;cursor:pointer;border:none;transition:all .2s;white-space:nowrap}
-.btn-solid{background:var(--accent);color:#0c0f0d}
-.btn-solid:hover{background:#5dff87;transform:translateY(-2px);box-shadow:0 8px 28px rgba(123,255,160,.22)}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
-.btn-ghost:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+.btn-solid{background:var(--accent);color:#ffffff}
+.btn-solid:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.btn-ghost{background:transparent;border:1.5px solid var(--border-dark);color:var(--text)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);background:var(--accent-bg)}
+
+/* ── Skills ── */
 .skills-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1.4rem}
-.skill-card{background:var(--card);border:1px solid var(--border);border-radius:.7rem;padding:1.7rem;position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
-.skill-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .3s}
-.skill-card.c-green::before{background:var(--accent)}.skill-card.c-blue::before{background:var(--accent2)}.skill-card.c-amber::before{background:var(--accent3)}
-.skill-card:hover{border-color:rgba(255,255,255,.1);transform:translateY(-3px)}.skill-card:hover::before{opacity:1}
+.skill-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;padding:1.7rem;position:relative;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s;box-shadow:var(--shadow-sm)}
+.skill-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;opacity:0;transition:opacity .3s;border-radius:.8rem .8rem 0 0}
+.skill-card.c-green::before{background:var(--accent)}
+.skill-card.c-blue::before{background:#2563eb}
+.skill-card.c-amber::before{background:var(--accent3)}
+.skill-card:hover{border-color:var(--accent-light);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.skill-card:hover::before{opacity:1}
 .skill-icon{font-size:1.4rem;margin-bottom:.9rem}
-.skill-name{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem}
+.skill-name{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;font-weight:500}
 .tag-row{display:flex;flex-wrap:wrap;gap:.45rem}
-.tag{font-family:var(--mono);font-size:.69rem;padding:.22rem .6rem;border-radius:.25rem;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text)}
+.tag{font-family:var(--mono);font-size:.69rem;padding:.22rem .6rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+
+/* ── Projects ── */
 .projects-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem}
-.proj-card{background:var(--card);border:1px solid var(--border);border-radius:.7rem;padding:2rem;transition:border-color .25s,transform .25s,box-shadow .25s}
+.proj-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;padding:2rem;transition:border-color .25s,transform .25s,box-shadow .25s;box-shadow:var(--shadow-sm)}
 .proj-card.feat{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center}
 .proj-card.wide{grid-column:span 2}
-.proj-card:hover{border-color:rgba(123,255,160,.2);transform:translateY(-3px);box-shadow:0 18px 55px rgba(0,0,0,.35)}
-.proj-num{font-family:var(--mono);font-size:.68rem;color:var(--accent);letter-spacing:.12em;margin-bottom:.9rem}
-h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;line-height:1.2}
+.proj-card:hover{border-color:rgba(45,106,79,.3);transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.proj-num{font-family:var(--mono);font-size:.68rem;color:var(--accent);letter-spacing:.12em;margin-bottom:.9rem;font-weight:500}
+h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;line-height:1.2;color:var(--accent2)}
 .proj-desc{font-size:.87rem;color:var(--muted);line-height:1.65;margin-bottom:1.4rem}
 .proj-bullets{list-style:none;margin-bottom:1.4rem}
-.proj-bullets li{font-size:.81rem;color:var(--muted);padding:.32rem 0 .32rem 1.1rem;position:relative;border-bottom:1px solid rgba(255,255,255,.025)}
+.proj-bullets li{font-size:.81rem;color:var(--muted);padding:.32rem 0 .32rem 1.1rem;position:relative;border-bottom:1px solid var(--border)}
 .proj-bullets li::before{content:'→';position:absolute;left:0;color:var(--accent);font-size:.72rem;top:.38rem}
 .proj-stack{display:flex;flex-wrap:wrap;gap:.38rem}
-.proj-stack .tag{font-size:.65rem;background:rgba(123,255,160,.05);border-color:rgba(123,255,160,.12);color:var(--accent)}
+.proj-stack .tag{font-size:.65rem;background:var(--accent-bg);border-color:rgba(45,106,79,.2);color:var(--accent)}
 .proj-links{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.2rem}
-.proj-visual{background:var(--surface);border-radius:.5rem;border:1px solid var(--border);height:190px;display:grid;place-items:center;font-size:2.8rem;opacity:.55}
-.proj-note{font-size:.75rem;color:var(--muted);opacity:.65;margin-top:.45rem;font-style:italic}
+.proj-visual{background:var(--surface);border-radius:.5rem;border:1.5px solid var(--border);height:190px;display:grid;place-items:center;font-size:2.8rem}
+.proj-note{font-size:.75rem;color:var(--muted-light);margin-top:.45rem;font-style:italic}
+
+/* ══════════════════════════════════════════════
+   BLOG — SEARCH + FILTER + SORT BAR
+   ══════════════════════════════════════════════ */
+.blog-toolbar{display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;margin-bottom:2rem;padding:1.2rem 1.4rem;background:var(--surface);border:1.5px solid var(--border);border-radius:.8rem}
+.blog-search-wrap{flex:1;min-width:200px;position:relative;display:flex;align-items:center}
+.blog-search-wrap svg{position:absolute;left:.75rem;width:15px;height:15px;stroke:var(--muted);fill:none;pointer-events:none;flex-shrink:0}
+#blogSearch{width:100%;height:38px;padding:0 .75rem 0 2.4rem;border:1.5px solid var(--border);border-radius:.4rem;background:var(--card);color:var(--text);font-family:var(--sans);font-size:.85rem;outline:none;transition:border-color .2s}
+#blogSearch::placeholder{color:var(--muted-light)}
+#blogSearch:focus{border-color:var(--accent)}
+.blog-filters{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.filter-label{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:.2rem;font-weight:500}
+.filter-chip{font-family:var(--mono);font-size:.7rem;padding:.32rem .8rem;border-radius:2rem;border:1.5px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .18s;letter-spacing:.04em}
+.filter-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.filter-chip.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.blog-sort-wrap{display:flex;align-items:center;gap:.5rem;margin-left:auto}
+#blogSort{height:38px;padding:0 2rem 0 .75rem;border:1.5px solid var(--border);border-radius:.4rem;background:var(--card);color:var(--text);font-family:var(--mono);font-size:.75rem;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a6659' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .6rem center;transition:border-color .2s}
+#blogSort:focus{border-color:var(--accent)}
+.blog-results-count{font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-left:auto;white-space:nowrap}
+
+/* ── Blog grid ── */
 .blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.4rem}
-.blog-card{background:var(--card);border:1px solid var(--border);border-radius:.7rem;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s,box-shadow .25s;display:flex;flex-direction:column}
-.blog-card:hover{border-color:rgba(123,255,160,.22);transform:translateY(-3px);box-shadow:0 14px 45px rgba(0,0,0,.35)}
+.blog-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s,box-shadow .25s;display:flex;flex-direction:column;box-shadow:var(--shadow-sm)}
+.blog-card:hover{border-color:rgba(45,106,79,.3);transform:translateY(-3px);box-shadow:var(--shadow-lg)}
 .blog-card-thumb{width:100%;height:172px;overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2.4rem;border-bottom:1px solid var(--border);flex-shrink:0}
 .blog-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .blog-card-body{padding:1.4rem;flex:1;display:flex;flex-direction:column}
-.blog-card-meta{display:flex;align-items:center;gap:.7rem;font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.06em;margin-bottom:.7rem}
-.blog-cat{color:var(--accent);background:rgba(123,255,160,.07);border:1px solid rgba(123,255,160,.18);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem}
-h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem;line-height:1.25;flex:1}
+.blog-card-meta{display:flex;align-items:center;gap:.7rem;font-family:var(--mono);font-size:.65rem;color:var(--muted-light);letter-spacing:.06em;margin-bottom:.7rem}
+.blog-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
+h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem;line-height:1.25;flex:1;color:var(--accent2)}
 .blog-card-excerpt{font-size:.83rem;color:var(--muted);line-height:1.65}
+
 /* ── Pagination ── */
 .pagination{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:3rem;font-family:var(--mono);font-size:.85rem;color:var(--muted);min-height:52px}
 .pagination .btn{padding:.5rem 1.2rem;font-size:.75rem}
+
 /* ── Article ── */
 #view-article .container{max-width:720px}
 .article-back{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;margin-bottom:2.4rem;transition:color .2s;letter-spacing:.05em}
 .article-back:hover{color:var(--accent)}
-.article-meta{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-bottom:1.4rem;letter-spacing:.06em}
-h2.article-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.1;margin-bottom:1.8rem}
-/* aspect-ratio reserves layout space before image loads → zero CLS */
-.article-cover{width:100%;max-height:420px;object-fit:cover;border-radius:.7rem;border:1px solid var(--border);margin-bottom:2.2rem;display:block;aspect-ratio:720/420}
+.article-meta{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-bottom:1.4rem;letter-spacing:.06em}
+h2.article-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.1;margin-bottom:1.8rem;color:var(--accent2)}
+.article-cover{width:100%;max-height:420px;object-fit:cover;border-radius:.7rem;border:1.5px solid var(--border);margin-bottom:2.2rem;display:block;aspect-ratio:720/420}
 .article-body h2{font-family:var(--serif);font-size:1.55rem;margin:2rem 0 1rem;color:var(--text)}
 .article-body h3{font-family:var(--serif);font-size:1.15rem;margin:1.5rem 0 .7rem;color:var(--accent)}
 .article-body p{color:var(--muted);line-height:1.82;margin-bottom:1.2rem;font-size:.94rem}
@@ -140,77 +201,84 @@ h2.article-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);lin
 .article-body a{color:var(--accent);text-underline-offset:3px}
 .article-body ul,.article-body ol{padding-left:1.4rem;margin-bottom:1.2rem}
 .article-body li{color:var(--muted);font-size:.9rem;line-height:1.8;margin-bottom:.3rem}
-.article-body blockquote{border-left:2px solid var(--accent);padding:.4rem 0 .4rem 1.4rem;margin:1.5rem 0}
+.article-body blockquote{border-left:2px solid var(--accent);padding:.4rem 0 .4rem 1.4rem;margin:1.5rem 0;background:var(--accent-bg);border-radius:0 .4rem .4rem 0}
 .article-body blockquote p{color:var(--text);font-style:italic;margin:0}
-.article-body code{font-family:var(--mono);font-size:.8rem;background:rgba(123,255,160,.07);border:1px solid rgba(123,255,160,.14);padding:.14rem .38rem;border-radius:.25rem;color:var(--accent)}
-.article-body pre{background:var(--card);border:1px solid var(--border);border-radius:.6rem;padding:1.4rem;overflow-x:auto;margin-bottom:1.4rem}
+.article-body code{font-family:var(--mono);font-size:.8rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.18);padding:.14rem .38rem;border-radius:.25rem;color:var(--accent)}
+.article-body pre{background:var(--surface);border:1.5px solid var(--border);border-radius:.6rem;padding:1.4rem;overflow-x:auto;margin-bottom:1.4rem}
 .article-body pre code{background:none;border:none;padding:0;color:var(--text)}
-/* Inline images with aspect-ratio to prevent CLS */
-.blog-inline-img{display:block;width:100%;height:auto;border-radius:.6rem;border:1px solid var(--border);aspect-ratio:16/9;object-fit:cover;background:var(--surface)}
+.blog-inline-img{display:block;width:100%;height:auto;border-radius:.6rem;border:1.5px solid var(--border);aspect-ratio:16/9;object-fit:cover;background:var(--surface)}
 figure.blog-figure{margin:2rem 0}
-figure.blog-figure figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted);text-align:center;margin-top:.55rem;letter-spacing:.04em;font-style:italic}
-/* Sheet-injected HTML (tables) */
+figure.blog-figure figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted-light);text-align:center;margin-top:.55rem;letter-spacing:.04em;font-style:italic}
 .sheet-html-block{margin:1.8rem 0;overflow-x:auto}
 .sheet-html-block table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.77rem}
-.sheet-html-block th{background:rgba(123,255,160,.07);color:var(--accent);padding:.6rem 1rem;text-align:left;border-bottom:1px solid rgba(123,255,160,.18);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.sheet-html-block th{background:var(--accent-bg);color:var(--accent2);padding:.6rem 1rem;text-align:left;border-bottom:2px solid rgba(45,106,79,.2);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
 .sheet-html-block td{padding:.55rem 1rem;color:var(--muted);border-bottom:1px solid var(--border)}
-.sheet-html-block tr:hover td{background:rgba(255,255,255,.018)}
-/* ── FAQ section (AEO) ── */
+.sheet-html-block tr:hover td{background:var(--surface)}
+
+/* ── FAQ ── */
 .faq-section{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border)}
-.faq-section h2{font-family:var(--serif);font-size:1.55rem;margin-bottom:1.4rem;color:var(--text)}
-details.faq-item{border:1px solid var(--border);border-radius:.6rem;margin-bottom:.75rem;overflow:hidden;transition:border-color .2s}
-details.faq-item[open]{border-color:rgba(123,255,160,.3)}
+.faq-section h2{font-family:var(--serif);font-size:1.55rem;margin-bottom:1.4rem;color:var(--accent2)}
+details.faq-item{border:1.5px solid var(--border);border-radius:.6rem;margin-bottom:.75rem;overflow:hidden;transition:border-color .2s;background:var(--card)}
+details.faq-item[open]{border-color:rgba(45,106,79,.3)}
 summary.faq-question{font-family:var(--sans);font-weight:500;font-size:.92rem;padding:1rem 1.2rem;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;color:var(--text);user-select:none}
 summary.faq-question::-webkit-details-marker{display:none}
 summary.faq-question::after{content:'+';font-family:var(--mono);font-size:1.1rem;color:var(--accent);transition:transform .25s;flex-shrink:0;margin-left:.8rem}
 details.faq-item[open] summary.faq-question::after{transform:rotate(45deg)}
 .faq-answer{padding:.75rem 1.2rem 1rem;font-size:.88rem;color:var(--muted);line-height:1.75;border-top:1px solid var(--border)}
+
 /* ── Timeline ── */
 .timeline{position:relative;padding-left:1.9rem}
-.timeline::before{content:'';position:absolute;left:0;top:.4rem;bottom:0;width:1px;background:linear-gradient(to bottom,var(--accent),transparent)}
+.timeline::before{content:'';position:absolute;left:0;top:.4rem;bottom:0;width:2px;background:linear-gradient(to bottom,var(--accent),var(--border))}
 .tl-item{position:relative;padding-bottom:3rem}
-.tl-dot{position:absolute;left:-2.35rem;top:.35rem;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(123,255,160,.45)}
-.tl-date{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.08em;margin-bottom:.45rem}
-h3.tl-role{font-family:var(--serif);font-size:1.25rem;margin-bottom:.2rem}
+.tl-dot{position:absolute;left:-2.4rem;top:.35rem;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 2px var(--accent)}
+.tl-date{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.08em;margin-bottom:.45rem;font-weight:500}
+h3.tl-role{font-family:var(--serif);font-size:1.25rem;margin-bottom:.2rem;color:var(--accent2)}
 .tl-org{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin-bottom:.9rem}
 .tl-list{list-style:none}
 .tl-list li{font-size:.86rem;color:var(--muted);padding:.35rem 0 .35rem 1.1rem;position:relative}
 .tl-list li::before{content:'▸';position:absolute;left:0;color:var(--accent);font-size:.67rem;top:.42rem}
+
 /* ── About ── */
 .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start}
 .about-text p{color:var(--muted);line-height:1.82;margin-bottom:1.2rem;font-size:.94rem}
 .about-text strong{color:var(--text);font-weight:500}
 .info-row{display:flex;justify-content:space-between;align-items:center;padding:.9rem 0;border-bottom:1px solid var(--border);gap:1rem}
-.info-label{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.info-label{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;font-weight:500}
 .info-val{color:var(--text);font-size:.88rem;text-align:right}
-.edu-card{background:var(--card);border:1px solid var(--border);border-left:2px solid var(--accent);border-radius:.7rem;padding:1.4rem;margin-top:1.4rem}
-h3.edu-deg{font-family:var(--serif);font-size:1.08rem;margin-bottom:.35rem}
+.edu-card{background:var(--accent-bg);border:1.5px solid rgba(45,106,79,.2);border-left:3px solid var(--accent);border-radius:.7rem;padding:1.4rem;margin-top:1.4rem}
+h3.edu-deg{font-family:var(--serif);font-size:1.08rem;margin-bottom:.35rem;color:var(--accent2)}
 .edu-uni{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+
 /* ── Contact ── */
 #view-contact .container{text-align:center}
 .contact-grid{display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;margin-top:2rem}
-.contact-tile{display:inline-flex;align-items:center;gap:.55rem;padding:.85rem 1.7rem;border:1px solid var(--border);border-radius:.5rem;text-decoration:none;color:var(--text);font-family:var(--mono);font-size:.77rem;letter-spacing:.05em;transition:all .2s;background:var(--card)}
-.contact-tile:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.3)}
+.contact-tile{display:inline-flex;align-items:center;gap:.55rem;padding:.85rem 1.7rem;border:1.5px solid var(--border);border-radius:.5rem;text-decoration:none;color:var(--text);font-family:var(--mono);font-size:.77rem;letter-spacing:.05em;transition:all .2s;background:var(--card);box-shadow:var(--shadow-sm)}
+.contact-tile:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-3px);box-shadow:var(--shadow-md);background:var(--accent-bg)}
+
 /* ── Skeleton ── */
-.skel{background:linear-gradient(90deg,var(--card) 0%,var(--border) 50%,var(--card) 100%);background-size:200% 100%;animation:shimmer 1.3s infinite;border-radius:.5rem}
+.skel{background:linear-gradient(90deg,var(--surface) 0%,var(--border) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.3s infinite;border-radius:.5rem}
 @keyframes shimmer{to{background-position:-200% 0}}
 .skel-card{height:200px}.skel-line{height:15px;margin-bottom:.75rem}.skel-line.s{width:38%}.skel-line.m{width:62%}
+
 /* ── Scroll reveal ── */
-.reveal{opacity:0;transform:translateY(22px);transition:opacity .55s var(--ease),transform .55s var(--ease)}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .55s var(--ease),transform .55s var(--ease)}
 .reveal.in{opacity:1;transform:translateY(0)}
-.empty-state{grid-column:1/-1;font-family:var(--mono);font-size:.84rem;color:var(--muted);padding:2rem 0;text-align:center}
+.empty-state{grid-column:1/-1;font-family:var(--mono);font-size:.84rem;color:var(--muted-light);padding:3rem 0;text-align:center}
+
 /* ── 404 overlay ── */
 #spa-404-overlay{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:var(--bg)}
 .not-found-wrap{text-align:center;padding:2rem}
-.not-found-code{font-family:var(--serif);font-size:7rem;color:var(--accent);opacity:.12;line-height:1;margin-bottom:.5rem;display:block}
-.not-found-wrap h2{font-family:var(--serif);font-size:2rem;margin-bottom:.7rem}
+.not-found-code{font-family:var(--serif);font-size:7rem;color:var(--accent);opacity:.1;line-height:1;margin-bottom:.5rem;display:block}
+.not-found-wrap h2{font-family:var(--serif);font-size:2rem;margin-bottom:.7rem;color:var(--accent2)}
 .not-found-wrap p{color:var(--muted);font-size:.9rem;max-width:400px;margin:0 auto 2rem}
+
 /* ── Footer ── */
-footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted);letter-spacing:.04em}
+footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted-light);letter-spacing:.04em;background:var(--surface)}
+
 /* ── Mobile ── */
 @media(max-width:768px){
   nav{padding:0 1.5rem}
-  .nav-links{display:none;flex-direction:column;gap:0;position:fixed;top:var(--nav-h);left:0;right:0;background:rgba(12,15,13,.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:1rem 1.5rem;z-index:999}
+  .nav-links{display:none;flex-direction:column;gap:0;position:fixed;top:var(--nav-h);left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:1rem 1.5rem;z-index:999}
   .nav-links.open{display:flex}.nav-links li{border-bottom:1px solid var(--border)}.nav-links li:last-child{border-bottom:none}
   .nav-links a{display:block;padding:.85rem 0;font-size:.82rem}.nav-burger{display:flex}
   .container{padding:3.5rem 1.5rem}.hero{padding:3rem 1.5rem}
@@ -220,6 +288,9 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   .about-grid{grid-template-columns:1fr;gap:2.2rem}.info-row{flex-direction:column;align-items:flex-start;gap:.2rem}.info-val{text-align:left}
   .contact-grid{flex-direction:column;align-items:center}.contact-tile{width:100%;max-width:340px;justify-content:center}
   footer{flex-direction:column;gap:.45rem;text-align:center;padding:1.5rem}
+  .blog-toolbar{flex-direction:column;align-items:stretch}
+  .blog-sort-wrap{margin-left:0}
+  .blog-results-count{margin-left:0}
 }
 @media(max-width:480px){.hero-ctas{flex-direction:column}.btn{justify-content:center}}
   </style>
@@ -246,7 +317,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
 
 <div id="app" role="main">
 
-  <!-- HOME — the ONLY place h1 lives -->
+  <!-- HOME -->
   <div id="view-home" class="view" role="region" aria-label="Home">
     <section class="hero" id="heroSection" aria-label="Hero section">
       <div class="hero-grid" aria-hidden="true"></div>
@@ -297,10 +368,31 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
     <section class="container">
       <div class="section-eyebrow">Writing &amp; Notes</div>
       <h2 class="section-heading">Blog</h2>
+
+      <!-- ── Search · Filter · Sort toolbar ── -->
+      <div class="blog-toolbar" id="blogToolbar" style="display:none" role="search" aria-label="Blog search and filters">
+        <div class="blog-search-wrap">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="search" id="blogSearch" placeholder="Search posts…" autocomplete="off" aria-label="Search blog posts" />
+        </div>
+        <div class="blog-filters" id="blogFilters" aria-label="Filter by category">
+          <span class="filter-label">Filter:</span>
+          <!-- chips injected by JS -->
+        </div>
+        <div class="blog-sort-wrap">
+          <select id="blogSort" aria-label="Sort posts">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Title A → Z</option>
+            <option value="za">Title Z → A</option>
+          </select>
+        </div>
+        <span class="blog-results-count" id="blogResultsCount" aria-live="polite"></span>
+      </div>
+
       <div id="blogGrid" class="blog-grid" aria-live="polite" aria-label="Blog post list">
         <div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>
       </div>
-      <!-- min-height prevents CLS when pagination renders -->
       <div id="blogPagination" class="pagination" aria-label="Blog pagination"></div>
     </section>
   </div>
@@ -337,7 +429,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
         </div>
         <div class="about-info">
           <div class="info-row"><span class="info-label">Location</span><span class="info-val">Balkot, Bhaktapur, Nepal</span></div>
-          <div class="info-row"><span class="info-label">Availability</span><span class="info-val" style="color:var(--accent)">Open to Opportunities</span></div>
+          <div class="info-row"><span class="info-label">Availability</span><span class="info-val" style="color:var(--accent);font-weight:500">Open to Opportunities</span></div>
           <div class="info-row"><span class="info-label">Languages</span><span class="info-val">English · Nepali · Hindi</span></div>
           <div class="info-row"><span class="info-label">Focus</span><span class="info-val">Full-Stack Dev, QA Testing</span></div>
           <div class="info-row"><span class="info-label">Email</span><span class="info-val">sumandangal888@gmail.com</span></div>
@@ -364,7 +456,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
     </section>
   </div>
 
-</div><!-- /#app -->
+</div>
 
 <footer role="contentinfo">
   <span>© 2026 Suman Dangal</span>
@@ -375,11 +467,8 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
 (() => {
 'use strict';
 
-/* ════════════════════════════════════════════════════════════════════════
-   CONFIG
-════════════════════════════════════════════════════════════════════════ */
 const CFG = {
-  siteUrl:       'https://sumanportfolio-4tq.pages.dev',
+  siteUrl:       'https://suman-dangal.com.np',
   cacheMins:     10,
   postsPerPage:  6,
   blogSheet:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1132024800&single=true&output=csv',
@@ -387,12 +476,9 @@ const CFG = {
   projectsSheet: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=0&single=true&output=csv',
   expSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=245982630&single=true&output=csv',
   aboutSheet:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=1066410604&single=true&output=csv',
-  faqSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv'   /* ← PASTE YOUR FAQ SHEET CSV URL HERE */
+  faqSheet:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc/pub?gid=303688554&single=true&output=csv'
 };
 
-/* ════════════════════════════════════════════════════════════════════════
-   UTILS
-════════════════════════════════════════════════════════════════════════ */
 const $   = id => document.getElementById(id);
 const qs  = s  => document.querySelector(s);
 const qsa = s  => document.querySelectorAll(s);
@@ -401,12 +487,10 @@ const burger  = $('burger');
 const navList = $('navLinks');
 const h1El    = $('site-h1');
 
-/* Escape HTML — used before injecting user/sheet data into innerHTML */
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-/* ── Progress bar ── */
 let pTimer, pVal = 0;
 function pStart() {
   pVal = 0; bar.style.width = '0%'; bar.style.opacity = '1';
@@ -417,17 +501,6 @@ function pEnd() {
   setTimeout(() => { bar.style.opacity = '0'; }, 380);
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   GOOGLE DRIVE URL NORMALISER
-   Converts any Drive sharing URL to a direct-serve URL so it works in
-   <img src="..."> without CORS issues.
-
-   Supported patterns:
-     /file/d/FILE_ID/view  →  uc?export=view&id=FILE_ID
-     /open?id=FILE_ID      →  uc?export=view&id=FILE_ID
-     /uc?id=FILE_ID        →  uc?export=view&id=FILE_ID  (normalised)
-     anything else         →  unchanged
-════════════════════════════════════════════════════════════════════════ */
 function fixImgUrl(url) {
   if (!url) return '';
   url = url.trim();
@@ -440,9 +513,6 @@ function fixImgUrl(url) {
   return url;
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   CSV PARSER — handles quoted fields, commas inside quotes, escaped quotes
-════════════════════════════════════════════════════════════════════════ */
 function parseCSV(raw) {
   const lines = raw.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
@@ -466,15 +536,7 @@ function splitRow(line) {
   return cols.map(s => s.replace(/^"|"$/g, '').replace(/""/g, '"'));
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   STALE-WHILE-REVALIDATE CACHE
-   ─ FRESH  (age < cacheMins): return localStorage instantly, no network
-   ─ STALE  (age > cacheMins): return cached data immediately for instant
-     render, revalidate in background, call onRevalidate(freshData) when done
-   ─ EMPTY  (first visit): must fetch synchronously then cache
-════════════════════════════════════════════════════════════════════════ */
 const NS = 'sd3_';
-
 function cGet(key) {
   try {
     const it = JSON.parse(localStorage.getItem(NS + key));
@@ -485,7 +547,7 @@ function cGet(key) {
 function cSet(key, data) {
   try {
     localStorage.setItem(NS + key, JSON.stringify({ data, exp: Date.now() + CFG.cacheMins * 60_000 }));
-  } catch { /* localStorage quota exceeded — silently skip */ }
+  } catch {}
 }
 async function _doFetch(url, key) {
   try {
@@ -500,20 +562,13 @@ async function fetchSheet(url, key, onRevalidate) {
   if (!url) return null;
   const { data, stale } = cGet(key);
   if (data) {
-    if (!stale) return data;                              // FRESH — instant
-    _doFetch(url, key).then(fresh => {                    // STALE — background revalidate
-      if (fresh && onRevalidate) onRevalidate(fresh);
-    });
+    if (!stale) return data;
+    _doFetch(url, key).then(fresh => { if (fresh && onRevalidate) onRevalidate(fresh); });
     return data;
   }
-  return _doFetch(url, key);                              // EMPTY — must wait
+  return _doFetch(url, key);
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   HTML SANITISER
-   Whitelist-based. Strips all tags not in SAFE_TAGS and all attributes
-   not explicitly allowed. Used for Table_HTML from the sheet.
-════════════════════════════════════════════════════════════════════════ */
 const SAFE_TAGS = new Set(['table','thead','tbody','tfoot','tr','th','td','strong','em','b','i','br','p','ul','ol','li','a','span']);
 function sanitizeHTML(raw) {
   if (!raw) return '';
@@ -535,15 +590,6 @@ function sanitizeHTML(raw) {
   return doc.body.innerHTML;
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   INLINE IMAGE SHORTCODE SYSTEM
-   ─────────────────────────────────────────────────────────────────────
-   Sheet columns: Img1_URL | Img1_Alt | Img2_URL | Img2_Alt | …
-
-   In Content column, place [img1], [img2] … anywhere on their own line
-   or inline within text. Each becomes a <figure> with loading="lazy",
-   explicit width/height (prevents CLS), and Drive URL auto-fixed.
-════════════════════════════════════════════════════════════════════════ */
 function buildImgMap(post) {
   const map = {};
   let n = 1;
@@ -552,8 +598,7 @@ function buildImgMap(post) {
     const alt = esc(post[`Img${n}_Alt`] || post.Title || '');
     map[`[img${n}]`] =
       `<figure class="blog-figure">` +
-        `<img class="blog-inline-img" src="${esc(url)}" alt="${alt}" ` +
-             `loading="lazy" decoding="async" width="680" height="383">` +
+        `<img class="blog-inline-img" src="${esc(url)}" alt="${alt}" loading="lazy" decoding="async" width="680" height="383">` +
         `<figcaption>${alt}</figcaption>` +
       `</figure>`;
     n++;
@@ -561,16 +606,8 @@ function buildImgMap(post) {
   return map;
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   MINI-MARKDOWN RENDERER + SHORTCODE INJECTION
-   Supports: ## h2, ### h3, **bold**, *italic*, `code`, ```pre```,
-             > blockquote, - ul, 1. ol, [text](url), [imgN] shortcodes
-════════════════════════════════════════════════════════════════════════ */
 function md(text, imgMap = {}) {
   if (!text) return '';
-
-  /* Replace [imgN] tokens with unique non-HTML placeholders so they survive
-     esc() later — we'll substitute them back after line processing */
   const toks = {};
   let ti = 0;
   for (const [code, html] of Object.entries(imgMap)) {
@@ -578,40 +615,29 @@ function md(text, imgMap = {}) {
     toks[tok] = html;
     text = text.split(code).join(tok);
   }
-
   let out = '', inUL = false, inOL = false, inPRE = false;
   const closeL = () => {
     if (inUL) { out += '</ul>'; inUL = false; }
     if (inOL) { out += '</ol>'; inOL = false; }
   };
-
   for (const raw of text.split('\n')) {
     const trimmed = raw.trim();
-
-    /* Token on its own line (inline image shortcode) */
     if (toks[trimmed]) { closeL(); out += toks[trimmed]; continue; }
-
-    /* Code fence toggle */
     if (trimmed === '```') {
       if (inPRE) { out += '</code></pre>'; inPRE = false; }
       else { closeL(); out += '<pre><code>'; inPRE = true; }
       continue;
     }
     if (inPRE) { out += esc(raw) + '\n'; continue; }
-
-    /* Inline transforms — esc first then apply markdown spans */
     let l = esc(raw)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g,     '<em>$1</em>')
       .replace(/`([^`]+)`/g,     '<code>$1</code>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
         (_, t, u) => `<a href="${u.replace(/&amp;/g,'&')}" target="_blank" rel="noopener">${t}</a>`);
-
-    /* Restore any mid-line shortcode tokens */
     for (const [tok, html] of Object.entries(toks)) {
       if (l.includes(tok)) l = l.split(tok).join(html);
     }
-
     if      (/^## /.test(l))    { closeL(); out += `<h2>${l.slice(3)}</h2>`; }
     else if (/^### /.test(l))   { closeL(); out += `<h3>${l.slice(4)}</h3>`; }
     else if (/^&gt; /.test(l))  { closeL(); out += `<blockquote><p>${l.slice(5)}</p></blockquote>`; }
@@ -625,39 +651,18 @@ function md(text, imgMap = {}) {
   return out;
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   FAQ BUILDER  (AEO / GEO Power-Up)
-   ─────────────────────────────────────────────────────────────────────
-   Data lives in a SEPARATE FAQ sheet with columns:
-     Blog_Slug | FAQ_Number | FAQ_Question | FAQ_Answer
-
-   Add as many rows as you want per blog — no limit.
-   Rows are sorted by FAQ_Number before rendering.
-
-   Fetches the FAQ sheet, filters by current post slug, injects
-   FAQPage JSON-LD schema, and returns collapsible <details> HTML
-   shown at the bottom of each blog article.
-════════════════════════════════════════════════════════════════════════ */
 async function buildFAQ(slug) {
-  /* Remove any leftover FAQ schema from previous article */
   const old = $('faq-schema');
   if (old) old.remove();
-
   if (!CFG.faqSheet) return '';
-
   const allFaqs = await fetchSheet(CFG.faqSheet, 'faq');
   if (!allFaqs?.length) return '';
-
-  /* Filter to this slug and sort by FAQ_Number */
   const pairs = allFaqs
     .filter(r => (r.Blog_Slug || '').trim() === slug)
     .sort((a, b) => Number(a.FAQ_Number || 0) - Number(b.FAQ_Number || 0))
     .map(r => ({ q: (r.FAQ_Question || '').trim(), a: (r.FAQ_Answer || '').trim() }))
     .filter(p => p.q && p.a);
-
   if (!pairs.length) return '';
-
-  /* ── Inject FAQPage JSON-LD ── */
   const faqSd = document.createElement('script');
   faqSd.id   = 'faq-schema';
   faqSd.type = 'application/ld+json';
@@ -671,36 +676,21 @@ async function buildFAQ(slug) {
     }))
   });
   document.head.appendChild(faqSd);
-
-  /* ── Render interactive <details> ── */
   const items = pairs.map(p => `
     <details class="faq-item">
       <summary class="faq-question">${esc(p.q)}</summary>
       <div class="faq-answer">${esc(p.a)}</div>
     </details>`).join('');
-
   return `<section class="faq-section" aria-label="Frequently Asked Questions">
     <h2>Frequently Asked Questions</h2>
     ${items}
   </section>`;
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   SEO META UPDATER
-   Updates on every route change:
-     • <title>
-     • <meta name="description">
-     • <link rel="canonical">
-     • Open Graph + Twitter card tags
-     • H1 visibility (shown only on home)
-     • BlogPosting JSON-LD (articles only)
-     • BreadcrumbList JSON-LD (all routes)
-════════════════════════════════════════════════════════════════════════ */
 function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   const ft  = title ? `${title} | Suman Dangal` : 'Suman Dangal — Dev & QA Engineer';
   const md_ = desc  || 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.';
   const url = `${CFG.siteUrl}${path || '/'}`;
-
   document.title = ft;
   qs('meta[name="description"]').content        = md_;
   $('canonical').href                           = url;
@@ -713,11 +703,7 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
     qs('meta[property="og:image"]').content     = ogImage;
     qs('meta[name="twitter:image"]').content    = ogImage;
   }
-
-  /* H1 rule: visible ONLY on home view */
   h1El.classList.toggle('h1-hidden', !(!path || path === '/'));
-
-  /* BlogPosting schema — injected on article, removed everywhere else */
   let dynSd = $('dyn-schema');
   if (articleMeta) {
     if (!dynSd) {
@@ -739,8 +725,6 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   } else if (dynSd) {
     dynSd.remove();
   }
-
-  /* BreadcrumbList — updated on every route */
   let bcSd = $('bc-schema');
   if (!bcSd) {
     bcSd = document.createElement('script');
@@ -759,7 +743,6 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   });
 }
 
-/* ── Scroll-reveal ── */
 const rvObs = new IntersectionObserver(entries => {
   entries.forEach((e, i) => {
     if (e.isIntersecting) {
@@ -770,235 +753,160 @@ const rvObs = new IntersectionObserver(entries => {
 }, { threshold: 0.07 });
 function watchReveals() { qsa('.reveal:not(.in)').forEach(el => rvObs.observe(el)); }
 
-/* ════════════════════════════════════════════════════════════════════════
-   STATIC FALLBACKS
-   Shown immediately if the sheet fetch fails or returns empty.
-════════════════════════════════════════════════════════════════════════ */
-const FB = {
-  skills: `<div class="skill-card c-green reveal"><div class="skill-icon">🐍</div><div class="skill-name">Languages</div><div class="tag-row"><span class="tag">Python</span><span class="tag">Java</span><span class="tag">PHP</span><span class="tag">JavaScript</span><span class="tag">HTML5</span><span class="tag">CSS3</span></div></div><div class="skill-card c-blue reveal"><div class="skill-icon">⚙️</div><div class="skill-name">Frameworks &amp; Backend</div><div class="tag-row"><span class="tag">Django</span><span class="tag">Django REST</span><span class="tag">PHP OOP</span><span class="tag">SQLite</span><span class="tag">MySQL</span><span class="tag">MariaDB</span></div></div><div class="skill-card c-amber reveal"><div class="skill-icon">📱</div><div class="skill-name">Mobile &amp; Tools</div><div class="tag-row"><span class="tag">Android Studio</span><span class="tag">Java (Android)</span><span class="tag">XML Layouts</span><span class="tag">Git</span><span class="tag">Bluetooth APIs</span></div></div><div class="skill-card c-green reveal"><div class="skill-icon">🧪</div><div class="skill-name">QA &amp; Concepts</div><div class="tag-row"><span class="tag">Manual Testing</span><span class="tag">Test Case Writing</span><span class="tag">REST APIs</span><span class="tag">OOP</span><span class="tag">SDLC</span><span class="tag">SQL Injection Prevention</span><span class="tag">Prompt Engineering</span></div></div>`,
-  projects: `<article class="proj-card feat reveal"><div><div class="proj-num">01 / Featured</div><h3 class="proj-title">Django E-commerce Platform</h3><p class="proj-desc">Full-stack product listing, cart, and checkout using Django's MVT architecture.</p><ul class="proj-bullets"><li>Verified 100% of CRUD operations across relational SQLite database</li><li>Wrote edge-case &amp; error-handling test suites; prevented SQL injection</li><li>Resolved all frontend-to-backend data discrepancies found in testing</li></ul><div class="proj-stack"><span class="tag">Django</span><span class="tag">Python</span><span class="tag">SQLite</span><span class="tag">Django REST</span><span class="tag">Manual Testing</span></div><p class="proj-note">⚠️ ~60s cold start on free Render hosting</p><div class="proj-links"><a href="https://ecommerce-ksmw.onrender.com/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></div><div class="proj-visual">🛒</div></article><article class="proj-card reveal"><div class="proj-num">02</div><h3 class="proj-title">College Library Management System</h3><p class="proj-desc">PHP OOP application managing book inventory and student borrowing records.</p><ul class="proj-bullets"><li>100% accuracy in book-to-student mapping</li><li>Resolved edge-case bugs in borrow/return logic</li><li>SQL-safe input handling throughout</li></ul><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">MySQL</span><span class="tag">OOP</span></div><div class="proj-links"><a href="https://collglibsys.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article><article class="proj-card reveal"><div class="proj-num">03</div><h3 class="proj-title">Bluetooth Messaging App</h3><p class="proj-desc">Android app enabling peer-to-peer Bluetooth messaging with local data persistence.</p><ul class="proj-bullets"><li>Tested connectivity across multiple device combos</li><li>Resolved stability issues for consistent delivery</li></ul><div class="proj-stack"><span class="tag">Java</span><span class="tag">Android Studio</span><span class="tag">Bluetooth API</span><span class="tag">XML</span></div></article><article class="proj-card wide reveal"><div class="proj-num">04</div><h3 class="proj-title">Book E-commerce Platform</h3><p class="proj-desc">Full-stack PHP app with authentication, product management, sandbox payment, and order tracking.</p><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">HTML</span><span class="tag">CSS</span><span class="tag">JavaScript</span><span class="tag">Authentication</span></div><div class="proj-links"><a href="https://bookecom.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article>`,
-  experience: `<div class="tl-item reveal"><div class="tl-dot"></div><time class="tl-date" datetime="2025-09">SEP 2025 – DEC 2025</time><h3 class="tl-role">SEO Intern</h3><div class="tl-org">Sathi Edtech Pvt. Ltd. · Kathmandu</div><ul class="tl-list"><li>Monitored traffic with Google Search Console; produced keyword reports</li><li>Corrected metadata errors, improving crawl efficiency</li><li>Optimized 10+ blog posts with high-ranking keywords</li></ul></div><div class="tl-item reveal"><div class="tl-dot"></div><time class="tl-date" datetime="2026-01">JAN 2026</time><h3 class="tl-role">Data Validation &amp; Testing</h3><div class="tl-org">Personal Project · Django E-commerce Platform</div><ul class="tl-list"><li>Verified pricing, inventory, and user data across all CRUD ops</li><li>Wrote test cases covering edge cases and error-handling routines</li><li>Resolved 100% of data discrepancies found during testing</li></ul></div><div class="tl-item reveal"><div class="tl-dot"></div><time class="tl-date" datetime="2023-01">JAN 2023</time><h3 class="tl-role">System Logic Testing</h3><div class="tl-org">Personal Project · PHP College Library System</div><ul class="tl-list"><li>Manual testing on library database logic</li><li>100% accuracy in book-to-student mapping</li><li>Resolved edge-case bugs using PHP OOP</li></ul></div>`,
-  about: `<p>I'm a <strong>final-year BCA student</strong> at Tribhuvan University, Nepal, passionate about building reliable software and catching bugs before users do.</p><p>I have hands-on experience across the full stack — from <strong>Django REST APIs</strong> and PHP backends to Android mobile apps.</p><p>I bring a <strong>testing mindset</strong> to everything I build — writing edge-case test suites, validating data across all operations, and ensuring frontend and backend always agree.</p><p>Looking for a <strong>Dev or QA Internship</strong> where I can grow fast, ship real features, and work with a team that cares about quality.</p>`
+/* ═══════════════════════════════════════════
+   BLOG SEARCH / FILTER / SORT STATE
+   ═══════════════════════════════════════════ */
+const blogState = {
+  query:    '',
+  category: 'all',
+  sort:     'newest',
+  page:     1
 };
 
-/* ════════════════════════════════════════════════════════════════════════
-   ROUTER
-   ─────────────────────────────────────────────────────────────────────
-   Uses History API (pushState). Clean URLs like /blog/my-post.
+function parseDateForSort(dateStr) {
+  if (!dateStr) return 0;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
 
-   BASE-PATH NORMALISATION (fixes local dev + Cloudflare subfolders):
-   Strips /portfolio-upload/, /index.html, /index from the path so the
-   router receives a canonical path regardless of deployment context.
+function applyBlogFilters(rows) {
+  let result = [...rows];
 
-   404 STRATEGY (safe overlay, never touches hero innerHTML):
-   Unknown routes inject a removable <div id="spa-404-overlay"> on top
-   of the hero section. Valid navigation removes the overlay immediately.
-   The hero HTML is NEVER mutated — prevents permanent corruption.
-════════════════════════════════════════════════════════════════════════ */
-const KNOWN = new Set(['', 'skills', 'projects', 'blog', 'experience', 'about', 'contact']);
-
-const VIEWS = {
-  home:       $('view-home'),
-  skills:     $('view-skills'),
-  projects:   $('view-projects'),
-  blog:       $('view-blog'),
-  article:    $('view-article'),
-  experience: $('view-experience'),
-  about:      $('view-about'),
-  contact:    $('view-contact'),
-};
-
-let blogRows = null;  /* in-memory blog cache */
-
-async function navigate(rawPath, push = true) {
-  const u = new URL(rawPath, location.origin);
-
-  /* ── Base-path normalisation ── */
-  let path = u.pathname
-    .replace(/\/portfolio-upload\/?/g, '/')
-    .replace(/\/index\.html?$/i, '/')
-    .replace(/\/+/g, '/') || '/';
-
-  const page  = parseInt(u.searchParams.get('page')) || 1;
-  const parts = path.replace(/^\//, '').split('/');
-  const route = parts[0] || '';
-  const slug  = parts[1] || '';
-
-  pStart();
-
-  /* Hide all views */
-  Object.values(VIEWS).forEach(v => v.classList.remove('active'));
-
-  /* Update nav active state */
-  qsa('.nav-links a').forEach(a => {
-    const r = new URL(a.getAttribute('href'), location.origin).pathname.replace(/^\//, '');
-    a.setAttribute('aria-current', r === route ? 'page' : 'false');
-  });
-
-  /* Push state only for known routes */
-  const full = path + (u.search || '');
-  if (push && KNOWN.has(route) && (location.pathname + location.search) !== full) {
-    history.pushState({}, '', full);
+  /* Search — title + excerpt + category */
+  if (blogState.query) {
+    const q = blogState.query.toLowerCase();
+    result = result.filter(p =>
+      (p.Title    || '').toLowerCase().includes(q) ||
+      (p.Excerpt  || '').toLowerCase().includes(q) ||
+      (p.Category || '').toLowerCase().includes(q)
+    );
   }
 
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  /* Category filter */
+  if (blogState.category !== 'all') {
+    result = result.filter(p =>
+      (p.Category || '').trim().toLowerCase() === blogState.category.toLowerCase()
+    );
+  }
 
-  /* Remove stale 404 overlay */
-  const ol = $('spa-404-overlay');
-  if (ol) ol.remove();
-
-  /* ── Route switch ── */
-  if (route === '') {
-    VIEWS.home.classList.add('active');
-    updateSEO({ path: '/' });
-    watchReveals();
-
-  } else if (route === 'skills') {
-    VIEWS.skills.classList.add('active');
-    updateSEO({ title: 'Skills & Stack', desc: 'Python, Django, PHP, Java, Android, QA. Skills of Suman Dangal.', path: '/skills' });
-    await renderSkills(); watchReveals();
-
-  } else if (route === 'projects') {
-    VIEWS.projects.classList.add('active');
-    updateSEO({ title: 'Projects', desc: 'E-commerce, library, and mobile projects by Suman Dangal.', path: '/projects' });
-    await renderProjects(); watchReveals();
-
-  } else if (route === 'blog' && !slug) {
-    VIEWS.blog.classList.add('active');
-    updateSEO({ title: 'Blog', desc: 'Dev notes, QA tips, and tech writing by Suman Dangal.', path: '/blog' });
-    await renderBlogList(page); watchReveals();
-
-  } else if (route === 'blog' && slug) {
-    VIEWS.article.classList.add('active');
-    await renderArticle(slug); watchReveals();
-
-  } else if (route === 'experience') {
-    VIEWS.experience.classList.add('active');
-    updateSEO({ title: 'Experience', desc: 'SEO Intern and QA testing by Suman Dangal.', path: '/experience' });
-    await renderExperience(); watchReveals();
-
-  } else if (route === 'about') {
-    VIEWS.about.classList.add('active');
-    updateSEO({ title: 'About Suman Dangal', desc: 'BCA student at Tribhuvan University, Bhaktapur, Nepal.', path: '/about' });
-    await renderAbout(); watchReveals();
-
-  } else if (route === 'contact') {
-    VIEWS.contact.classList.add('active');
-    updateSEO({ title: 'Contact', desc: 'Get in touch with Suman Dangal for Dev or QA internship opportunities.', path: '/contact' });
-    watchReveals();
-
-  } else {
-    /* ── 404: overlay on hero, hero HTML untouched ── */
-    const heroSec = $('heroSection');
-    if (heroSec && !$('spa-404-overlay')) {
-      heroSec.style.position = 'relative';
-      const ov = document.createElement('div');
-      ov.id = 'spa-404-overlay';
-      ov.innerHTML =
-        `<div class="not-found-wrap">` +
-          `<span class="not-found-code" aria-hidden="true">404</span>` +
-          `<h2>Page not found</h2>` +
-          `<p>The path <code style="font-family:var(--mono);color:var(--accent)">${esc(path)}</code> doesn't exist.</p>` +
-          `<a href="/" class="btn btn-solid" data-link>← Back to Home</a>` +
-        `</div>`;
-      heroSec.appendChild(ov);
+  /* Sort */
+  result.sort((a, b) => {
+    switch (blogState.sort) {
+      case 'newest': return parseDateForSort(b.Date) - parseDateForSort(a.Date);
+      case 'oldest': return parseDateForSort(a.Date) - parseDateForSort(b.Date);
+      case 'az':     return (a.Title || '').localeCompare(b.Title || '');
+      case 'za':     return (b.Title || '').localeCompare(a.Title || '');
+      default:       return 0;
     }
-    VIEWS.home.classList.add('active');
-    updateSEO({ title: '404 — Not Found', path });
-  }
+  });
 
-  pEnd();
+  return result;
 }
 
-/* ── Global link interceptor ── */
-document.addEventListener('click', e => {
-  const a = e.target.closest('[data-link]');
-  if (!a) return;
-  const href = a.getAttribute('href');
-  if (!href || /^(https?:|mailto:|tel:|#)/.test(href)) return;
-  e.preventDefault();
-  navigate(href);
-  burger.classList.remove('open');
-  navList.classList.remove('open');
-  burger.setAttribute('aria-expanded', 'false');
-});
+function buildCategoryChips(rows) {
+  const container = $('blogFilters');
+  if (!container) return;
 
-window.addEventListener('popstate', () => navigate(location.pathname + location.search, false));
-navigate(location.pathname + location.search, false);
+  /* Collect unique categories */
+  const cats = new Set();
+  rows.forEach(r => { if (r.Category) cats.add(r.Category.trim()); });
 
-/* ════════════════════════════════════════════════════════════════════════
-   RENDERERS
-════════════════════════════════════════════════════════════════════════ */
+  /* Rebuild chips */
+  container.innerHTML = '<span class="filter-label">Filter:</span>';
 
-/* ── SKILLS ── */
-async function renderSkills() {
-  const g = $('skillsGrid');
-  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(4);
-  const rows = await fetchSheet(CFG.skillsSheet, 'skills');
-  if (!rows?.length) { g.innerHTML = FB.skills; return; }
-  g.innerHTML = '';
-  rows.forEach(r => {
-    const d = document.createElement('div');
-    d.className = `skill-card ${r.color || 'c-green'} reveal`;
-    const tags = (r.tags || '').split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
-    d.innerHTML = `<div class="skill-icon">${esc(r.icon || '💡')}</div><div class="skill-name">${esc(r.title || '')}</div><div class="tag-row">${tags}</div>`;
-    g.appendChild(d);
+  const allChip = document.createElement('button');
+  allChip.className = 'filter-chip' + (blogState.category === 'all' ? ' active' : '');
+  allChip.textContent = 'All';
+  allChip.addEventListener('click', () => {
+    blogState.category = 'all'; blogState.page = 1;
+    updateChipActive(container, 'all');
+    renderFilteredBlog();
+  });
+  container.appendChild(allChip);
+
+  [...cats].sort().forEach(cat => {
+    const chip = document.createElement('button');
+    chip.className = 'filter-chip' + (blogState.category === cat ? ' active' : '');
+    chip.textContent = cat;
+    chip.dataset.cat = cat;
+    chip.addEventListener('click', () => {
+      blogState.category = cat; blogState.page = 1;
+      updateChipActive(container, cat);
+      renderFilteredBlog();
+    });
+    container.appendChild(chip);
   });
 }
 
-/* ── PROJECTS ── */
-async function renderProjects() {
-  const g = $('projectsGrid');
-  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(4);
-  const rows = await fetchSheet(CFG.projectsSheet, 'projects');
-  if (!rows?.length) { g.innerHTML = FB.projects; return; }
-  g.innerHTML = '';
-  rows.forEach((r, i) => {
-    const art = document.createElement('article');
-    art.className = 'proj-card reveal' + (r.featured === 'true' ? ' feat' : '') + (r.wide === 'true' ? ' wide' : '');
-    const buls  = (r.bullets || '').split('|').filter(Boolean).map(b => `<li>${esc(b.trim())}</li>`).join('');
-    const stack = (r.stack || '').split(',').filter(Boolean).map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
-
-    /* Hide View Project button if link is empty/null */
-    const linkHTML = (r.link && r.link.trim())
-      ? `<div class="proj-links"><a href="${esc(r.link.trim())}" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div>`
-      : '';
-
-    const vis = r.featured === 'true' ? `<div class="proj-visual" aria-hidden="true">🛒</div>` : '';
-    art.innerHTML =
-      `<div>` +
-        `<div class="proj-num">${String(i + 1).padStart(2, '0')}${r.featured === 'true' ? ' / Featured' : ''}</div>` +
-        `<h3 class="proj-title">${esc(r.title || '')}</h3>` +
-        `<p class="proj-desc">${esc(r.desc || '')}</p>` +
-        (buls ? `<ul class="proj-bullets">${buls}</ul>` : '') +
-        `<div class="proj-stack">${stack}</div>` +
-        linkHTML +
-      `</div>${vis}`;
-    g.appendChild(art);
+function updateChipActive(container, activeCat) {
+  container.querySelectorAll('.filter-chip').forEach(c => {
+    const cat = c.dataset.cat || 'all';
+    c.classList.toggle('active', cat === activeCat);
   });
 }
 
-/* ── BLOG LIST with pagination ── */
-async function renderBlogList(page = 1) {
+let searchDebounce;
+function initBlogToolbar(rows) {
+  const toolbar = $('blogToolbar');
+  const search  = $('blogSearch');
+  const sort    = $('blogSort');
+  if (!toolbar || !search || !sort) return;
+
+  toolbar.style.display = '';
+
+  buildCategoryChips(rows);
+
+  search.value = blogState.query;
+  sort.value   = blogState.sort;
+
+  /* Remove old listeners by cloning */
+  const freshSearch = search.cloneNode(true);
+  search.parentNode.replaceChild(freshSearch, search);
+  const freshSort = sort.cloneNode(true);
+  sort.parentNode.replaceChild(freshSort, sort);
+
+  freshSearch.addEventListener('input', e => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      blogState.query = e.target.value.trim();
+      blogState.page  = 1;
+      renderFilteredBlog();
+    }, 260);
+  });
+
+  freshSort.addEventListener('change', e => {
+    blogState.sort = e.target.value;
+    blogState.page = 1;
+    renderFilteredBlog();
+  });
+}
+
+function renderFilteredBlog() {
+  if (!blogRows?.length) return;
   const g   = $('blogGrid');
   const nav = $('blogPagination');
-  g.innerHTML   = '<div class="skel skel-card"></div>'.repeat(3);
-  nav.innerHTML = '';
+  const cnt = $('blogResultsCount');
 
-  blogRows = await fetchSheet(CFG.blogSheet, 'blog', fresh => {
-    blogRows = fresh;
-    /* SWR revalidation: re-render if blog list is still active */
-    if ($('view-blog').classList.contains('active')) renderBlogList(page);
-  });
+  const filtered = applyBlogFilters(blogRows);
+  const total    = Math.ceil(filtered.length / CFG.postsPerPage);
+  const safe     = Math.max(1, Math.min(blogState.page, total || 1));
+  const slice    = filtered.slice((safe - 1) * CFG.postsPerPage, safe * CFG.postsPerPage);
 
-  if (!blogRows?.length) {
-    g.innerHTML = '<p class="empty-state">No posts yet — check back soon.</p>';
-    return;
+  /* Results count */
+  if (cnt) {
+    if (blogState.query || blogState.category !== 'all') {
+      cnt.textContent = `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`;
+    } else {
+      cnt.textContent = '';
+    }
   }
 
-  const total = Math.ceil(blogRows.length / CFG.postsPerPage);
-  const safe  = Math.max(1, Math.min(page, total));
-  const slice = blogRows.slice((safe - 1) * CFG.postsPerPage, safe * CFG.postsPerPage);
+  /* Empty state */
+  if (!slice.length) {
+    g.innerHTML = '<p class="empty-state">No posts match your search — try different keywords or filters.</p>';
+    if (nav) nav.innerHTML = '';
+    return;
+  }
 
   g.innerHTML = '';
   slice.forEach(post => {
@@ -1026,17 +934,225 @@ async function renderBlogList(page = 1) {
     g.appendChild(card);
   });
 
-  /* Pagination controls — URLs use ?page=N for SEO-friendliness */
-  if (total > 1) {
-    let ctrl = '';
-    if (safe > 1) ctrl += `<a href="/blog?page=${safe - 1}" data-link class="btn btn-ghost" aria-label="Previous page">← Prev</a>`;
-    ctrl += `<span aria-live="polite">Page ${safe} of ${total}</span>`;
-    if (safe < total) ctrl += `<a href="/blog?page=${safe + 1}" data-link class="btn btn-ghost" aria-label="Next page">Next →</a>`;
-    nav.innerHTML = ctrl;
+  /* Pagination */
+  if (nav) {
+    nav.innerHTML = '';
+    if (total > 1) {
+      let ctrl = '';
+      if (safe > 1) ctrl += `<button class="btn btn-ghost" id="pgPrev" aria-label="Previous page">← Prev</button>`;
+      ctrl += `<span aria-live="polite">Page ${safe} of ${total}</span>`;
+      if (safe < total) ctrl += `<button class="btn btn-ghost" id="pgNext" aria-label="Next page">Next →</button>`;
+      nav.innerHTML = ctrl;
+      const prev = $('pgPrev'); const next = $('pgNext');
+      if (prev) prev.addEventListener('click', () => { blogState.page = safe - 1; renderFilteredBlog(); window.scrollTo({top:0,behavior:'smooth'}); });
+      if (next) next.addEventListener('click', () => { blogState.page = safe + 1; renderFilteredBlog(); window.scrollTo({top:0,behavior:'smooth'}); });
+    }
   }
+
+  watchReveals();
 }
 
-/* ── SINGLE ARTICLE ── */
+/* ═══════════════════════════════════════════
+   STATIC FALLBACKS
+   ═══════════════════════════════════════════ */
+const FB = {
+  skills: `<div class="skill-card c-green reveal"><div class="skill-icon">🐍</div><div class="skill-name">Languages</div><div class="tag-row"><span class="tag">Python</span><span class="tag">Java</span><span class="tag">PHP</span><span class="tag">JavaScript</span><span class="tag">HTML5</span><span class="tag">CSS3</span></div></div><div class="skill-card c-blue reveal"><div class="skill-icon">⚙️</div><div class="skill-name">Frameworks &amp; Backend</div><div class="tag-row"><span class="tag">Django</span><span class="tag">Django REST</span><span class="tag">PHP OOP</span><span class="tag">SQLite</span><span class="tag">MySQL</span><span class="tag">MariaDB</span></div></div><div class="skill-card c-amber reveal"><div class="skill-icon">📱</div><div class="skill-name">Mobile &amp; Tools</div><div class="tag-row"><span class="tag">Android Studio</span><span class="tag">Java (Android)</span><span class="tag">XML Layouts</span><span class="tag">Git</span><span class="tag">Bluetooth APIs</span></div></div><div class="skill-card c-green reveal"><div class="skill-icon">🧪</div><div class="skill-name">QA &amp; Concepts</div><div class="tag-row"><span class="tag">Manual Testing</span><span class="tag">Test Case Writing</span><span class="tag">REST APIs</span><span class="tag">OOP</span><span class="tag">SDLC</span><span class="tag">SQL Injection Prevention</span><span class="tag">Prompt Engineering</span></div></div>`,
+  projects: `<article class="proj-card feat reveal"><div><div class="proj-num">01 / Featured</div><h3 class="proj-title">Django E-commerce Platform</h3><p class="proj-desc">Full-stack product listing, cart, and checkout using Django's MVT architecture.</p><ul class="proj-bullets"><li>Verified 100% of CRUD operations across relational SQLite database</li><li>Wrote edge-case &amp; error-handling test suites; prevented SQL injection</li><li>Resolved all frontend-to-backend data discrepancies found in testing</li></ul><div class="proj-stack"><span class="tag">Django</span><span class="tag">Python</span><span class="tag">SQLite</span><span class="tag">Django REST</span><span class="tag">Manual Testing</span></div><p class="proj-note">⚠️ ~60s cold start on free Render hosting</p><div class="proj-links"><a href="https://ecommerce-ksmw.onrender.com/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></div><div class="proj-visual">🛒</div></article><article class="proj-card reveal"><div class="proj-num">02</div><h3 class="proj-title">College Library Management System</h3><p class="proj-desc">PHP OOP application managing book inventory and student borrowing records.</p><ul class="proj-bullets"><li>100% accuracy in book-to-student mapping</li><li>Resolved edge-case bugs in borrow/return logic</li><li>SQL-safe input handling throughout</li></ul><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">MySQL</span><span class="tag">OOP</span></div><div class="proj-links"><a href="https://collglibsys.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article><article class="proj-card reveal"><div class="proj-num">03</div><h3 class="proj-title">Bluetooth Messaging App</h3><p class="proj-desc">Android app enabling peer-to-peer Bluetooth messaging with local data persistence.</p><ul class="proj-bullets"><li>Tested connectivity across multiple device combos</li><li>Resolved stability issues for consistent delivery</li></ul><div class="proj-stack"><span class="tag">Java</span><span class="tag">Android Studio</span><span class="tag">Bluetooth API</span><span class="tag">XML</span></div></article><article class="proj-card wide reveal"><div class="proj-num">04</div><h3 class="proj-title">Book E-commerce Platform</h3><p class="proj-desc">Full-stack PHP app with authentication, product management, sandbox payment, and order tracking.</p><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">HTML</span><span class="tag">CSS</span><span class="tag">JavaScript</span><span class="tag">Authentication</span></div><div class="proj-links"><a href="https://bookecom.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article>`,
+  experience: `<div class="tl-item reveal"><div class="tl-dot"></div><time class="tl-date" datetime="2025-09">SEP 2025 – DEC 2025</time><h3 class="tl-role">SEO Intern</h3><div class="tl-org">Sathi Edtech Pvt. Ltd. · Kathmandu</div><ul class="tl-list"><li>Monitored traffic with Google Search Console; produced keyword reports</li><li>Corrected metadata errors, improving crawl efficiency</li><li>Optimized 10+ blog posts with high-ranking keywords</li></ul></div><div class="tl-item reveal"><div class="tl-dot"></div><time class="tl-date" datetime="2026-01">JAN 2026</time><h3 class="tl-role">Data Validation &amp; Testing</h3><div class="tl-org">Personal Project · Django E-commerce Platform</div><ul class="tl-list"><li>Verified pricing, inventory, and user data across all CRUD ops</li><li>Wrote test cases covering edge cases and error-handling routines</li><li>Resolved 100% of data discrepancies found during testing</li></ul></div><div class="tl-item reveal"><div class="tl-dot"></div><time class="tl-date" datetime="2023-01">JAN 2023</time><h3 class="tl-role">System Logic Testing</h3><div class="tl-org">Personal Project · PHP College Library System</div><ul class="tl-list"><li>Manual testing on library database logic</li><li>100% accuracy in book-to-student mapping</li><li>Resolved edge-case bugs using PHP OOP</li></ul></div>`,
+  about: `<p>I'm a <strong>final-year BCA student</strong> at Tribhuvan University, Nepal, passionate about building reliable software and catching bugs before users do.</p><p>I have hands-on experience across the full stack — from <strong>Django REST APIs</strong> and PHP backends to Android mobile apps.</p><p>I bring a <strong>testing mindset</strong> to everything I build — writing edge-case test suites, validating data across all operations, and ensuring frontend and backend always agree.</p><p>Looking for a <strong>Dev or QA Internship</strong> where I can grow fast, ship real features, and work with a team that cares about quality.</p>`
+};
+
+/* ═══════════════════════════════════════════
+   ROUTER
+   ═══════════════════════════════════════════ */
+const KNOWN = new Set(['', 'skills', 'projects', 'blog', 'experience', 'about', 'contact']);
+const VIEWS = {
+  home:       $('view-home'),
+  skills:     $('view-skills'),
+  projects:   $('view-projects'),
+  blog:       $('view-blog'),
+  article:    $('view-article'),
+  experience: $('view-experience'),
+  about:      $('view-about'),
+  contact:    $('view-contact'),
+};
+
+let blogRows = null;
+
+async function navigate(rawPath, push = true) {
+  const u = new URL(rawPath, location.origin);
+  let path = u.pathname
+    .replace(/\/portfolio-upload\/?/g, '/')
+    .replace(/\/index\.html?$/i, '/')
+    .replace(/\/+/g, '/') || '/';
+
+  const page  = parseInt(u.searchParams.get('page')) || 1;
+  const parts = path.replace(/^\//, '').split('/');
+  const route = parts[0] || '';
+  const slug  = parts[1] || '';
+
+  pStart();
+  Object.values(VIEWS).forEach(v => v.classList.remove('active'));
+  qsa('.nav-links a').forEach(a => {
+    const r = new URL(a.getAttribute('href'), location.origin).pathname.replace(/^\//, '');
+    a.setAttribute('aria-current', r === route ? 'page' : 'false');
+  });
+
+  const full = path + (u.search || '');
+  if (push && KNOWN.has(route) && (location.pathname + location.search) !== full) {
+    history.pushState({}, '', full);
+  }
+
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  const ol = $('spa-404-overlay');
+  if (ol) ol.remove();
+
+  if (route === '') {
+    VIEWS.home.classList.add('active');
+    updateSEO({ path: '/' });
+    watchReveals();
+
+  } else if (route === 'skills') {
+    VIEWS.skills.classList.add('active');
+    updateSEO({ title: 'Skills & Stack', desc: 'Python, Django, PHP, Java, Android, QA. Skills of Suman Dangal.', path: '/skills' });
+    await renderSkills(); watchReveals();
+
+  } else if (route === 'projects') {
+    VIEWS.projects.classList.add('active');
+    updateSEO({ title: 'Projects', desc: 'E-commerce, library, and mobile projects by Suman Dangal.', path: '/projects' });
+    await renderProjects(); watchReveals();
+
+  } else if (route === 'blog' && !slug) {
+    VIEWS.blog.classList.add('active');
+    updateSEO({ title: 'Blog', desc: 'Dev notes, QA tips, and tech writing by Suman Dangal.', path: '/blog' });
+    blogState.page = page;
+    await renderBlogList(); watchReveals();
+
+  } else if (route === 'blog' && slug) {
+    VIEWS.article.classList.add('active');
+    await renderArticle(slug); watchReveals();
+
+  } else if (route === 'experience') {
+    VIEWS.experience.classList.add('active');
+    updateSEO({ title: 'Experience', desc: 'SEO Intern and QA testing by Suman Dangal.', path: '/experience' });
+    await renderExperience(); watchReveals();
+
+  } else if (route === 'about') {
+    VIEWS.about.classList.add('active');
+    updateSEO({ title: 'About Suman Dangal', desc: 'BCA student at Tribhuvan University, Bhaktapur, Nepal.', path: '/about' });
+    await renderAbout(); watchReveals();
+
+  } else if (route === 'contact') {
+    VIEWS.contact.classList.add('active');
+    updateSEO({ title: 'Contact', desc: 'Get in touch with Suman Dangal for Dev or QA internship opportunities.', path: '/contact' });
+    watchReveals();
+
+  } else {
+    const heroSec = $('heroSection');
+    if (heroSec && !$('spa-404-overlay')) {
+      heroSec.style.position = 'relative';
+      const ov = document.createElement('div');
+      ov.id = 'spa-404-overlay';
+      ov.innerHTML =
+        `<div class="not-found-wrap">` +
+          `<span class="not-found-code" aria-hidden="true">404</span>` +
+          `<h2>Page not found</h2>` +
+          `<p>The path <code style="font-family:var(--mono);color:var(--accent)">${esc(path)}</code> doesn't exist.</p>` +
+          `<a href="/" class="btn btn-solid" data-link>← Back to Home</a>` +
+        `</div>`;
+      heroSec.appendChild(ov);
+    }
+    VIEWS.home.classList.add('active');
+    updateSEO({ title: '404 — Not Found', path });
+  }
+
+  pEnd();
+}
+
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-link]');
+  if (!a) return;
+  const href = a.getAttribute('href');
+  if (!href || /^(https?:|mailto:|tel:|#)/.test(href)) return;
+  e.preventDefault();
+  navigate(href);
+  burger.classList.remove('open');
+  navList.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+});
+
+window.addEventListener('popstate', () => navigate(location.pathname + location.search, false));
+navigate(location.pathname + location.search, false);
+
+/* ═══════════════════════════════════════════
+   RENDERERS
+   ═══════════════════════════════════════════ */
+
+async function renderSkills() {
+  const g = $('skillsGrid');
+  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(4);
+  const rows = await fetchSheet(CFG.skillsSheet, 'skills');
+  if (!rows?.length) { g.innerHTML = FB.skills; return; }
+  g.innerHTML = '';
+  rows.forEach(r => {
+    const d = document.createElement('div');
+    d.className = `skill-card ${r.color || 'c-green'} reveal`;
+    const tags = (r.tags || '').split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+    d.innerHTML = `<div class="skill-icon">${esc(r.icon || '💡')}</div><div class="skill-name">${esc(r.title || '')}</div><div class="tag-row">${tags}</div>`;
+    g.appendChild(d);
+  });
+}
+
+async function renderProjects() {
+  const g = $('projectsGrid');
+  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(4);
+  const rows = await fetchSheet(CFG.projectsSheet, 'projects');
+  if (!rows?.length) { g.innerHTML = FB.projects; return; }
+  g.innerHTML = '';
+  rows.forEach((r, i) => {
+    const art = document.createElement('article');
+    art.className = 'proj-card reveal' + (r.featured === 'true' ? ' feat' : '') + (r.wide === 'true' ? ' wide' : '');
+    const buls  = (r.bullets || '').split('|').filter(Boolean).map(b => `<li>${esc(b.trim())}</li>`).join('');
+    const stack = (r.stack || '').split(',').filter(Boolean).map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+    const linkHTML = (r.link && r.link.trim())
+      ? `<div class="proj-links"><a href="${esc(r.link.trim())}" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div>`
+      : '';
+    const vis = r.featured === 'true' ? `<div class="proj-visual" aria-hidden="true">🛒</div>` : '';
+    art.innerHTML =
+      `<div>` +
+        `<div class="proj-num">${String(i + 1).padStart(2, '0')}${r.featured === 'true' ? ' / Featured' : ''}</div>` +
+        `<h3 class="proj-title">${esc(r.title || '')}</h3>` +
+        `<p class="proj-desc">${esc(r.desc || '')}</p>` +
+        (buls ? `<ul class="proj-bullets">${buls}</ul>` : '') +
+        `<div class="proj-stack">${stack}</div>` +
+        linkHTML +
+      `</div>${vis}`;
+    g.appendChild(art);
+  });
+}
+
+async function renderBlogList() {
+  const g   = $('blogGrid');
+  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
+
+  blogRows = await fetchSheet(CFG.blogSheet, 'blog', fresh => {
+    blogRows = fresh;
+    if ($('view-blog').classList.contains('active')) {
+      initBlogToolbar(fresh);
+      renderFilteredBlog();
+    }
+  });
+
+  if (!blogRows?.length) {
+    $('blogToolbar').style.display = 'none';
+    g.innerHTML = '<p class="empty-state">No posts yet — check back soon.</p>';
+    return;
+  }
+
+  initBlogToolbar(blogRows);
+  renderFilteredBlog();
+}
+
 async function renderArticle(slug) {
   const wrap = $('articleWrap');
   wrap.innerHTML =
@@ -1048,32 +1164,26 @@ async function renderArticle(slug) {
   if (!blogRows) blogRows = await fetchSheet(CFG.blogSheet, 'blog');
   const post = blogRows?.find(p => p.Slug === slug);
 
-  /* ── 404: post not found ── */
   if (!post) {
     wrap.innerHTML =
       `<button class="article-back" id="artBack">← Back to Blog</button>` +
       `<div class="not-found-wrap">` +
         `<span class="not-found-code" aria-hidden="true">404</span>` +
         `<h2>Post not found</h2>` +
-        `<p>No post with slug <code style="font-family:var(--mono);color:var(--accent)">${esc(slug)}</code> exists. It may have been removed or the URL was mistyped.</p>` +
+        `<p>No post with slug <code style="font-family:var(--mono);color:var(--accent)">${esc(slug)}</code> exists.</p>` +
         `<a href="/blog" class="btn btn-solid" data-link>← Browse all posts</a>` +
       `</div>`;
     $('artBack').addEventListener('click', () => navigate('/blog'));
     updateSEO({ title: 'Post Not Found', path: `/blog/${slug}` });
-    /* Remove any leftover FAQ schema */
     const oldFaq = $('faq-schema');
     if (oldFaq) oldFaq.remove();
     return;
   }
 
-  /* ── Build content ── */
   const imgMap   = buildImgMap(post);
   const coverUrl = fixImgUrl(post.Image_URL);
   const cover    = coverUrl
-    ? `<img class="article-cover"
-            src="${esc(coverUrl)}"
-            alt="${esc(post.Image_Alt || post.Title + ' featured image')}"
-            loading="lazy" decoding="async" width="720" height="420">`
+    ? `<img class="article-cover" src="${esc(coverUrl)}" alt="${esc(post.Image_Alt || post.Title + ' featured image')}" loading="lazy" decoding="async" width="720" height="420">`
     : '';
   const tableHTML = post.Table_HTML
     ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>`
@@ -1096,16 +1206,12 @@ async function renderArticle(slug) {
     `</div>` +
     `<h2 class="article-title">${esc(post.Title || '')}</h2>` +
     cover +
-    `<div class="article-body">` +
-      md(post.Content || '', imgMap) +
-      tableHTML +
-    `</div>` +
+    `<div class="article-body">${md(post.Content || '', imgMap)}${tableHTML}</div>` +
     faqHTML;
 
   $('artBack').addEventListener('click', () => navigate('/blog'));
 }
 
-/* ── EXPERIENCE ── */
 async function renderExperience() {
   const tl = $('expTimeline');
   tl.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
@@ -1126,7 +1232,6 @@ async function renderExperience() {
   });
 }
 
-/* ── ABOUT ── */
 async function renderAbout() {
   const el = $('aboutText');
   el.innerHTML = '<div class="skel skel-line" style="margin-bottom:1rem"></div>'.repeat(4);
@@ -1136,7 +1241,6 @@ async function renderAbout() {
   el.innerHTML = ps.length ? ps.map(p => `<p>${esc(p)}</p>`).join('') : FB.about;
 }
 
-/* ── Mobile nav ── */
 burger.addEventListener('click', () => {
   const open = !navList.classList.contains('open');
   burger.classList.toggle('open', open);
