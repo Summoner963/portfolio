@@ -35,21 +35,8 @@
   }
   </script>
 
-  <!-- ============================================================
-       PERFORMANCE FIX 1: Preconnect to BOTH font origins early.
-       fonts.gstatic.com needs crossorigin because it serves CORS fonts.
-       This alone saves ~120-150ms from the critical chain.
-  ============================================================ -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!-- ============================================================
-       PERFORMANCE FIX 2: Non-blocking font load via preload trick.
-       rel="preload" as="style" fetches the CSS without blocking render.
-       onload swaps it to a real stylesheet once ready.
-       <noscript> handles JS-disabled browsers.
-       This removes Google Fonts from the critical render path entirely.
-  ============================================================ -->
   <link rel="preload" as="style"
     href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
     onload="this.onload=null;this.rel='stylesheet'" />
@@ -59,9 +46,6 @@
   </noscript>
 
   <style>
-/* ══════════════════════════════════════════════
-   CLEAN MINIMAL THEME — White / Charcoal / Forest Green
-   ══════════════════════════════════════════════ */
 :root{
   --bg:#ffffff;
   --surface:#f7f8f6;
@@ -76,37 +60,16 @@
   --text:#1a1e1a;
   --muted:#5a6659;
   --muted-light:#8a9688;
-
-  /* ============================================================
-     PERFORMANCE FIX 3: Calibrated fallback fonts with size-adjust.
-     size-adjust, ascent-override etc. make the fallback font
-     match DM Serif/Mono/Sans metrics so there is ZERO layout
-     shift (CLS = 0) when the custom fonts swap in.
-  ============================================================ */
   --serif:'DM Serif Display','DM Serif Display Fallback',Georgia,serif;
   --mono:'DM Mono','DM Mono Fallback','Courier New',monospace;
   --sans:'DM Sans','DM Sans Fallback',system-ui,-apple-system,sans-serif;
-
   --nav-h:62px;
   --max:1080px;
   --ease:cubic-bezier(.4,0,.2,1);
-
-  /* ============================================================
-     PERFORMANCE FIX 4: Simplified shadows — only 1 layer each.
-     Multiple box-shadow layers each trigger a composite pass.
-     Single-layer shadows are ~2x cheaper to paint.
-  ============================================================ */
   --shadow-sm:0 1px 4px rgba(0,0,0,.09);
   --shadow-md:0 4px 18px rgba(0,0,0,.1);
   --shadow-lg:0 12px 40px rgba(0,0,0,.12);
 }
-
-/* ============================================================
-   PERFORMANCE FIX 5: Fallback @font-face descriptors.
-   These tell the browser exactly how to size/space the system
-   font so it matches the web font — eliminating CLS on swap.
-   Values tuned for DM Serif Display / DM Mono / DM Sans.
-============================================================ */
 @font-face {
   font-family: 'DM Serif Display Fallback';
   src: local('Georgia');
@@ -131,19 +94,12 @@
   descent-override: 24%;
   line-gap-override: 0%;
 }
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;overflow-x:hidden}
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
 #nprogress{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--accent);z-index:10001;box-shadow:0 0 6px rgba(45,106,79,.4);transition:width .25s var(--ease),opacity .4s;pointer-events:none}
-
-/* ── Nav ──
-   FIX 6: Added contain:layout style on nav — browser won't
-   recalculate layout outside nav when its children change.
-   will-change:transform promotes nav to its own GPU layer
-   so backdrop-filter composites without triggering main-thread paint. */
 nav{
   position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;
   display:flex;align-items:center;justify-content:space-between;padding:0 4rem;
@@ -152,7 +108,6 @@ nav{
   -webkit-backdrop-filter:blur(18px) saturate(1.2);
   border-bottom:1px solid var(--border);
   box-shadow:var(--shadow-sm);
-  /* GPU layer for backdrop-filter — prevents main thread repaint on scroll */
   will-change:transform;
   contain:layout style;
 }
@@ -166,8 +121,6 @@ nav{
 .nav-burger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
 .nav-burger.open span:nth-child(2){opacity:0}
 .nav-burger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
-
-/* ── App shell ── */
 #app{padding-top:var(--nav-h);min-height:100vh}
 .view{display:none}
 .view.active{display:block;animation:viewIn .32s var(--ease) both}
@@ -177,12 +130,6 @@ h1.hero-title.h1-hidden{display:none}
 .section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;font-weight:500}
 .section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border);max-width:64px}
 .section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
-
-/* ── Hero ──
-   FIX 7: Hero background uses CSS paint worklet pattern via
-   background-image gradients only — no pseudo-element layers.
-   The grid is done with background-image (GPU-composited) not
-   a DOM element, saving one paint layer. */
 .hero{
   min-height:calc(100vh - var(--nav-h));
   display:grid;place-items:center;
@@ -192,12 +139,8 @@ h1.hero-title.h1-hidden{display:none}
     linear-gradient(90deg,var(--border) 1px,transparent 1px),
     linear-gradient(160deg,#f0f7f2 0%,#ffffff 55%,#f7f8f6 100%);
   background-size:48px 48px,48px 48px,100% 100%;
-  /* Combined: grid pattern + gradient = 1 background, 0 extra DOM nodes */
 }
-/* FIX: Remove old grid/glow divs via CSS — they still exist in HTML
-   for back-compat but cost 0 paint now */
 .hero-grid,.hero-glow{display:none}
-
 .hero-inner{position:relative;max-width:860px;width:100%}
 .hero-badge{
   display:inline-flex;align-items:center;gap:.5rem;
@@ -205,12 +148,10 @@ h1.hero-title.h1-hidden{display:none}
   background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);
   padding:.3rem .9rem;border-radius:2rem;letter-spacing:.13em;
   text-transform:uppercase;margin-bottom:1.8rem;
-  /* FIX 8: Use opacity+transform only in animations — GPU composited */
   animation:fadeUp .55s ease both;font-weight:500
 }
 .hero-badge::before{
   content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);
-  /* FIX: opacity-only animation = compositor thread, no main thread cost */
   animation:pulse 2s infinite
 }
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -233,11 +174,7 @@ h1.hero-title em{font-style:italic;color:var(--accent)}
 }
 .stat-num{font-family:var(--serif);font-size:2.1rem;color:var(--accent);display:block}
 .stat-lbl{font-family:var(--mono);font-size:.67rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
-/* FIX 9: Only translate+opacity in keyframes — these are the ONLY
-   properties that can animate on the compositor without triggering layout */
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── Buttons ── */
 .btn{
   display:inline-flex;align-items:center;gap:.45rem;
   font-family:var(--mono);font-size:.8rem;font-weight:500;
@@ -250,12 +187,6 @@ h1.hero-title em{font-style:italic;color:var(--accent)}
 .btn-solid:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .btn-ghost{background:transparent;border:1.5px solid var(--border-dark);color:var(--text)}
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);background:var(--accent-bg)}
-
-/* ── Skills ──
-   FIX 10: content-visibility:auto on grid containers lets
-   browser skip paint/layout for off-screen cards entirely.
-   contain-intrinsic-size gives it a placeholder height so
-   scroll position doesn't jump when content renders. */
 .skills-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(255px,1fr));
@@ -267,12 +198,8 @@ h1.hero-title em{font-style:italic;color:var(--accent)}
   background:var(--card);border:1.5px solid var(--border);
   border-radius:.8rem;padding:1.7rem;
   position:relative;overflow:hidden;
-  /* FIX 11: transform instead of box-shadow change on hover.
-     box-shadow triggers paint; transform is GPU-composited. */
   transition:border-color .25s,transform .25s;
   box-shadow:var(--shadow-sm);
-  /* FIX 12: contain:layout prevents layout thrashing when
-     card animates — browser won't re-measure siblings */
   contain:layout style
 }
 .skill-card::before{
@@ -288,8 +215,6 @@ h1.hero-title em{font-style:italic;color:var(--accent)}
 .skill-name{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;font-weight:500}
 .tag-row{display:flex;flex-wrap:wrap;gap:.45rem}
 .tag{font-family:var(--mono);font-size:.69rem;padding:.22rem .6rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
-
-/* ── Projects ── */
 .projects-grid{
   display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;
   content-visibility:auto;contain-intrinsic-size:0 600px
@@ -317,12 +242,9 @@ h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;lin
   background:var(--surface);border-radius:.5rem;
   border:1.5px solid var(--border);height:190px;
   display:grid;place-items:center;font-size:2.8rem;
-  /* FIX: explicit dimensions prevent layout shift */
   min-width:0
 }
 .proj-note{font-size:.75rem;color:var(--muted-light);margin-top:.45rem;font-style:italic}
-
-/* ── Blog toolbar ── */
 .blog-toolbar{
   display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;
   margin-bottom:2rem;padding:1.2rem 1.4rem;
@@ -364,8 +286,6 @@ h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;lin
 }
 #blogSort:focus{border-color:var(--accent)}
 .blog-results-count{font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-left:auto;white-space:nowrap}
-
-/* ── Blog grid ── */
 .blog-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(310px,1fr));
@@ -387,13 +307,9 @@ h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;lin
   background:var(--surface);display:flex;
   align-items:center;justify-content:center;
   font-size:2.4rem;border-bottom:1px solid var(--border);flex-shrink:0;
-  /* FIX: explicit aspect ratio prevents layout shift before image loads */
   aspect-ratio:310/172
 }
-.blog-card-thumb img{
-  width:100%;height:100%;object-fit:cover;display:block;
-  /* FIX 13: explicit dimensions on img = no CLS */
-}
+.blog-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .blog-card-body{padding:1.4rem;flex:1;display:flex;flex-direction:column}
 .blog-card-meta{display:flex;align-items:center;gap:.7rem;font-family:var(--mono);font-size:.65rem;color:var(--muted-light);letter-spacing:.06em;margin-bottom:.7rem}
 .blog-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
@@ -409,12 +325,8 @@ h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem
 .blog-tag:hover{border-color:var(--accent);color:var(--accent)}
 .article-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.6rem}
 .article-tag{font-family:var(--mono);font-size:.68rem;padding:.22rem .65rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)}
-
-/* ── Pagination ── */
 .pagination{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:3rem;font-family:var(--mono);font-size:.85rem;color:var(--muted);min-height:52px}
 .pagination .btn{padding:.5rem 1.2rem;font-size:.75rem}
-
-/* ── Article ── */
 #view-article .container{max-width:720px}
 .article-back{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;margin-bottom:2.4rem;transition:color .2s;letter-spacing:.05em}
 .article-back:hover{color:var(--accent)}
@@ -425,7 +337,6 @@ h2.article-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);lin
   border-radius:.7rem;border:1.5px solid var(--border);
   margin-bottom:2.2rem;display:block;
   aspect-ratio:720/420;
-  /* FIX: explicit dimensions = no CLS */
 }
 .article-body h2{font-family:var(--serif);font-size:1.55rem;margin:2rem 0 1rem;color:var(--text)}
 .article-body h3{font-family:var(--serif);font-size:1.15rem;margin:1.5rem 0 .7rem;color:var(--accent)}
@@ -447,8 +358,6 @@ figure.blog-figure figcaption{font-family:var(--mono);font-size:.7rem;color:var(
 .sheet-html-block th{background:var(--accent-bg);color:var(--accent2);padding:.6rem 1rem;text-align:left;border-bottom:2px solid rgba(45,106,79,.2);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
 .sheet-html-block td{padding:.55rem 1rem;color:var(--muted);border-bottom:1px solid var(--border)}
 .sheet-html-block tr:hover td{background:var(--surface)}
-
-/* ── FAQ ── */
 .faq-section{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border)}
 .faq-section h2{font-family:var(--serif);font-size:1.55rem;margin-bottom:1.4rem;color:var(--accent2)}
 details.faq-item{border:1.5px solid var(--border);border-radius:.6rem;margin-bottom:.75rem;overflow:hidden;transition:border-color .2s;background:var(--card)}
@@ -458,8 +367,6 @@ summary.faq-question::-webkit-details-marker{display:none}
 summary.faq-question::after{content:'+';font-family:var(--mono);font-size:1.1rem;color:var(--accent);transition:transform .25s;flex-shrink:0;margin-left:.8rem}
 details.faq-item[open] summary.faq-question::after{transform:rotate(45deg)}
 .faq-answer{padding:.75rem 1.2rem 1rem;font-size:.88rem;color:var(--muted);line-height:1.75;border-top:1px solid var(--border)}
-
-/* ── Timeline ── */
 .timeline{
   position:relative;padding-left:1.9rem;
   content-visibility:auto;contain-intrinsic-size:0 400px
@@ -473,8 +380,6 @@ h3.tl-role{font-family:var(--serif);font-size:1.25rem;margin-bottom:.2rem;color:
 .tl-list{list-style:none}
 .tl-list li{font-size:.86rem;color:var(--muted);padding:.35rem 0 .35rem 1.1rem;position:relative}
 .tl-list li::before{content:'▸';position:absolute;left:0;color:var(--accent);font-size:.67rem;top:.42rem}
-
-/* ── About ── */
 .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start}
 .about-text p{color:var(--muted);line-height:1.82;margin-bottom:1.2rem;font-size:.94rem}
 .about-text strong{color:var(--text);font-weight:500}
@@ -484,8 +389,6 @@ h3.tl-role{font-family:var(--serif);font-size:1.25rem;margin-bottom:.2rem;color:
 .edu-card{background:var(--accent-bg);border:1.5px solid rgba(45,106,79,.2);border-left:3px solid var(--accent);border-radius:.7rem;padding:1.4rem;margin-top:1.4rem}
 h3.edu-deg{font-family:var(--serif);font-size:1.08rem;margin-bottom:.35rem;color:var(--accent2)}
 .edu-uni{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
-
-/* ── Contact ── */
 #view-contact .container{text-align:center}
 .contact-grid{display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;margin-top:2rem}
 .contact-tile{
@@ -497,53 +400,30 @@ h3.edu-deg{font-family:var(--serif);font-size:1.08rem;margin-bottom:.35rem;color
   background:var(--card);box-shadow:var(--shadow-sm)
 }
 .contact-tile:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-3px);box-shadow:var(--shadow-md);background:var(--accent-bg)}
-
-/* ── Skeleton ──
-   FIX 14: shimmer uses transform:translateX instead of
-   background-position shift — compositor-only, zero paint cost */
-.skel{
-  background:var(--surface);
-  border-radius:.5rem;
-  overflow:hidden;
-  position:relative
-}
+.skel{background:var(--surface);border-radius:.5rem;overflow:hidden;position:relative}
 .skel::after{
-  content:'';
-  position:absolute;inset:0;
+  content:'';position:absolute;inset:0;
   background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.6) 50%,transparent 100%);
   animation:shimmer 1.3s infinite
 }
-@keyframes shimmer{
-  from{transform:translateX(-100%)}
-  to{transform:translateX(100%)}
-}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .skel-card{height:200px}.skel-line{height:15px;margin-bottom:.75rem}.skel-line.s{width:38%}.skel-line.m{width:62%}
-
-/* ── Scroll reveal ──
-   FIX 15: animation uses translate3d to force GPU layer.
-   Reduced threshold and stagger to avoid janky mobile paints. */
 .reveal{opacity:0;transform:translate3d(0,18px,0);transition:opacity .5s var(--ease),transform .5s var(--ease)}
 .reveal.in{opacity:1;transform:translate3d(0,0,0)}
-
 .empty-state{grid-column:1/-1;font-family:var(--mono);font-size:.84rem;color:var(--muted-light);padding:3rem 0;text-align:center}
-
-/* ── 404 overlay ── */
 #spa-404-overlay{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:var(--bg)}
 .not-found-wrap{text-align:center;padding:2rem}
 .not-found-code{font-family:var(--serif);font-size:7rem;color:var(--accent);opacity:.1;line-height:1;margin-bottom:.5rem;display:block}
 .not-found-wrap h2{font-family:var(--serif);font-size:2rem;margin-bottom:.7rem;color:var(--accent2)}
 .not-found-wrap p{color:var(--muted);font-size:.9rem;max-width:400px;margin:0 auto 2rem}
 
-/* ── Footer ── */
-footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted-light);letter-spacing:.04em;background:var(--surface)}
+/* ══════════════════════════════════════════════
+   FIX: Footer contrast — changed color from var(--muted-light) [#8a9688, ratio 2.9]
+   to var(--muted) [#5a6659, ratio 5.67] — passes WCAG AA (4.5 required)
+   Lighthouse "Background and foreground colours do not have sufficient contrast" ✓
+══════════════════════════════════════════════ */
+footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted);letter-spacing:.04em;background:var(--surface)}
 
-/* ════════════════════════════════════════════
-   MOBILE — Accessibility & Performance fixes
-   FIX 16: Larger touch targets (min 44x44px per WCAG 2.5.5)
-   FIX 17: Removed hover-only transitions on mobile (saves
-           style recalcs on touch devices that don't hover)
-   FIX 18: Reduced motion media query for vestibular safety
-════════════════════════════════════════════ */
 @media(max-width:768px){
   nav{padding:0 1.5rem}
   .nav-links{
@@ -554,10 +434,10 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
     border-bottom:1px solid var(--border);padding:1rem 1.5rem;z-index:999
   }
   .nav-links.open{display:flex}
+  /* FIX: li role="none" items need no special styling change — display flex still works */
   .nav-links li{border-bottom:1px solid var(--border)}
   .nav-links li:last-child{border-bottom:none}
-  /* FIX: 44px min touch target for nav links */
-  .nav-links a{display:block;padding:.85rem 0;font-size:.82rem;min-height:44px;display:flex;align-items:center}
+  .nav-links a{display:flex;padding:.85rem 0;font-size:.82rem;min-height:44px;align-items:center}
   .nav-burger{display:flex;min-width:44px;min-height:44px;align-items:center;justify-content:center}
   .container{padding:3.5rem 1.5rem}.hero{padding:3rem 1.5rem}
   h1.hero-title{font-size:clamp(2.4rem,11vw,4rem)}.hero-stats{gap:1.8rem}
@@ -567,48 +447,24 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   .about-grid{grid-template-columns:1fr;gap:2.2rem}
   .info-row{flex-direction:column;align-items:flex-start;gap:.2rem}.info-val{text-align:left}
   .contact-grid{flex-direction:column;align-items:center}
-  /* FIX: full-width touch targets for contact tiles */
   .contact-tile{width:100%;max-width:340px;justify-content:center;min-height:44px}
   footer{flex-direction:column;gap:.45rem;text-align:center;padding:1.5rem}
   .blog-toolbar{flex-direction:column;align-items:stretch}
   .blog-sort-wrap{margin-left:0}
   .blog-results-count{margin-left:0}
-  /* FIX: 44px touch targets for filter chips and buttons */
   .filter-chip{min-height:44px;display:inline-flex;align-items:center}
   .btn{min-height:44px}
 }
-
 @media(max-width:480px){.hero-ctas{flex-direction:column}.btn{justify-content:center}}
-
-/* ── Reduced motion — accessibility + performance ──
-   Users with vestibular disorders need this. Also a free
-   perf win: eliminates ALL animation cost for those users. */
 @media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{
-    animation-duration:.01ms !important;
-    animation-iteration-count:1 !important;
-    transition-duration:.01ms !important
-  }
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   .reveal{opacity:1;transform:none}
   html{scroll-behavior:auto}
 }
-
-/* ── Focus styles — keyboard accessibility ──
-   FIX 19: Visible focus rings for all interactive elements.
-   Chrome/Safari don't show them by default on click-focused
-   elements; :focus-visible fixes that without hurting mouse UX. */
-:focus-visible{
-  outline:2px solid var(--accent);
-  outline-offset:3px;
-  border-radius:3px
-}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
 button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-
-/* ── Print — hide decorative elements ── */
-@media print{
-  nav,footer,.hero-grid,.hero-glow,#nprogress{display:none}
-  .container{padding:1rem}
-}
+@media print{nav,footer,.hero-grid,.hero-glow,#nprogress{display:none}.container{padding:1rem}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   </style>
 </head>
 <body>
@@ -620,14 +476,23 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <button class="nav-burger" id="burger" aria-label="Open menu" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
+  <!--
+    FIX: ARIA nav structure — 3 Lighthouse errors fixed with one change:
+    1. "role=menubar requires children with role=menuitem" → li had no role, a had menuitem
+    2. "role=menuitem not contained by required parent" → same root cause
+    3. "li not contained within ul/ol/menu" → Lighthouse saw mismatched ARIA parent/child
+    Solution: add role="none" to each <li> — this removes li from the ARIA tree,
+    making the <a role="menuitem"> elements direct logical children of the menubar.
+    The DOM structure (ul > li > a) stays valid HTML; ARIA tree becomes menubar > menuitem.
+  -->
   <ul class="nav-links" id="navLinks" role="menubar">
-    <li><a href="/"           data-link role="menuitem">Home</a></li>
-    <li><a href="/skills"     data-link role="menuitem">Skills</a></li>
-    <li><a href="/projects"   data-link role="menuitem">Projects</a></li>
-    <li><a href="/blog"       data-link role="menuitem">Blog</a></li>
-    <li><a href="/experience" data-link role="menuitem">Experience</a></li>
-    <li><a href="/about"      data-link role="menuitem">About</a></li>
-    <li><a href="/contact"    data-link role="menuitem">Contact</a></li>
+    <li role="none"><a href="/"           data-link role="menuitem">Home</a></li>
+    <li role="none"><a href="/skills"     data-link role="menuitem">Skills</a></li>
+    <li role="none"><a href="/projects"   data-link role="menuitem">Projects</a></li>
+    <li role="none"><a href="/blog"       data-link role="menuitem">Blog</a></li>
+    <li role="none"><a href="/experience" data-link role="menuitem">Experience</a></li>
+    <li role="none"><a href="/about"      data-link role="menuitem">About</a></li>
+    <li role="none"><a href="/contact"    data-link role="menuitem">Contact</a></li>
   </ul>
 </nav>
 
@@ -636,8 +501,6 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <!-- HOME -->
   <div id="view-home" class="view" role="region" aria-label="Home">
     <section class="hero" id="heroSection" aria-label="Hero section">
-      <!-- FIX: hero-grid and hero-glow hidden via CSS (display:none)
-           keeping them in DOM for backward compat but zero paint cost -->
       <div class="hero-grid" aria-hidden="true"></div>
       <div class="hero-glow"  aria-hidden="true"></div>
       <div class="hero-inner">
@@ -771,10 +634,6 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 
 </div>
 
-<!-- FIX 20: sr-only utility — screen-reader-only labels for
-     accessibility without visual clutter -->
-<style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
-
 <footer role="contentinfo">
   <span>© 2026 Suman Dangal</span>
   <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
@@ -805,12 +664,10 @@ const burger  = $('burger');
 const navList = $('navLinks');
 const h1El    = $('site-h1');
 
-/* ── Escape HTML ── */
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-/* ── Progress bar ── */
 let pTimer, pVal = 0;
 function pStart() {
   pVal = 0; bar.style.width = '0%'; bar.style.opacity = '1';
@@ -821,7 +678,6 @@ function pEnd() {
   setTimeout(() => { bar.style.opacity = '0'; }, 380);
 }
 
-/* ── Fix Google Drive image URLs ── */
 function fixImgUrl(url) {
   if (!url) return '';
   url = url.trim();
@@ -834,7 +690,6 @@ function fixImgUrl(url) {
   return url;
 }
 
-/* ── CSV parser — handles quoted multiline fields correctly ── */
 function parseCSV(raw) {
   const rows = [];
   let cur = '', inQ = false, row = [];
@@ -855,7 +710,6 @@ function parseCSV(raw) {
   }
   row.push(cur);
   if (row.some(v => v)) rows.push(row);
-
   if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim());
   return rows.slice(1).map(vals => {
@@ -865,7 +719,6 @@ function parseCSV(raw) {
   }).filter(r => Object.values(r).some(v => v));
 }
 
-/* ── Cache (localStorage) ── */
 const NS = 'sd3_';
 function cGet(key) {
   try {
@@ -901,7 +754,6 @@ async function fetchSheet(url, key, onRevalidate) {
   return _doFetch(url, key);
 }
 
-/* ── HTML sanitizer ── */
 const SAFE_TAGS = new Set(['table','thead','tbody','tfoot','tr','th','td','strong','em','b','i','br','p','ul','ol','li','a','span']);
 function sanitizeHTML(raw) {
   if (!raw) return '';
@@ -923,7 +775,6 @@ function sanitizeHTML(raw) {
   return doc.body.innerHTML;
 }
 
-/* ── Build image map ── */
 function buildImgMap(post, imageRows) {
   const map = {};
   let n = 1;
@@ -958,7 +809,6 @@ function buildImgMap(post, imageRows) {
   return map;
 }
 
-/* ── Markdown parser ── */
 function md(text, imgMap = {}) {
   if (!text) return '';
   const toks = {};
@@ -1005,22 +855,17 @@ function md(text, imgMap = {}) {
   return out;
 }
 
-/* ── FAQ builder ── */
 async function buildFAQ(slug, prefetchedRows) {
   const old = $('faq-schema');
   if (old) old.remove();
-
   const allFaqs = prefetchedRows || await fetchSheet(CFG.faqSheet, 'faq');
   if (!allFaqs?.length) return '';
-
   const pairs = allFaqs
     .filter(r => (r.Blog_Slug || '').trim() === slug)
     .sort((a, b) => Number(a.FAQ_Number || 0) - Number(b.FAQ_Number || 0))
     .map(r => ({ q: (r.FAQ_Question || '').trim(), a: (r.FAQ_Answer || '').trim() }))
     .filter(p => p.q && p.a);
-
   if (!pairs.length) return '';
-
   const faqSd = document.createElement('script');
   faqSd.id   = 'faq-schema';
   faqSd.type = 'application/ld+json';
@@ -1034,25 +879,21 @@ async function buildFAQ(slug, prefetchedRows) {
     }))
   });
   document.head.appendChild(faqSd);
-
   const items = pairs.map(p => `
     <details class="faq-item">
       <summary class="faq-question">${esc(p.q)}</summary>
       <div class="faq-answer">${esc(p.a)}</div>
     </details>`).join('');
-
   return `<section class="faq-section" aria-label="Frequently Asked Questions">
     <h2>Frequently Asked Questions</h2>
     ${items}
   </section>`;
 }
 
-/* ── SEO updater ── */
 function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   const ft  = title ? `${title} | Suman Dangal` : 'Suman Dangal — Dev & QA Engineer';
   const md_ = desc  || 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.';
   const url = `${CFG.siteUrl}${path || '/'}`;
-
   document.title = ft;
   qs('meta[name="description"]').content        = md_;
   $('canonical').href                           = url;
@@ -1061,12 +902,10 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   qs('meta[property="og:url"]').content         = url;
   qs('meta[name="twitter:title"]').content       = ft;
   qs('meta[name="twitter:description"]').content = md_;
-
   if (ogImage) {
     qs('meta[property="og:image"]').content  = ogImage;
     qs('meta[name="twitter:image"]').content = ogImage;
   }
-
   let robotsMeta = qs('meta[name="robots"]');
   if (!robotsMeta) {
     robotsMeta = document.createElement('meta');
@@ -1075,12 +914,9 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   }
   const is404 = title === '404 — Not Found';
   robotsMeta.content = is404 ? 'noindex, nofollow' : 'index, follow';
-
   const isHome = !path || path === '/';
   h1El.classList.toggle('h1-hidden', !isHome);
   h1El.style.display = isHome ? '' : 'none';
-
-  /* ── Article schema (BlogPosting) ── */
   let dynSd = $('dyn-schema');
   if (articleMeta) {
     if (!dynSd) {
@@ -1103,8 +939,6 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   } else if (dynSd) {
     dynSd.remove();
   }
-
-  /* ── Breadcrumb schema ── */
   let bcSd = $('bc-schema');
   if (!bcSd) {
     bcSd = document.createElement('script');
@@ -1123,9 +957,6 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   });
 }
 
-/* ── Scroll reveal — FIX: Batched via requestAnimationFrame
-   to avoid mid-frame style recalcs triggering layout.
-   Uses a single shared observer instead of per-element ones. ── */
 const revealQueue = [];
 let revealScheduled = false;
 const rvObs = new IntersectionObserver(entries => {
@@ -1139,7 +970,6 @@ const rvObs = new IntersectionObserver(entries => {
     revealScheduled = true;
     requestAnimationFrame(() => {
       revealQueue.forEach((el, i) => {
-        // stagger via inline style instead of setTimeout — no timer queue pollution
         el.style.transitionDelay = `${i * 55}ms`;
         el.classList.add('in');
       });
@@ -1148,20 +978,9 @@ const rvObs = new IntersectionObserver(entries => {
     });
   }
 }, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
+function watchReveals() { qsa('.reveal:not(.in)').forEach(el => rvObs.observe(el)); }
 
-function watchReveals() {
-  qsa('.reveal:not(.in)').forEach(el => rvObs.observe(el));
-}
-
-/* ═══════════════════════════════════════════
-   BLOG SEARCH / FILTER / SORT STATE
-   ═══════════════════════════════════════════ */
-const blogState = {
-  query:    '',
-  category: 'all',
-  sort:     'newest',
-  page:     1
-};
+const blogState = { query: '', category: 'all', sort: 'newest', page: 1 };
 
 function parseDateForSort(dateStr) {
   if (!dateStr) return 0;
@@ -1209,8 +1028,7 @@ function buildCategoryChips(rows) {
   allChip.setAttribute('aria-pressed', String(blogState.category === 'all'));
   allChip.addEventListener('click', () => {
     blogState.category = 'all'; blogState.page = 1;
-    updateChipActive(container, 'all');
-    renderFilteredBlog();
+    updateChipActive(container, 'all'); renderFilteredBlog();
   });
   container.appendChild(allChip);
   [...cats].sort().forEach(cat => {
@@ -1221,8 +1039,7 @@ function buildCategoryChips(rows) {
     chip.setAttribute('aria-pressed', String(blogState.category === cat));
     chip.addEventListener('click', () => {
       blogState.category = cat; blogState.page = 1;
-      updateChipActive(container, cat);
-      renderFilteredBlog();
+      updateChipActive(container, cat); renderFilteredBlog();
     });
     container.appendChild(chip);
   });
@@ -1254,15 +1071,11 @@ function initBlogToolbar(rows) {
   freshSearch.addEventListener('input', e => {
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
-      blogState.query = e.target.value.trim();
-      blogState.page  = 1;
-      renderFilteredBlog();
+      blogState.query = e.target.value.trim(); blogState.page = 1; renderFilteredBlog();
     }, 260);
   });
   freshSort.addEventListener('change', e => {
-    blogState.sort = e.target.value;
-    blogState.page = 1;
-    renderFilteredBlog();
+    blogState.sort = e.target.value; blogState.page = 1; renderFilteredBlog();
   });
 }
 
@@ -1277,15 +1090,13 @@ function renderFilteredBlog() {
   const slice    = filtered.slice((safe - 1) * CFG.postsPerPage, safe * CFG.postsPerPage);
   if (cnt) {
     cnt.textContent = (blogState.query || blogState.category !== 'all')
-      ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`
-      : '';
+      ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}` : '';
   }
   if (!slice.length) {
     g.innerHTML = '<p class="empty-state">No posts match your search — try different keywords or filters.</p>';
     if (nav) nav.innerHTML = '';
     return;
   }
-  // FIX: Use DocumentFragment — one DOM insertion instead of N
   const frag = document.createDocumentFragment();
   slice.forEach(post => {
     const card = document.createElement('article');
@@ -1299,19 +1110,13 @@ function renderFilteredBlog() {
       : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`;
     const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
     const tagsHTML = tagList.length
-      ? `<div class="blog-card-tags">${tagList.map(t => `<span class="blog-tag">${esc(t)}</span>`).join('')}</div>`
-      : '';
+      ? `<div class="blog-card-tags">${tagList.map(t => `<span class="blog-tag">${esc(t)}</span>`).join('')}</div>` : '';
     card.innerHTML =
-      `${thumb}` +
-      `<div class="blog-card-body">` +
-        `<div class="blog-card-meta">` +
-          `<span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
-          `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
-        `</div>` +
-        `<h3 class="blog-card-title">${esc(post.Title || '')}</h3>` +
-        `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>` +
-        tagsHTML +
-      `</div>`;
+      `${thumb}<div class="blog-card-body">` +
+      `<div class="blog-card-meta"><span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
+      `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time></div>` +
+      `<h3 class="blog-card-title">${esc(post.Title || '')}</h3>` +
+      `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>${tagsHTML}</div>`;
     const go = () => navigate(`/blog/${post.Slug}`);
     card.addEventListener('click', go);
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
@@ -1319,7 +1124,6 @@ function renderFilteredBlog() {
   });
   g.innerHTML = '';
   g.appendChild(frag);
-
   if (nav) {
     nav.innerHTML = '';
     if (total > 1) {
@@ -1336,9 +1140,6 @@ function renderFilteredBlog() {
   watchReveals();
 }
 
-/* ═══════════════════════════════════════════
-   STATIC FALLBACKS
-   ═══════════════════════════════════════════ */
 const FB = {
   skills: `<div class="skill-card c-green reveal"><div class="skill-icon">🐍</div><div class="skill-name">Languages</div><div class="tag-row"><span class="tag">Python</span><span class="tag">Java</span><span class="tag">PHP</span><span class="tag">JavaScript</span><span class="tag">HTML5</span><span class="tag">CSS3</span></div></div><div class="skill-card c-blue reveal"><div class="skill-icon">⚙️</div><div class="skill-name">Frameworks &amp; Backend</div><div class="tag-row"><span class="tag">Django</span><span class="tag">Django REST</span><span class="tag">PHP OOP</span><span class="tag">SQLite</span><span class="tag">MySQL</span><span class="tag">MariaDB</span></div></div><div class="skill-card c-amber reveal"><div class="skill-icon">📱</div><div class="skill-name">Mobile &amp; Tools</div><div class="tag-row"><span class="tag">Android Studio</span><span class="tag">Java (Android)</span><span class="tag">XML Layouts</span><span class="tag">Git</span><span class="tag">Bluetooth APIs</span></div></div><div class="skill-card c-green reveal"><div class="skill-icon">🧪</div><div class="skill-name">QA &amp; Concepts</div><div class="tag-row"><span class="tag">Manual Testing</span><span class="tag">Test Case Writing</span><span class="tag">REST APIs</span><span class="tag">OOP</span><span class="tag">SDLC</span><span class="tag">SQL Injection Prevention</span><span class="tag">Prompt Engineering</span></div></div>`,
   projects: `<article class="proj-card feat reveal"><div><div class="proj-num">01 / Featured</div><h3 class="proj-title">Django E-commerce Platform</h3><p class="proj-desc">Full-stack product listing, cart, and checkout using Django's MVT architecture.</p><ul class="proj-bullets"><li>Verified 100% of CRUD operations across relational SQLite database</li><li>Wrote edge-case &amp; error-handling test suites; prevented SQL injection</li><li>Resolved all frontend-to-backend data discrepancies found in testing</li></ul><div class="proj-stack"><span class="tag">Django</span><span class="tag">Python</span><span class="tag">SQLite</span><span class="tag">Django REST</span><span class="tag">Manual Testing</span></div><p class="proj-note">⚠️ ~60s cold start on free Render hosting</p><div class="proj-links"><a href="https://ecommerce-ksmw.onrender.com/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></div><div class="proj-visual" aria-hidden="true">🛒</div></article><article class="proj-card reveal"><div class="proj-num">02</div><h3 class="proj-title">College Library Management System</h3><p class="proj-desc">PHP OOP application managing book inventory and student borrowing records.</p><ul class="proj-bullets"><li>100% accuracy in book-to-student mapping</li><li>Resolved edge-case bugs in borrow/return logic</li><li>SQL-safe input handling throughout</li></ul><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">MySQL</span><span class="tag">OOP</span></div><div class="proj-links"><a href="https://collglibsys.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article><article class="proj-card reveal"><div class="proj-num">03</div><h3 class="proj-title">Bluetooth Messaging App</h3><p class="proj-desc">Android app enabling peer-to-peer Bluetooth messaging with local data persistence.</p><ul class="proj-bullets"><li>Tested connectivity across multiple device combos</li><li>Resolved stability issues for consistent delivery</li></ul><div class="proj-stack"><span class="tag">Java</span><span class="tag">Android Studio</span><span class="tag">Bluetooth API</span><span class="tag">XML</span></div></article><article class="proj-card wide reveal"><div class="proj-num">04</div><h3 class="proj-title">Book E-commerce Platform</h3><p class="proj-desc">Full-stack PHP app with authentication, product management, sandbox payment, and order tracking.</p><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">HTML</span><span class="tag">CSS</span><span class="tag">JavaScript</span><span class="tag">Authentication</span></div><div class="proj-links"><a href="https://bookecom.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article>`,
@@ -1346,9 +1147,6 @@ const FB = {
   about: `<p>I'm a <strong>final-year BCA student</strong> at Tribhuvan University, Nepal, passionate about building reliable software and catching bugs before users do.</p><p>I have hands-on experience across the full stack — from <strong>Django REST APIs</strong> and PHP backends to Android mobile apps.</p><p>I bring a <strong>testing mindset</strong> to everything I build — writing edge-case test suites, validating data across all operations, and ensuring frontend and backend always agree.</p><p>Looking for a <strong>Dev or QA Internship</strong> where I can grow fast, ship real features, and work with a team that cares about quality.</p>`
 };
 
-/* ═══════════════════════════════════════════
-   ROUTER
-   ═══════════════════════════════════════════ */
 const KNOWN = new Set(['', 'skills', 'projects', 'blog', 'experience', 'about', 'contact']);
 const VIEWS = {
   home:       $('view-home'),
@@ -1369,68 +1167,55 @@ async function navigate(rawPath, push = true) {
     .replace(/\/portfolio-upload\/?/g, '/')
     .replace(/\/index\.html?$/i, '/')
     .replace(/\/+/g, '/') || '/';
-
   const page  = parseInt(u.searchParams.get('page')) || 1;
   const parts = path.replace(/^\//, '').split('/');
   const route = parts[0] || '';
   const slug  = parts[1] || '';
-
   pStart();
   Object.values(VIEWS).forEach(v => v.classList.remove('active'));
   qsa('.nav-links a').forEach(a => {
     const r = new URL(a.getAttribute('href'), location.origin).pathname.replace(/^\//, '');
     a.setAttribute('aria-current', r === route ? 'page' : 'false');
   });
-
   const full = path + (u.search || '');
   if (push && KNOWN.has(route) && (location.pathname + location.search) !== full) {
     history.pushState({}, '', full);
   }
-
   window.scrollTo({ top: 0, behavior: 'instant' });
   const ol = $('spa-404-overlay');
   if (ol) ol.remove();
 
   if (route === '') {
     VIEWS.home.classList.add('active');
-    updateSEO({ path: '/' });
-    watchReveals();
-
+    updateSEO({ path: '/' }); watchReveals();
   } else if (route === 'skills') {
     VIEWS.skills.classList.add('active');
     updateSEO({ title: 'Skills & Stack', desc: 'Python, Django, PHP, Java, Android, QA. Skills of Suman Dangal.', path: '/skills' });
     await renderSkills(); watchReveals();
-
   } else if (route === 'projects') {
     VIEWS.projects.classList.add('active');
     updateSEO({ title: 'Projects', desc: 'E-commerce, library, and mobile projects by Suman Dangal.', path: '/projects' });
     await renderProjects(); watchReveals();
-
   } else if (route === 'blog' && !slug) {
     VIEWS.blog.classList.add('active');
     updateSEO({ title: 'Blog', desc: 'Dev notes, QA tips, and tech writing by Suman Dangal.', path: '/blog' });
     blogState.page = page;
     await renderBlogList(); watchReveals();
-
   } else if (route === 'blog' && slug) {
     VIEWS.article.classList.add('active');
     await renderArticle(slug); watchReveals();
-
   } else if (route === 'experience') {
     VIEWS.experience.classList.add('active');
     updateSEO({ title: 'Experience', desc: 'SEO Intern and QA testing by Suman Dangal.', path: '/experience' });
     await renderExperience(); watchReveals();
-
   } else if (route === 'about') {
     VIEWS.about.classList.add('active');
     updateSEO({ title: 'About Suman Dangal', desc: 'BCA student at Tribhuvan University, Bhaktapur, Nepal.', path: '/about' });
     await renderAbout(); watchReveals();
-
   } else if (route === 'contact') {
     VIEWS.contact.classList.add('active');
     updateSEO({ title: 'Contact', desc: 'Get in touch with Suman Dangal for Dev or QA internship opportunities.', path: '/contact' });
     watchReveals();
-
   } else {
     const heroSec = $('heroSection');
     if (heroSec && !$('spa-404-overlay')) {
@@ -1449,11 +1234,9 @@ async function navigate(rawPath, push = true) {
     VIEWS.home.classList.add('active');
     updateSEO({ title: '404 — Not Found', path });
   }
-
   pEnd();
 }
 
-/* ── Link interception ── */
 document.addEventListener('click', e => {
   const a = e.target.closest('[data-link]');
   if (!a) return;
@@ -1468,10 +1251,6 @@ document.addEventListener('click', e => {
 
 window.addEventListener('popstate', () => navigate(location.pathname + location.search, false));
 navigate(location.pathname + location.search, false);
-
-/* ═══════════════════════════════════════════
-   RENDERERS
-   ═══════════════════════════════════════════ */
 
 async function renderSkills() {
   const g = $('skillsGrid');
@@ -1502,18 +1281,13 @@ async function renderProjects() {
     const buls  = (r.bullets || '').split('|').filter(Boolean).map(b => `<li>${esc(b.trim())}</li>`).join('');
     const stack = (r.stack || '').split(',').filter(Boolean).map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
     const linkHTML = (r.link && r.link.trim())
-      ? `<div class="proj-links"><a href="${esc(r.link.trim())}" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div>`
-      : '';
+      ? `<div class="proj-links"><a href="${esc(r.link.trim())}" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div>` : '';
     const vis = r.featured === 'true' ? `<div class="proj-visual" aria-hidden="true">🛒</div>` : '';
     art.innerHTML =
-      `<div>` +
-        `<div class="proj-num">${String(i + 1).padStart(2, '0')}${r.featured === 'true' ? ' / Featured' : ''}</div>` +
-        `<h3 class="proj-title">${esc(r.title || '')}</h3>` +
-        `<p class="proj-desc">${esc(r.desc || '')}</p>` +
-        (buls ? `<ul class="proj-bullets">${buls}</ul>` : '') +
-        `<div class="proj-stack">${stack}</div>` +
-        linkHTML +
-      `</div>${vis}`;
+      `<div><div class="proj-num">${String(i + 1).padStart(2, '0')}${r.featured === 'true' ? ' / Featured' : ''}</div>` +
+      `<h3 class="proj-title">${esc(r.title || '')}</h3><p class="proj-desc">${esc(r.desc || '')}</p>` +
+      (buls ? `<ul class="proj-bullets">${buls}</ul>` : '') +
+      `<div class="proj-stack">${stack}</div>${linkHTML}</div>${vis}`;
     frag.appendChild(art);
   });
   g.innerHTML = '';
@@ -1523,21 +1297,15 @@ async function renderProjects() {
 async function renderBlogList() {
   const g = $('blogGrid');
   g.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
-
   blogRows = await fetchSheet(CFG.blogSheet, 'blog', fresh => {
     blogRows = fresh;
-    if ($('view-blog').classList.contains('active')) {
-      initBlogToolbar(fresh);
-      renderFilteredBlog();
-    }
+    if ($('view-blog').classList.contains('active')) { initBlogToolbar(fresh); renderFilteredBlog(); }
   });
-
   if (!blogRows?.length) {
     $('blogToolbar').style.display = 'none';
     g.innerHTML = '<p class="empty-state">No posts yet — check back soon.</p>';
     return;
   }
-
   initBlogToolbar(blogRows);
   renderFilteredBlog();
 }
@@ -1549,46 +1317,34 @@ async function renderArticle(slug) {
     `<div class="skel skel-line" style="height:36px;margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-card" style="height:320px;margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-line"></div><div class="skel skel-line m"></div><div class="skel skel-line s"></div>`;
-
   const [blogData, faqData, imageData] = await Promise.all([
     blogRows ? Promise.resolve(blogRows) : fetchSheet(CFG.blogSheet, 'blog'),
     fetchSheet(CFG.faqSheet, 'faq'),
     fetchSheet(CFG.imagesSheet, 'blogimages')
   ]);
-
   if (!blogRows) blogRows = blogData;
   const post = blogRows?.find(p => p.Slug === slug);
-
   if (!post) {
     wrap.innerHTML =
       `<button class="article-back" id="artBack">← Back to Blog</button>` +
-      `<div class="not-found-wrap">` +
-        `<span class="not-found-code" aria-hidden="true">404</span>` +
-        `<h2>Post not found</h2>` +
-        `<p>No post with slug <code style="font-family:var(--mono);color:var(--accent)">${esc(slug)}</code> exists.</p>` +
-        `<a href="/blog" class="btn btn-solid" data-link>← Browse all posts</a>` +
-      `</div>`;
+      `<div class="not-found-wrap"><span class="not-found-code" aria-hidden="true">404</span>` +
+      `<h2>Post not found</h2>` +
+      `<p>No post with slug <code style="font-family:var(--mono);color:var(--accent)">${esc(slug)}</code> exists.</p>` +
+      `<a href="/blog" class="btn btn-solid" data-link>← Browse all posts</a></div>`;
     $('artBack').addEventListener('click', () => navigate('/blog'));
     updateSEO({ title: `${slug} | Suman Dangal`, desc: 'Blog post by Suman Dangal.', path: `/blog/${slug}` });
     const oldFaq = $('faq-schema');
     if (oldFaq) oldFaq.remove();
     return;
   }
-
   const imgMap   = buildImgMap(post, imageData);
   const coverUrl = fixImgUrl(post.Image_URL);
   const cover    = coverUrl
-    ? `<img class="article-cover" src="${esc(coverUrl)}" alt="${esc(post.Image_Alt || post.Title + ' featured image')}" loading="lazy" decoding="async" width="720" height="420">`
-    : '';
-  const tableHTML = post.Table_HTML
-    ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>`
-    : '';
-
+    ? `<img class="article-cover" src="${esc(coverUrl)}" alt="${esc(post.Image_Alt || post.Title + ' featured image')}" loading="lazy" decoding="async" width="720" height="420">` : '';
+  const tableHTML = post.Table_HTML ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>` : '';
   const tagList   = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const tagsHTML  = tagList.length
-    ? `<div class="article-tags">${tagList.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>`
-    : '';
-
+    ? `<div class="article-tags">${tagList.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>` : '';
   updateSEO({
     title:       post.Title,
     desc:        post.Excerpt,
@@ -1596,21 +1352,14 @@ async function renderArticle(slug) {
     ogImage:     coverUrl || '',
     articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl, tags: tagList }
   });
-
   const faqHTML = await buildFAQ(slug, faqData);
-
   wrap.innerHTML =
     `<button class="article-back" id="artBack">← Back to Blog</button>` +
-    `<div class="article-meta">` +
-      `<span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
-      `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
-    `</div>` +
+    `<div class="article-meta"><span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
+    `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time></div>` +
     `<h2 class="article-title">${esc(post.Title || '')}</h2>` +
-    tagsHTML +
-    cover +
-    `<div class="article-body">${md(post.Content || '', imgMap)}${tableHTML}</div>` +
-    faqHTML;
-
+    tagsHTML + cover +
+    `<div class="article-body">${md(post.Content || '', imgMap)}${tableHTML}</div>` + faqHTML;
   $('artBack').addEventListener('click', () => navigate('/blog'));
 }
 
@@ -1645,7 +1394,6 @@ async function renderAbout() {
   el.innerHTML = ps.length ? ps.map(p => `<p>${esc(p)}</p>`).join('') : FB.about;
 }
 
-/* ── Burger menu ── */
 burger.addEventListener('click', () => {
   const open = !navList.classList.contains('open');
   burger.classList.toggle('open', open);
