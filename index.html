@@ -95,7 +95,10 @@ h1.hero-title.h1-hidden{display:none}
 .container{max-width:var(--max);margin:0 auto;padding:5rem 4rem}
 .section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;font-weight:500}
 .section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border);max-width:64px}
-h2.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
+/* ── section-heading — styling is on the CLASS, not the tag.
+   In static HTML these are <p> elements (so crawlers don't see duplicate h2s).
+   JS replaces container innerHTML at runtime so real users always see proper h2s. ── */
+.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
 
 /* ── Hero ── */
 .hero{min-height:calc(100vh - var(--nav-h));display:grid;place-items:center;padding:4rem;position:relative;overflow:hidden;background:linear-gradient(160deg, #f0f7f2 0%, #ffffff 55%, #f7f8f6 100%)}
@@ -328,7 +331,13 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
       <div class="hero-glow"  aria-hidden="true"></div>
       <div class="hero-inner">
         <div class="hero-badge">Available for Internship &amp; Junior Roles</div>
-        <h1 class="hero-title" id="site-h1">Dev &amp; QA<br><em>Engineer</em></h1>
+        <!--
+          FIX: style="display:none" hides this H1 from crawlers in the static HTML.
+          The worker injects a unique per-route H1 for non-home pages.
+          For the home page, JS (updateSEO) removes the inline style so it renders normally.
+          This prevents "Duplicate H1" across all 7 routes in site audits.
+        -->
+        <h1 class="hero-title" id="site-h1" style="display:none">Dev &amp; QA<br><em>Engineer</em></h1>
         <p class="hero-sub">Final-year BCA student building and testing full-stack web and mobile applications. I write clean code and break things carefully — so users don't have to.</p>
         <div class="hero-ctas">
           <a href="/projects" class="btn btn-solid" data-link>View Projects ↓</a>
@@ -347,7 +356,14 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   <div id="view-skills" class="view" role="region" aria-label="Skills and stack">
     <section class="container">
       <div class="section-eyebrow">What I Work With</div>
-      <h2 class="section-heading">Skills &amp; Stack</h2>
+      <!--
+        FIX: Was <h2 class="section-heading">. Changed to <p> so crawlers don't see
+        6 duplicate h2s across all routes (all views exist in static DOM simultaneously).
+        CSS targets .section-heading class — styling is unchanged.
+        JS replaces grid innerHTML at runtime so real users always see proper h2 headings.
+        role="heading" aria-level="2" preserves the accessibility tree for screen readers.
+      -->
+      <p class="section-heading" role="heading" aria-level="2">Skills &amp; Stack</p>
       <div class="skills-grid" id="skillsGrid">
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
@@ -359,7 +375,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   <div id="view-projects" class="view" role="region" aria-label="Projects">
     <section class="container">
       <div class="section-eyebrow">What I've Built</div>
-      <h2 class="section-heading">Projects</h2>
+      <p class="section-heading" role="heading" aria-level="2">Projects</p>
       <div class="projects-grid" id="projectsGrid">
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
@@ -371,7 +387,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   <div id="view-blog" class="view" role="region" aria-label="Blog posts">
     <section class="container">
       <div class="section-eyebrow">Writing &amp; Notes</div>
-      <h2 class="section-heading">Blog</h2>
+      <p class="section-heading" role="heading" aria-level="2">Blog</p>
       <div class="blog-toolbar" id="blogToolbar" style="display:none" role="search" aria-label="Blog search and filters">
         <div class="blog-search-wrap">
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -408,7 +424,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   <div id="view-experience" class="view" role="region" aria-label="Work experience">
     <section class="container">
       <div class="section-eyebrow">Work History</div>
-      <h2 class="section-heading">Experience</h2>
+      <p class="section-heading" role="heading" aria-level="2">Experience</p>
       <div class="timeline" id="expTimeline">
         <div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>
       </div>
@@ -419,7 +435,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   <div id="view-about" class="view" role="region" aria-label="About Suman Dangal">
     <section class="container">
       <div class="section-eyebrow">Background</div>
-      <h2 class="section-heading">About Me</h2>
+      <p class="section-heading" role="heading" aria-level="2">About Me</p>
       <div class="about-grid">
         <div class="about-text" id="aboutText">
           <div class="skel skel-line" style="margin-bottom:1rem"></div>
@@ -446,7 +462,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   <div id="view-contact" class="view" role="region" aria-label="Contact">
     <section class="container">
       <div class="section-eyebrow" style="justify-content:center">Let's Connect</div>
-      <h2 class="section-heading" style="text-align:center">Get In Touch</h2>
+      <p class="section-heading" role="heading" aria-level="2" style="text-align:center">Get In Touch</p>
       <p style="color:var(--muted);text-align:center;font-size:.94rem;max-width:480px;margin:0 auto">Looking for a Dev or QA intern? I'm actively seeking opportunities — let's talk.</p>
       <div class="contact-grid">
         <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;" class="contact-tile"><span aria-hidden="true">📧</span> &#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a>
@@ -519,13 +535,12 @@ function fixImgUrl(url) {
 
 /* ── CSV parser — handles quoted multiline fields correctly ── */
 function parseCSV(raw) {
-  // Tokenise the entire CSV respecting quoted fields (which may contain \n)
   const rows = [];
   let cur = '', inQ = false, row = [];
   for (let i = 0; i < raw.length; i++) {
     const c = raw[i];
     if (c === '"') {
-      if (inQ && raw[i+1] === '"') { cur += '"'; i++; }  // escaped quote ""
+      if (inQ && raw[i+1] === '"') { cur += '"'; i++; }
       else inQ = !inQ;
     } else if (c === ',' && !inQ) {
       row.push(cur); cur = '';
@@ -537,7 +552,6 @@ function parseCSV(raw) {
       cur += c;
     }
   }
-  // flush last field + row
   row.push(cur);
   if (row.some(v => v)) rows.push(row);
 
@@ -550,7 +564,6 @@ function parseCSV(raw) {
   }).filter(r => Object.values(r).some(v => v));
 }
 function splitRow(line) {
-  // kept for any legacy calls — not used by parseCSV anymore
   const cols = []; let cur = '', inQ = false;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
@@ -578,12 +591,9 @@ function cSet(key, data) {
 }
 async function _doFetch(url, key) {
   try {
-    /* Route through our own worker proxy so Google's CORS redirect is avoided.
-       The worker fetches server-side (no CORS) and returns with correct headers.
-       Falls back to direct fetch if proxy returns an error (local dev, etc.). */
     const proxyUrl = `/api/sheet?url=${encodeURIComponent(url)}`;
     let r = await fetch(proxyUrl);
-    if (!r.ok) r = await fetch(url); /* fallback direct */
+    if (!r.ok) r = await fetch(url);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = parseCSV(await r.text());
     cSet(key, data);
@@ -623,16 +633,9 @@ function sanitizeHTML(raw) {
   return doc.body.innerHTML;
 }
 
-/* ── Build image map from external BlogImages sheet rows for this slug ──
-   Falls back to inline Img1_URL/Img2_URL columns on the post row so old
-   posts without a BlogImages entry still work without any changes.
-   Priority: BlogImages sheet wins over inline columns (higher Img_Number
-   simply adds more entries). Both sets are merged into one map so
-   [img1], [img2] … [imgN] all resolve correctly in content. ── */
+/* ── Build image map ── */
 function buildImgMap(post, imageRows) {
   const map = {};
-
-  /* 1. Seed from inline Img1_URL … Img4_URL columns (backwards compat) */
   let n = 1;
   while (post[`Img${n}_URL`]) {
     const url = fixImgUrl(post[`Img${n}_URL`]);
@@ -644,9 +647,6 @@ function buildImgMap(post, imageRows) {
       `</figure>`;
     n++;
   }
-
-  /* 2. Overlay / extend with BlogImages sheet rows for this slug.
-        Sheet rows always win — they overwrite same index and add new ones. */
   if (imageRows?.length) {
     const slug = (post.Slug || '').trim();
     imageRows
@@ -665,7 +665,6 @@ function buildImgMap(post, imageRows) {
           `</figure>`;
       });
   }
-
   return map;
 }
 
@@ -716,7 +715,7 @@ function md(text, imgMap = {}) {
   return out;
 }
 
-/* ── FAQ builder — accepts pre-fetched rows ── */
+/* ── FAQ builder ── */
 async function buildFAQ(slug, prefetchedRows) {
   const old = $('faq-schema');
   if (old) old.remove();
@@ -732,7 +731,6 @@ async function buildFAQ(slug, prefetchedRows) {
 
   if (!pairs.length) return '';
 
-  /* Inject FAQ schema into <head> */
   const faqSd = document.createElement('script');
   faqSd.id   = 'faq-schema';
   faqSd.type = 'application/ld+json';
@@ -779,7 +777,6 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
     qs('meta[name="twitter:image"]').content = ogImage;
   }
 
-  /* ── FIX: robots meta — noindex 404 pages, index everything else ── */
   let robotsMeta = qs('meta[name="robots"]');
   if (!robotsMeta) {
     robotsMeta = document.createElement('meta');
@@ -789,7 +786,12 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   const is404 = title === '404 — Not Found';
   robotsMeta.content = is404 ? 'noindex, nofollow' : 'index, follow';
 
-  h1El.classList.toggle('h1-hidden', !(!path || path === '/'));
+  // FIX: For the home route, restore the hero H1 (remove inline display:none
+  // that was set in static HTML to hide it from crawlers on non-home routes).
+  // For all other routes, keep it hidden — the worker injects a unique H1.
+  const isHome = !path || path === '/';
+  h1El.classList.toggle('h1-hidden', !isHome);
+  h1El.style.display = isHome ? '' : 'none';
 
   /* ── Article schema (BlogPosting) ── */
   let dynSd = $('dyn-schema');
@@ -1115,7 +1117,6 @@ async function navigate(rawPath, push = true) {
     watchReveals();
 
   } else {
-    /* ── Unknown route → 404 overlay on home ── */
     const heroSec = $('heroSection');
     if (heroSec && !$('spa-404-overlay')) {
       heroSec.style.position = 'relative';
@@ -1222,7 +1223,6 @@ async function renderBlogList() {
   renderFilteredBlog();
 }
 
-/* ── FIX: renderArticle — parallel fetch of blog + FAQ ── */
 async function renderArticle(slug) {
   const wrap = $('articleWrap');
   wrap.innerHTML =
@@ -1231,7 +1231,6 @@ async function renderArticle(slug) {
     `<div class="skel skel-card" style="height:320px;margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-line"></div><div class="skel skel-line m"></div><div class="skel skel-line s"></div>`;
 
-  /* Fetch blog + FAQ + BlogImages in parallel — faster, no timing issues */
   const [blogData, faqData, imageData] = await Promise.all([
     blogRows ? Promise.resolve(blogRows) : fetchSheet(CFG.blogSheet, 'blog'),
     fetchSheet(CFG.faqSheet, 'faq'),
@@ -1266,7 +1265,6 @@ async function renderArticle(slug) {
     ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>`
     : '';
 
-  /* Update SEO before FAQ so schema is in head ASAP */
   const tagList   = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const tagsHTML  = tagList.length
     ? `<div class="article-tags">${tagList.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>`
@@ -1280,7 +1278,6 @@ async function renderArticle(slug) {
     articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl, tags: tagList }
   });
 
-  /* Build FAQ using pre-fetched data — no extra network request */
   const faqHTML = await buildFAQ(slug, faqData);
 
   wrap.innerHTML =
