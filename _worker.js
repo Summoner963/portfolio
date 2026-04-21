@@ -163,7 +163,7 @@ async function prerenderBlogPost(slug, env, request) {
     </head><body>
       <h1>Post not found</h1>
       <p>No post with slug "${slug}" exists.</p>
-      <a href="${SITE_URL}/blog/">← Back to Blog</a>
+      <a href="${SITE_URL}/blog">← Back to Blog</a>
     </body></html>`;
     return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
@@ -172,7 +172,7 @@ async function prerenderBlogPost(slug, env, request) {
   const excerpt  = post.Excerpt  || '';
   const date     = post.Date     || '';
   const category = post.Category || 'Post';
-  const postUrl  = `${SITE_URL}/blog/${slug}/`;
+  const postUrl  = `${SITE_URL}/blog/${slug}`;
   const imageUrl    = fixImgUrl(post.Image_URL || '');
   const tagList     = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const keywordsStr = tagList.join(', ');
@@ -267,7 +267,7 @@ async function prerenderBlogPost(slug, env, request) {
     "@type": "BreadcrumbList",
     "itemListElement": [
       {"@type":"ListItem","position":1,"name":"Home","item":"${SITE_URL}/"},
-      {"@type":"ListItem","position":2,"name":"Blog","item":"${SITE_URL}/blog/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"${SITE_URL}/blog"},
       {"@type":"ListItem","position":3,"name":"${escJson(title)}","item":"${postUrl}"}
     ]
   }
@@ -289,7 +289,7 @@ async function prerenderBlogPost(slug, env, request) {
   </style>
 </head>
 <body>
-  <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog/">Blog</a> → ${escHtml(title)}</nav>
+  <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog">Blog</a> → ${escHtml(title)}</nav>
   <h1>${escHtml(title)}</h1>
   <div class="meta">
     <span class="cat">${escHtml(category)}</span>
@@ -300,7 +300,7 @@ async function prerenderBlogPost(slug, env, request) {
   <div>${bodyHTML}</div>
   ${faqSectionHTML}
   <hr>
-  <p><a href="${SITE_URL}/blog/">← Back to all posts</a></p>
+  <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
 
   <script>
     (function() {
@@ -330,13 +330,13 @@ async function prerenderBlogPost(slug, env, request) {
 // URLs without trailing slashes and the actual canonical tags on each page).
 async function generateSitemap() {
   const staticPages = [
-    { loc: '/',            priority: '1.0', changefreq: 'monthly' },
-    { loc: '/skills/',     priority: '0.7', changefreq: 'monthly' },
-    { loc: '/projects/',   priority: '0.8', changefreq: 'monthly' },
-    { loc: '/blog/',       priority: '0.9', changefreq: 'weekly'  },
-    { loc: '/experience/', priority: '0.7', changefreq: 'monthly' },
-    { loc: '/about/',      priority: '0.6', changefreq: 'monthly' },
-    { loc: '/contact/',    priority: '0.5', changefreq: 'yearly'  },
+    { loc: '/',           priority: '1.0', changefreq: 'monthly' },
+    { loc: '/skills',     priority: '0.7', changefreq: 'monthly' },
+    { loc: '/projects',   priority: '0.8', changefreq: 'monthly' },
+    { loc: '/blog',       priority: '0.9', changefreq: 'weekly'  },
+    { loc: '/experience', priority: '0.7', changefreq: 'monthly' },
+    { loc: '/about',      priority: '0.6', changefreq: 'monthly' },
+    { loc: '/contact',    priority: '0.5', changefreq: 'yearly'  },
   ];
   let blogUrls = [];
   try {
@@ -344,7 +344,7 @@ async function generateSitemap() {
     blogUrls = rows
       .filter(r => r.Slug && r.Slug.trim())
       .map(r => ({
-        loc:        `/blog/${r.Slug.trim()}/`,
+        loc:        `/blog/${r.Slug.trim()}`,
         priority:   '0.8',
         changefreq: 'monthly',
         lastmod:    formatDate(r.Date || ''),

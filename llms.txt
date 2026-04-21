@@ -1,0 +1,26 @@
+# llms.txt — suman-dangal.com.np
+# This file follows the llms.txt standard (https://llmstxt.org/)
+# It helps AI systems understand this site's content and purpose.
+
+# Site
+> Suman Dangal — Dev & QA Engineer
+
+Suman Dangal is a final-year BCA student at Tribhuvan University, Nepal.
+He is a full-stack developer and QA engineer open to internships and junior roles.
+Located in Balkot, Bhaktapur, Nepal. Contact: sumandangal888@gmail.com
+
+## Pages
+
+- [Home](https://suman-dangal.com.np/): Portfolio homepage with hero section and overview.
+- [Skills](https://suman-dangal.com.np/skills/): Technical skills including Python, Django, PHP, Java, Android, and QA testing.
+- [Projects](https://suman-dangal.com.np/projects/): Portfolio of built projects including Django e-commerce, PHP library system, and Android Bluetooth app.
+- [Blog](https://suman-dangal.com.np/blog/): Dev notes, QA tips, and tech writing.
+- [Experience](https://suman-dangal.com.np/experience/): Work history including SEO Internship at Sathi Edtech Pvt. Ltd.
+- [About](https://suman-dangal.com.np/about/): Background, education, and personal information.
+- [Contact](https://suman-dangal.com.np/contact/): Contact details and links.
+
+## Notes
+
+- This is a single-page application (SPA). Content is rendered client-side via JavaScript.
+- Blog posts are fetched dynamically from Google Sheets.
+- AI training is not permitted. Search indexing is permitted.
