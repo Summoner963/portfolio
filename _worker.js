@@ -518,6 +518,7 @@ async function prerenderBlogPost(slug, env, request) {
     }
 
     body{padding-top:62px}
+    h1{font-family:'DM Serif Display','DM Serif Display Fallback',Georgia,serif;font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.1;color:#1b4332;margin-bottom:.5rem}
 
     :root {
       --accent:#2d6a4f; --accent2:#1b4332; --muted:#5a6659;
@@ -557,8 +558,7 @@ async function prerenderBlogPost(slug, env, request) {
 <body>
 
   <nav style="position:fixed;top:0;left:0;right:0;height:62px;z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;background:rgba(255,255,255,.92);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-bottom:1px solid #e2e6df;box-shadow:0 1px 4px rgba(0,0,0,.09);font-family:'DM Mono','Courier New',monospace;">
-    <a href="${SITE_URL}/" style="font-size:.84rem;color:#2d6a4f;letter-spacing:.06em;text-decoration:none;font-weight:500">// sumandangal</a>
-    <style>
+  <a href="${SITE_URL}/" style="font-size:.84rem;color:#2d6a4f;letter-spacing:.06em;text-decoration:none;font-weight:500" title="Suman Dangal — Dev &amp; QA Engineer">&lt;SD/&gt;</a>    <style>
       #pre-nav-links{display:flex;gap:2.4rem}
       #pre-burger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
       #pre-burger span{display:block;width:21px;height:1.5px;background:#1a1e1a;border-radius:1px}
@@ -592,8 +592,7 @@ async function prerenderBlogPost(slug, env, request) {
     <time datetime="${escHtml(date)}">${escHtml(date)}</time>
   </div>
   ${tagList.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem">${tagList.map(t => `<span style="font-family:var(--mono);font-size:.7rem;padding:.2rem .55rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)">${escHtml(t)}</span>`).join('')}</div>` : ''}
-  ${imageUrl ? `<img class="cover-img" src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400" loading="eager" decoding="async">` : ''}
-  <div>${bodyHTML}</div>
+  ${imageUrl ? `<img class="cover-img" src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400" loading="eager" decoding="async" fetchpriority="high">` : ''}  <div>${bodyHTML}</div>
   ${faqSectionHTML}
   <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
   <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>

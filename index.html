@@ -472,7 +472,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 <div id="nprogress" aria-hidden="true"></div>
 
 <nav role="navigation" aria-label="Main navigation">
-  <a class="nav-brand" href="/" data-link>// sumandangal</a>
+  <a class="nav-brand" href="/" data-link title="Suman Dangal — Dev &amp; QA Engineer">&lt;SD/&gt;</a>
   <button class="nav-burger" id="burger" aria-label="Open menu" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
@@ -1339,8 +1339,8 @@ async function renderArticle(slug) {
   }
   const imgMap   = buildImgMap(post, imageData);
   const coverUrl = fixImgUrl(post.Image_URL);
-  const cover    = coverUrl
-    ? `<img class="article-cover" src="${esc(coverUrl)}" alt="${esc(post.Image_Alt || post.Title + ' featured image')}" loading="lazy" decoding="async" width="720" height="420">` : '';
+  const cover = coverUrl
+  ? `<img class="article-cover" src="${esc(coverUrl)}" alt="${esc(post.Image_Alt || post.Title + ' featured image')}" loading="eager" decoding="async" fetchpriority="high" width="720" height="420">` : '';
   const tableHTML = post.Table_HTML ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>` : '';
   const tagList   = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const tagsHTML  = tagList.length
