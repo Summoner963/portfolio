@@ -9,6 +9,50 @@ let faqCache  = null, faqCacheTime  = 0;
 let imgCache  = null, imgCacheTime  = 0;
 const CACHE_MS = 10 * 60 * 1000;
 
+// ── Per-route SEO metadata for all known SPA routes ──
+// These are injected into the static index.html at the worker level so
+// crawlers (which don't run JavaScript) see correct, unique canonical
+// URLs and meta tags for every page — fixing the "Canonicalised" /
+// "Non-Indexable" audit errors caused by every route returning the
+// same hardcoded canonical pointing to /.
+const ROUTE_META = {
+  '/': {
+    title:       'Suman Dangal — Dev & QA Engineer',
+    description: 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.',
+    canonical:   `${SITE_URL}/`,
+  },
+  '/skills': {
+    title:       'Skills & Stack | Suman Dangal',
+    description: 'Python, Django, PHP, Java, Android Studio, manual QA testing and more — skills of Suman Dangal.',
+    canonical:   `${SITE_URL}/skills`,
+  },
+  '/projects': {
+    title:       'Projects | Suman Dangal',
+    description: 'Django e-commerce, PHP library system, Android Bluetooth app and more — projects by Suman Dangal.',
+    canonical:   `${SITE_URL}/projects`,
+  },
+  '/blog': {
+    title:       'Blog | Suman Dangal',
+    description: 'Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.',
+    canonical:   `${SITE_URL}/blog`,
+  },
+  '/experience': {
+    title:       'Experience | Suman Dangal',
+    description: 'SEO Intern at Sathi Edtech and QA/testing projects — work experience of Suman Dangal.',
+    canonical:   `${SITE_URL}/experience`,
+  },
+  '/about': {
+    title:       'About Suman Dangal',
+    description: 'BCA student at Tribhuvan University, Bhaktapur, Nepal. Full-stack developer and QA tester.',
+    canonical:   `${SITE_URL}/about`,
+  },
+  '/contact': {
+    title:       'Contact | Suman Dangal',
+    description: 'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.',
+    canonical:   `${SITE_URL}/contact`,
+  },
+};
+
 export default {
   async fetch(request, env) {
     const url  = new URL(request.url);
@@ -41,8 +85,7 @@ export default {
       return await generateSitemap();
     }
 
-    // ── llms.txt — serve explicitly so static asset handler doesn't block it ──
-    // FIX: was returning 403 because the worker wasn't explicitly handling it.
+    // ── llms.txt ──
     if (path === '/llms.txt') {
       const llmsContent = `# Suman Dangal — Dev & QA Engineer
 # https://suman-dangal.com.np/
@@ -91,16 +134,90 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
       return await prerenderBlogPost(blogMatch[1], env, request);
     }
 
-    // ── All other SPA routes — serve index.html ──
+    // ── Known SPA routes — serve index.html with injected per-route meta ──
+    // Normalise the path: strip trailing slash (except root) so lookup is reliable
+    const normPath = path === '/' ? '/' : path.replace(/\/$/, '');
+    if (ROUTE_META[normPath]) {
+      return await serveIndexWithMeta(env, request, normPath);
+    }
+
+    // ── All other SPA routes — serve plain index.html ──
     return await serveIndex(env, request);
   }
 };
 
-// ── Serve index.html ──
+// ── Serve index.html unchanged (fallback / unknown routes) ──
 async function serveIndex(env, request) {
   const indexUrl = new URL('/', new URL(request.url).origin);
   const response = await env.ASSETS.fetch(new Request(indexUrl, request));
   return new Response(response.body, { status: 200, headers: response.headers });
+}
+
+// ── Serve index.html with per-route canonical/title/description injected ──
+// This is the key fix: crawlers receive unique, correct meta for every page
+// without needing JavaScript to run.
+async function serveIndexWithMeta(env, request, normPath) {
+  const indexUrl  = new URL('/', new URL(request.url).origin);
+  const response  = await env.ASSETS.fetch(new Request(indexUrl, request));
+  const meta      = ROUTE_META[normPath];
+
+  let html = await response.text();
+
+  // 1. Replace <title>
+  html = html.replace(
+    /<title>[^<]*<\/title>/,
+    `<title>${escHtml(meta.title)}</title>`
+  );
+
+  // 2. Replace meta description
+  html = html.replace(
+    /<meta name="description" content="[^"]*"/,
+    `<meta name="description" content="${escHtml(meta.description)}"`
+  );
+
+  // 3. Replace canonical href — this is the root cause of the audit errors
+  html = html.replace(
+    /<link id="canonical" rel="canonical" href="[^"]*"/,
+    `<link id="canonical" rel="canonical" href="${escHtml(meta.canonical)}"`
+  );
+
+  // 4. Replace og:title
+  html = html.replace(
+    /<meta property="og:title"\s+content="[^"]*"/,
+    `<meta property="og:title" content="${escHtml(meta.title)}"`
+  );
+
+  // 5. Replace og:description
+  html = html.replace(
+    /<meta property="og:description"\s+content="[^"]*"/,
+    `<meta property="og:description" content="${escHtml(meta.description)}"`
+  );
+
+  // 6. Replace og:url
+  html = html.replace(
+    /<meta property="og:url"\s+content="[^"]*"/,
+    `<meta property="og:url" content="${escHtml(meta.canonical)}"`
+  );
+
+  // 7. Replace twitter:title
+  html = html.replace(
+    /<meta name="twitter:title"\s+content="[^"]*"/,
+    `<meta name="twitter:title" content="${escHtml(meta.title)}"`
+  );
+
+  // 8. Replace twitter:description
+  html = html.replace(
+    /<meta name="twitter:description"\s+content="[^"]*"/,
+    `<meta name="twitter:description" content="${escHtml(meta.description)}"`
+  );
+
+  const headers = new Headers(response.headers);
+  headers.set('Content-Type', 'text/html;charset=UTF-8');
+  // Do NOT cache SPA shell pages at edge — let the browser cache a short time
+  // so re-crawls always get fresh canonical tags
+  headers.set('Cache-Control', 'public, max-age=3600');
+
+  return new Response(html, { status: 200, headers });
 }
 
 // ── Fetch + cache blog sheet ──
@@ -324,10 +441,6 @@ async function prerenderBlogPost(slug, env, request) {
 }
 
 // ── Dynamic sitemap ──
-// FIX: All static page URLs now use trailing slashes so they match the canonical
-// URLs set in the SPA and prerendered pages. This resolves "Non-canonical URL"
-// errors in the site audit (the audit was seeing a mismatch between sitemap
-// URLs without trailing slashes and the actual canonical tags on each page).
 async function generateSitemap() {
   const staticPages = [
     { loc: '/',           priority: '1.0', changefreq: 'monthly' },
