@@ -20,37 +20,65 @@ const ROUTE_META = {
     title:       'Suman Dangal — Dev & QA Engineer',
     description: 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.',
     canonical:   `${SITE_URL}/`,
+    // Home keeps the hero H1 visible — no injected H1 needed
+    h1:          null,
   },
   '/skills': {
     title:       'Skills & Stack | Suman Dangal',
     description: 'Python, Django, PHP, Java, Android Studio, manual QA testing and more — skills of Suman Dangal.',
     canonical:   `${SITE_URL}/skills`,
+    h1:          'Skills & Stack',
   },
   '/projects': {
     title:       'Projects | Suman Dangal',
     description: 'Django e-commerce, PHP library system, Android Bluetooth app and more — projects by Suman Dangal.',
     canonical:   `${SITE_URL}/projects`,
+    h1:          'Projects',
   },
   '/blog': {
     title:       'Blog | Suman Dangal',
     description: 'Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.',
     canonical:   `${SITE_URL}/blog`,
+    h1:          'Blog',
   },
   '/experience': {
     title:       'Experience | Suman Dangal',
     description: 'SEO Intern at Sathi Edtech and QA/testing projects — work experience of Suman Dangal.',
     canonical:   `${SITE_URL}/experience`,
+    h1:          'Experience',
   },
   '/about': {
     title:       'About Suman Dangal',
     description: 'BCA student at Tribhuvan University, Bhaktapur, Nepal. Full-stack developer and QA tester.',
     canonical:   `${SITE_URL}/about`,
+    h1:          'About Suman Dangal',
   },
   '/contact': {
     title:       'Contact | Suman Dangal',
     description: 'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.',
     canonical:   `${SITE_URL}/contact`,
+    h1:          'Contact',
   },
+};
+
+// ── Security response headers added to every HTML response ──
+// Fixes: Missing X-Frame-Options and Content-Security-Policy audit warnings.
+const SECURITY_HEADERS = {
+  'X-Frame-Options':           'SAMEORIGIN',
+  'X-Content-Type-Options':    'nosniff',
+  'Referrer-Policy':           'strict-origin-when-cross-origin',
+  // CSP: allows same-origin scripts/styles, Google Fonts, Google Sheets (CSV proxy),
+  // Google Drive images (lh3.googleusercontent.com), and your own CDN assets.
+  // 'unsafe-inline' is needed for the inline <style> and <script> blocks in index.html.
+  // Tighten this further once you move to external CSS/JS files.
+  'Content-Security-Policy':
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline'; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https://lh3.googleusercontent.com https://suman-dangal.com.np; " +
+    "connect-src 'self' https://docs.google.com https://api.anthropic.com; " +
+    "frame-ancestors 'none';",
 };
 
 export default {
@@ -146,11 +174,20 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
   }
 };
 
+// ── Apply security headers to a Headers object ──
+function applySecurityHeaders(headers) {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(k, v);
+  }
+  return headers;
+}
+
 // ── Serve index.html unchanged (fallback / unknown routes) ──
 async function serveIndex(env, request) {
   const indexUrl = new URL('/', new URL(request.url).origin);
   const response = await env.ASSETS.fetch(new Request(indexUrl, request));
-  return new Response(response.body, { status: 200, headers: response.headers });
+  const headers  = applySecurityHeaders(new Headers(response.headers));
+  return new Response(response.body, { status: 200, headers });
 }
 
 // ── Serve index.html with per-route canonical/title/description injected ──
@@ -166,7 +203,7 @@ async function serveIndexWithMeta(env, request, normPath) {
   // 1. Replace <title>
   html = html.replace(
     /<title>[^<]*<\/title>/,
-    `<title>${escHtml(meta.title)}</title>`
+    `<title>${escHtml(meta.title)}<\/title>`
   );
 
   // 2. Replace meta description
@@ -175,7 +212,7 @@ async function serveIndexWithMeta(env, request, normPath) {
     `<meta name="description" content="${escHtml(meta.description)}"`
   );
 
-  // 3. Replace canonical href — this is the root cause of the audit errors
+  // 3. Replace canonical href
   html = html.replace(
     /<link id="canonical" rel="canonical" href="[^"]*"/,
     `<link id="canonical" rel="canonical" href="${escHtml(meta.canonical)}"`
@@ -211,10 +248,28 @@ async function serveIndexWithMeta(env, request, normPath) {
     `<meta name="twitter:description" content="${escHtml(meta.description)}"`
   );
 
-  const headers = new Headers(response.headers);
+  // 9. H1 handling — fixes "Duplicate H1" across all routes.
+  //    The static index.html has one <h1 id="site-h1"> in the hero section.
+  //    For the home page we keep it visible (it IS the page H1).
+  //    For all other routes we:
+  //      a) Hide the hero H1 from crawlers (aria-hidden + h1-hidden CSS class)
+  //      b) Inject a visually-hidden but crawler-readable <h1> unique to this
+  //         route right after <div id="app"> so it leads the heading hierarchy.
+  if (meta.h1) {
+    // Hide hero H1 on non-home routes
+    html = html.replace(
+      /<h1 class="hero-title" id="site-h1">/,
+      `<h1 class="hero-title h1-hidden" id="site-h1" aria-hidden="true">`
+    );
+    // Inject unique route H1 — visually hidden, fully readable by crawlers
+    html = html.replace(
+      /<div id="app" role="main">/,
+      `<div id="app" role="main"><h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0" data-crawler-h1>${escHtml(meta.h1)}<\/h1>`
+    );
+  }
+
+  const headers = applySecurityHeaders(new Headers(response.headers));
   headers.set('Content-Type', 'text/html;charset=UTF-8');
-  // Do NOT cache SPA shell pages at edge — let the browser cache a short time
-  // so re-crawls always get fresh canonical tags
   headers.set('Cache-Control', 'public, max-age=3600');
 
   return new Response(html, { status: 200, headers });
@@ -282,7 +337,8 @@ async function prerenderBlogPost(slug, env, request) {
       <p>No post with slug "${slug}" exists.</p>
       <a href="${SITE_URL}/blog">← Back to Blog</a>
     </body></html>`;
-    return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+    const h404 = applySecurityHeaders(new Headers({'Content-Type': 'text/html;charset=UTF-8'}));
+    return new Response(html, { status: 404, headers: h404 });
   }
 
   const title    = post.Title    || '';
@@ -434,10 +490,8 @@ async function prerenderBlogPost(slug, env, request) {
 </body>
 </html>`;
 
-  return new Response(html, {
-    status: 200,
-    headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=3600' }
-  });
+  const h200 = applySecurityHeaders(new Headers({'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=3600'}));
+  return new Response(html, { status: 200, headers: h200 });
 }
 
 // ── Dynamic sitemap ──
