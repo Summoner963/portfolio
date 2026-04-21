@@ -516,6 +516,9 @@ async function prerenderBlogPost(slug, env, request) {
       size-adjust: 86%;
       ascent-override: 92%;
     }
+
+    body{padding-top:62px}
+
     :root {
       --accent:#2d6a4f; --accent2:#1b4332; --muted:#5a6659;
       --border:#e2e6df; --surface:#f7f8f6; --accent-bg:#edf5f0;
@@ -552,13 +555,37 @@ async function prerenderBlogPost(slug, env, request) {
   </style>
 </head>
 <body>
-  <nav>
-    <a href="${SITE_URL}/">Home</a>
-    <span>→</span>
-    <a href="${SITE_URL}/blog">Blog</a>
-    <span>→</span>
-    <span>${escHtml(title)}</span>
+
+  <nav style="position:fixed;top:0;left:0;right:0;height:62px;z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;background:rgba(255,255,255,.92);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-bottom:1px solid #e2e6df;box-shadow:0 1px 4px rgba(0,0,0,.09);font-family:'DM Mono','Courier New',monospace;">
+    <a href="${SITE_URL}/" style="font-size:.84rem;color:#2d6a4f;letter-spacing:.06em;text-decoration:none;font-weight:500">// sumandangal</a>
+    <style>
+      #pre-nav-links{display:flex;gap:2.4rem}
+      #pre-burger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+      #pre-burger span{display:block;width:21px;height:1.5px;background:#1a1e1a;border-radius:1px}
+      @media(max-width:768px){#pre-nav-links{display:none;flex-direction:column;position:fixed;top:62px;left:0;right:0;background:rgba(255,255,255,.97);border-bottom:1px solid #e2e6df;padding:1rem 1.5rem;z-index:999}#pre-nav-links.open{display:flex}#pre-burger{display:flex}}
+    </style>
+    <button id="pre-burger" aria-label="Open menu" onclick="var m=document.getElementById('pre-nav-links');m.classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+    <div id="pre-nav-links">
+      <a href="${SITE_URL}/"           style="font-size:.75rem;color:#5a6659;text-decoration:none;letter-spacing:.09em;text-transform:uppercase">Home</a>
+      <a href="${SITE_URL}/skills"     style="font-size:.75rem;color:#5a6659;text-decoration:none;letter-spacing:.09em;text-transform:uppercase">Skills</a>
+      <a href="${SITE_URL}/projects"   style="font-size:.75rem;color:#5a6659;text-decoration:none;letter-spacing:.09em;text-transform:uppercase">Projects</a>
+      <a href="${SITE_URL}/blog"       style="font-size:.75rem;color:#2d6a4f;text-decoration:none;letter-spacing:.09em;text-transform:uppercase;font-weight:500">Blog</a>
+      <a href="${SITE_URL}/experience" style="font-size:.75rem;color:#5a6659;text-decoration:none;letter-spacing:.09em;text-transform:uppercase">Experience</a>
+      <a href="${SITE_URL}/about"      style="font-size:.75rem;color:#5a6659;text-decoration:none;letter-spacing:.09em;text-transform:uppercase">About</a>
+      <a href="${SITE_URL}/contact"    style="font-size:.75rem;color:#5a6659;text-decoration:none;letter-spacing:.09em;text-transform:uppercase">Contact</a>
+    </div>
   </nav>
+
+  <div style="padding:1.5rem 2rem 0;font-family:'DM Mono','Courier New',monospace;font-size:.8rem;color:#5a6659">
+    <a href="${SITE_URL}/" style="color:#2d6a4f">Home</a>
+    <span style="margin:0 .4rem">→</span>
+    <a href="${SITE_URL}/blog" style="color:#2d6a4f">Blog</a>
+    <span style="margin:0 .4rem">→</span>
+    <span>${escHtml(title)}</span>
+  </div>
+
   <h1>${escHtml(title)}</h1>
   <div class="meta">
     <span class="cat">${escHtml(category)}</span>
