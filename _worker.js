@@ -536,7 +536,7 @@ async function prerenderBlogPost(slug, env, request) {
     h1{font-family:var(--serif);font-size:clamp(1.8rem,5vw,2.6rem);margin-bottom:.5rem;color:var(--accent2);line-height:1.1}
     h2{font-family:var(--serif);font-size:1.4rem;margin:2rem 0 .6rem;color:#1a1e1a}
     h3{font-family:var(--serif);font-size:1.1rem;color:var(--accent);margin:1.5rem 0 .4rem}
-    .meta{font-size:.8rem;color:#8a9688;margin-bottom:2rem;font-family:var(--mono);display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+    .meta{font-size:.8rem;color:#5a6659;margin-bottom:2rem;font-family:var(--mono);display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
     .cat{background:var(--accent-bg);color:var(--accent);padding:.2rem .6rem;border-radius:1rem;font-size:.75rem}
     p{color:var(--muted);margin-bottom:1rem}
     /* FIX: explicit aspect-ratio on cover image prevents CLS */
@@ -586,17 +586,18 @@ async function prerenderBlogPost(slug, env, request) {
     <span>${escHtml(title)}</span>
   </div>
 
-  <h1>${escHtml(title)}</h1>
-  <div class="meta">
-    <span class="cat">${escHtml(category)}</span>
-    <time datetime="${escHtml(date)}">${escHtml(date)}</time>
-  </div>
-  ${tagList.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem">${tagList.map(t => `<span style="font-family:var(--mono);font-size:.7rem;padding:.2rem .55rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)">${escHtml(t)}</span>`).join('')}</div>` : ''}
-  ${imageUrl ? `<img class="cover-img" src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400" loading="eager" decoding="async" fetchpriority="high">` : ''}  <div>${bodyHTML}</div>
-  ${faqSectionHTML}
-  <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
-  <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
-
+  <main>
+    <h1>${escHtml(title)}</h1>
+    <div class="meta">
+      <span class="cat">${escHtml(category)}</span>
+      <time datetime="${escHtml(date)}">${escHtml(date)}</time>
+    </div>
+    ${tagList.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem">${tagList.map(t => `<span style="font-family:var(--mono);font-size:.7rem;padding:.2rem .55rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)">${escHtml(t)}</span>`).join('')}</div>` : ''}
+    ${imageUrl ? `<img class="cover-img" src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400" loading="eager" decoding="async" fetchpriority="high">` : ''}  <div>${bodyHTML}</div>
+    ${faqSectionHTML}
+    <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
+    <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
+    </main>      
   <script>
     (function() {
       var ua = navigator.userAgent || '';
@@ -735,7 +736,7 @@ function renderMarkdown(text, imgMap) {
         const altTxt = (typeof entry === 'object' && entry.alt) ? entry.alt : `article image ${imgMatch[1]}`;
         if (src) {
           // FIX: explicit width/height on all inline images to prevent CLS
-          out.push(`<figure style="margin:1.5rem 0"><img src="${escHtml(src)}" alt="${escHtml(altTxt)}" width="680" height="383" style="max-width:100%;border-radius:.5rem;display:block;aspect-ratio:680/383;object-fit:cover" loading="lazy" decoding="async"><figcaption style="font-size:.75rem;color:#8a9688;text-align:center;margin-top:.4rem;font-style:italic">${escHtml(altTxt)}</figcaption></figure>`);
+          out.push(`<figure style="margin:1.5rem 0"><img src="${escHtml(src)}" alt="${escHtml(altTxt)}" width="680" height="383" style="max-width:100%;border-radius:.5rem;display:block;aspect-ratio:680/383;object-fit:cover" loading="lazy" decoding="async"><figcaption style="font-size:.75rem;color:#5a6659;text-align:center;margin-top:.4rem;font-style:italic">${escHtml(altTxt)}</figcaption></figure>`);
         }
       }
       continue;
