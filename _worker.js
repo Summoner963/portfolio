@@ -15,9 +15,6 @@ export default {
     const path = url.pathname;
 
     // ── CSV proxy — fixes CORS when Googlebot/browser fetches sheets ──
-    // Your index.html calls /api/sheet?url=... instead of Google directly.
-    // The worker fetches it server-side (no CORS) and returns it with
-    // the correct Access-Control-Allow-Origin header.
     if (path === '/api/sheet') {
       const target = url.searchParams.get('url');
       if (!target || !target.startsWith('https://docs.google.com/spreadsheets/')) {
@@ -39,15 +36,53 @@ export default {
       }
     }
 
-    // ── Static assets — serve directly (sitemap.xml excluded) ──
-    if (path !== '/sitemap.xml' && path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
-      try { return await env.ASSETS.fetch(request); }
-      catch { return new Response('Not found', { status: 404 }); }
-    }
-
     // ── Dynamic sitemap ──
     if (path === '/sitemap.xml') {
       return await generateSitemap();
+    }
+
+    // ── llms.txt — serve explicitly so static asset handler doesn't block it ──
+    // FIX: was returning 403 because the worker wasn't explicitly handling it.
+    if (path === '/llms.txt') {
+      const llmsContent = `# Suman Dangal — Dev & QA Engineer
+# https://suman-dangal.com.np/
+
+> Final-year BCA student building and testing full-stack web and mobile applications.
+> Open to Dev and QA internship opportunities in Nepal.
+
+## About
+
+Suman Dangal is a final-year BCA student at Tribhuvan University, Bhaktapur, Nepal.
+He specializes in full-stack development (Django, PHP, Java Android) and QA/manual testing.
+
+## Pages
+
+- [Home](https://suman-dangal.com.np/)
+- [Skills](https://suman-dangal.com.np/skills/)
+- [Projects](https://suman-dangal.com.np/projects/)
+- [Blog](https://suman-dangal.com.np/blog/)
+- [Experience](https://suman-dangal.com.np/experience/)
+- [About](https://suman-dangal.com.np/about/)
+- [Contact](https://suman-dangal.com.np/contact/)
+
+## Contact
+
+- Email: sumandangal888@gmail.com
+- LinkedIn: https://linkedin.com/in/sumandangal963
+`;
+      return new Response(llmsContent, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain;charset=UTF-8',
+          'Cache-Control': 'public, max-age=86400'
+        }
+      });
+    }
+
+    // ── Static assets — serve directly ──
+    if (path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
+      try { return await env.ASSETS.fetch(request); }
+      catch { return new Response('Not found', { status: 404 }); }
     }
 
     // ── Blog post route — prerender for ALL visitors ──
@@ -100,7 +135,6 @@ async function getFaqData() {
 
 // ── Fetch + cache BlogImages sheet ──
 async function getImageData() {
-  // If no sheet URL configured yet, return empty array gracefully
   if (!IMAGES_SHEET_URL || IMAGES_SHEET_URL.includes('PASTE_YOUR')) return [];
   const now = Date.now();
   if (imgCache && (now - imgCacheTime) < CACHE_MS) return imgCache;
@@ -117,7 +151,6 @@ async function getImageData() {
 
 // ── Prerender blog post ──
 async function prerenderBlogPost(slug, env, request) {
-  // Fetch blog + FAQ + BlogImages in parallel — all three cached independently
   const [blogRows, faqRows, imageRows] = await Promise.all([getBlogData(), getFaqData(), getImageData()]);
 
   const post = blogRows.find(r => (r.Slug || '').trim() === slug);
@@ -130,7 +163,7 @@ async function prerenderBlogPost(slug, env, request) {
     </head><body>
       <h1>Post not found</h1>
       <p>No post with slug "${slug}" exists.</p>
-      <a href="${SITE_URL}/blog">← Back to Blog</a>
+      <a href="${SITE_URL}/blog/">← Back to Blog</a>
     </body></html>`;
     return new Response(html, { status: 404, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
   }
@@ -139,22 +172,16 @@ async function prerenderBlogPost(slug, env, request) {
   const excerpt  = post.Excerpt  || '';
   const date     = post.Date     || '';
   const category = post.Category || 'Post';
-  const postUrl  = `${SITE_URL}/blog/${slug}`;
+  const postUrl  = `${SITE_URL}/blog/${slug}/`;
   const imageUrl    = fixImgUrl(post.Image_URL || '');
   const tagList     = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const keywordsStr = tagList.join(', ');
 
-  // Build imgMap — merge inline Img1_URL cols (fallback) with BlogImages sheet rows.
-  // BlogImages sheet rows always win and can add unlimited images.
   const imgMap = {};
-
-  // Step 1: seed from inline columns Img1_URL … for backwards compatibility
   for (const key of Object.keys(post)) {
     const m = key.match(/^[Ii]mg(\d+)_[Uu][Rr][Ll]$/);
     if (m) imgMap[`img${m[1]}`] = { url: post[key], alt: post[`Img${m[1]}_Alt`] || '' };
   }
-
-  // Step 2: overlay with BlogImages sheet rows — sorted by Img_Number
   if (imageRows?.length) {
     imageRows
       .filter(r => (r.Blog_Slug || '').trim() === slug)
@@ -168,12 +195,10 @@ async function prerenderBlogPost(slug, env, request) {
 
   const bodyHTML = renderMarkdown(post.Content || '', imgMap);
 
-  // FAQ rows for this slug, sorted by FAQ_Number
   const faqItems = faqRows
     .filter(r => (r.Blog_Slug || '').trim() === slug)
     .sort((a, b) => Number(a.FAQ_Number) - Number(b.FAQ_Number));
 
-  // Build FAQ HTML section
   const faqSectionHTML = faqItems.length ? `
   <section style="margin-top:2.5rem">
     <h2 style="font-size:1.4rem;color:#1b4332;margin-bottom:1rem">Frequently Asked Questions</h2>
@@ -188,7 +213,6 @@ async function prerenderBlogPost(slug, env, request) {
     </details>`).join('')}
   </section>` : '';
 
-  // FAQ JSON-LD schema — only inject if there are FAQ items
   const faqSchemaTag = faqItems.length ? `
   <script type="application/ld+json">
   {
@@ -231,7 +255,7 @@ async function prerenderBlogPost(slug, env, request) {
     "description": "${escJson(excerpt)}",
     "datePublished": "${escJson(date)}",
     "url": "${postUrl}",
-    "author": { "@type": "Person", "name": "Suman Dangal", "url": "${SITE_URL}" }
+    "author": { "@type": "Person", "name": "Suman Dangal", "url": "${SITE_URL}/" }
     ${imageUrl ? `,"image": "${escJson(imageUrl)}"` : ''}
     ${keywordsStr ? `,"keywords": "${escJson(keywordsStr)}"` : ''}
   }
@@ -243,7 +267,7 @@ async function prerenderBlogPost(slug, env, request) {
     "@type": "BreadcrumbList",
     "itemListElement": [
       {"@type":"ListItem","position":1,"name":"Home","item":"${SITE_URL}/"},
-      {"@type":"ListItem","position":2,"name":"Blog","item":"${SITE_URL}/blog"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"${SITE_URL}/blog/"},
       {"@type":"ListItem","position":3,"name":"${escJson(title)}","item":"${postUrl}"}
     ]
   }
@@ -265,7 +289,7 @@ async function prerenderBlogPost(slug, env, request) {
   </style>
 </head>
 <body>
-  <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog">Blog</a> → ${escHtml(title)}</nav>
+  <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog/">Blog</a> → ${escHtml(title)}</nav>
   <h1>${escHtml(title)}</h1>
   <div class="meta">
     <span class="cat">${escHtml(category)}</span>
@@ -276,10 +300,9 @@ async function prerenderBlogPost(slug, env, request) {
   <div>${bodyHTML}</div>
   ${faqSectionHTML}
   <hr>
-  <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
+  <p><a href="${SITE_URL}/blog/">← Back to all posts</a></p>
 
   <script>
-    // Load full SPA only for real human browsers — bots stay on static shell
     (function() {
       var ua = navigator.userAgent || '';
       var isBot = /google|bing|yandex|baidu|duckduck|slurp|facebook|twitter|linkedin|whatsapp|telegram|apple|pinterest|reddit|slack|discord|crawler|spider|bot|headless|prerender|python|curl|wget|java|ruby|go-http|node-fetch/i.test(ua);
@@ -301,15 +324,19 @@ async function prerenderBlogPost(slug, env, request) {
 }
 
 // ── Dynamic sitemap ──
+// FIX: All static page URLs now use trailing slashes so they match the canonical
+// URLs set in the SPA and prerendered pages. This resolves "Non-canonical URL"
+// errors in the site audit (the audit was seeing a mismatch between sitemap
+// URLs without trailing slashes and the actual canonical tags on each page).
 async function generateSitemap() {
   const staticPages = [
-    { loc: '/',           priority: '1.0', changefreq: 'monthly' },
-    { loc: '/skills',     priority: '0.7', changefreq: 'monthly' },
-    { loc: '/projects',   priority: '0.8', changefreq: 'monthly' },
-    { loc: '/blog',       priority: '0.9', changefreq: 'weekly'  },
-    { loc: '/experience', priority: '0.7', changefreq: 'monthly' },
-    { loc: '/about',      priority: '0.6', changefreq: 'monthly' },
-    { loc: '/contact',    priority: '0.5', changefreq: 'yearly'  },
+    { loc: '/',            priority: '1.0', changefreq: 'monthly' },
+    { loc: '/skills/',     priority: '0.7', changefreq: 'monthly' },
+    { loc: '/projects/',   priority: '0.8', changefreq: 'monthly' },
+    { loc: '/blog/',       priority: '0.9', changefreq: 'weekly'  },
+    { loc: '/experience/', priority: '0.7', changefreq: 'monthly' },
+    { loc: '/about/',      priority: '0.6', changefreq: 'monthly' },
+    { loc: '/contact/',    priority: '0.5', changefreq: 'yearly'  },
   ];
   let blogUrls = [];
   try {
@@ -317,7 +344,7 @@ async function generateSitemap() {
     blogUrls = rows
       .filter(r => r.Slug && r.Slug.trim())
       .map(r => ({
-        loc:        `/blog/${r.Slug.trim()}`,
+        loc:        `/blog/${r.Slug.trim()}/`,
         priority:   '0.8',
         changefreq: 'monthly',
         lastmod:    formatDate(r.Date || ''),
@@ -340,10 +367,6 @@ ${all.map(p => `  <url>
 }
 
 // ── Markdown renderer ──
-// Rules:
-//   Lines starting with | are content lines — strip the | first
-//   Lines NOT starting with | (e.g. bare ## headings) are also processed
-//   Blank line or "|" alone = spacer <br>
 function renderMarkdown(text, imgMap) {
   if (!text) return '';
 
@@ -367,17 +390,13 @@ function renderMarkdown(text, imgMap) {
   }
 
   for (const raw of lines) {
-    // Strip leading | if present — it's just the content delimiter
     const l = raw.startsWith('|') ? raw.slice(1) : raw;
 
-    // Blank / spacer
     if (l.trim() === '') {
       closeList();
       out.push('<br>');
       continue;
     }
-
-    // Headings
     if (l.startsWith('## ')) {
       closeList();
       out.push(`<h2 style="font-size:1.4rem;margin:2rem 0 .6rem;color:#1a1e1a">${inlineFmt(l.slice(3))}</h2>`);
@@ -388,31 +407,23 @@ function renderMarkdown(text, imgMap) {
       out.push(`<h3 style="font-size:1.1rem;margin:1.5rem 0 .4rem;color:#2d6a4f">${inlineFmt(l.slice(4))}</h3>`);
       continue;
     }
-
-    // Bullet  "- text"
     if (l.startsWith('- ')) {
       if (inOl) { out.push('</ol>'); inOl = false; }
       if (!inList) { out.push('<ul style="margin:.6rem 0 .6rem 1.4rem;padding:0">'); inList = true; }
       out.push(`<li style="margin-bottom:.35rem">${inlineFmt(l.slice(2))}</li>`);
       continue;
     }
-
-    // Numbered step  "1. text"
     if (/^\d+\.\s/.test(l)) {
       if (inList) { out.push('</ul>'); inList = false; }
       if (!inOl) { out.push('<ol style="margin:.6rem 0 .6rem 1.4rem;padding:0">'); inOl = true; }
       out.push(`<li style="margin-bottom:.35rem">${inlineFmt(l.replace(/^\d+\.\s/, ''))}</li>`);
       continue;
     }
-
-    // Tip / callout  "> text"
     if (l.startsWith('> ')) {
       closeList();
       out.push(`<blockquote style="border-left:3px solid #52b788;margin:1.2rem 0;padding:.7rem 1rem;background:#edf5f0;border-radius:0 .4rem .4rem 0;color:#2d6a4f;font-style:italic">${inlineFmt(l.slice(2))}</blockquote>`);
       continue;
     }
-
-    // Image  "[img1]" "[img2]" etc
     const imgMatch = l.trim().match(/^\[img(\d+)\]$/i);
     if (imgMatch && imgMap) {
       closeList();
@@ -426,8 +437,6 @@ function renderMarkdown(text, imgMap) {
       }
       continue;
     }
-
-    // Normal paragraph
     closeList();
     out.push(`<p style="color:#5a6659;margin-bottom:1rem;line-height:1.75">${inlineFmt(l)}</p>`);
   }
@@ -481,17 +490,6 @@ function parseCSV(raw) {
     headers.forEach((h, i) => { obj[h] = (vals[i] ?? '').trim(); });
     return obj;
   }).filter(r => Object.values(r).some(v => v));
-}
-function splitRow(line) {
-  const cols = []; let cur = '', inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') { inQ = !inQ; }
-    else if (c === ',' && !inQ) { cols.push(cur); cur = ''; }
-    else { cur += c; }
-  }
-  cols.push(cur);
-  return cols.map(s => s.replace(/^"|"$/g,'').replace(/""/g,'"'));
 }
 function formatDate(dateStr) {
   try {
