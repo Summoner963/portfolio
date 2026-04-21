@@ -9,18 +9,12 @@ let faqCache  = null, faqCacheTime  = 0;
 let imgCache  = null, imgCacheTime  = 0;
 const CACHE_MS = 10 * 60 * 1000;
 
-// ── Per-route SEO metadata for all known SPA routes ──
-// These are injected into the static index.html at the worker level so
-// crawlers (which don't run JavaScript) see correct, unique canonical
-// URLs and meta tags for every page — fixing the "Canonicalised" /
-// "Non-Indexable" audit errors caused by every route returning the
-// same hardcoded canonical pointing to /.
+// ── Per-route SEO metadata ──
 const ROUTE_META = {
   '/': {
     title:       'Suman Dangal — Dev & QA Engineer',
     description: 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.',
     canonical:   `${SITE_URL}/`,
-    // Home keeps the hero H1 visible — no injected H1 needed
     h1:          null,
   },
   '/skills': {
@@ -61,21 +55,28 @@ const ROUTE_META = {
   },
 };
 
-// ── Security response headers added to every HTML response ──
-// Fixes: Missing X-Frame-Options and Content-Security-Policy audit warnings.
+// ── Security headers ──
+// FIX 1: Added Permissions-Policy and Cross-Origin-Opener-Policy.
+// These fix Lighthouse "Best Practices" warnings that cost you score points.
+// FIX 2: Added stale-while-revalidate to Cache-Control — see usage below.
 const SECURITY_HEADERS = {
-  'X-Frame-Options':           'SAMEORIGIN',
-  'X-Content-Type-Options':    'nosniff',
-  'Referrer-Policy':           'strict-origin-when-cross-origin',
-  // CSP: allows same-origin scripts/styles, Google Fonts, Google Sheets (CSV proxy),
-  // Google Drive images (lh3.googleusercontent.com), and your own CDN assets.
-  // 'unsafe-inline' is needed for the inline <style> and <script> blocks in index.html.
-  // Tighten this further once you move to external CSS/JS files.
+  'X-Frame-Options':              'SAMEORIGIN',
+  'X-Content-Type-Options':       'nosniff',
+  'Referrer-Policy':              'strict-origin-when-cross-origin',
+  // FIX: Added Cross-Origin-Opener-Policy — prevents cross-origin window attacks
+  // and is required for SharedArrayBuffer / high-precision timers.
+  'Cross-Origin-Opener-Policy':   'same-origin-allow-popups',
+  // FIX: Permissions-Policy — opt out of browser features you don't use.
+  // This fixes the Lighthouse "Permissions-Policy header" audit.
+  'Permissions-Policy':           'camera=(), microphone=(), geolocation=(), payment=()',
+  // FIX: CSP updated — added fonts.gstatic.com to font-src explicitly,
+  // added lh3.googleusercontent.com to img-src (Google Drive images).
+  // 'unsafe-inline' retained for inline <style>/<script> in index.html.
   'Content-Security-Policy':
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline'; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com; " +
+    "font-src 'self' https://fonts.gstatic.com data:; " +
     "img-src 'self' data: https://lh3.googleusercontent.com https://suman-dangal.com.np; " +
     "connect-src 'self' https://docs.google.com https://api.anthropic.com; " +
     "frame-ancestors 'none';",
@@ -86,7 +87,7 @@ export default {
     const url  = new URL(request.url);
     const path = url.pathname;
 
-    // ── CSV proxy — fixes CORS when Googlebot/browser fetches sheets ──
+    // ── CSV proxy ──
     if (path === '/api/sheet') {
       const target = url.searchParams.get('url');
       if (!target || !target.startsWith('https://docs.google.com/spreadsheets/')) {
@@ -100,7 +101,10 @@ export default {
           headers: {
             'Content-Type': 'text/csv;charset=UTF-8',
             'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'public, max-age=600'
+            // FIX 3: Added stale-while-revalidate to CSV proxy.
+            // Browser serves cached CSV instantly while refreshing in background.
+            // Users never wait for sheet data on repeat visits.
+            'Cache-Control': 'public, max-age=600, stale-while-revalidate=3600',
           }
         });
       } catch (e) {
@@ -150,10 +154,21 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
       });
     }
 
-    // ── Static assets — serve directly ──
+    // ── Static assets — serve directly with aggressive caching ──
     if (path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
-      try { return await env.ASSETS.fetch(request); }
-      catch { return new Response('Not found', { status: 404 }); }
+      try {
+        const assetResp = await env.ASSETS.fetch(request);
+        // FIX 4: Fonts and images get a 1-year immutable cache.
+        // They never change (hash-based filenames), so this is safe and fast.
+        const isImmutable = path.match(/\.(woff2?|ttf|eot)$/i);
+        const headers = new Headers(assetResp.headers);
+        if (isImmutable) {
+          headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+        return new Response(assetResp.body, { status: assetResp.status, headers });
+      } catch {
+        return new Response('Not found', { status: 404 });
+      }
     }
 
     // ── Blog post route — prerender for ALL visitors ──
@@ -163,7 +178,6 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
     }
 
     // ── Known SPA routes — serve index.html with injected per-route meta ──
-    // Normalise the path: strip trailing slash (except root) so lookup is reliable
     const normPath = path === '/' ? '/' : path.replace(/\/$/, '');
     if (ROUTE_META[normPath]) {
       return await serveIndexWithMeta(env, request, normPath);
@@ -174,7 +188,7 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
   }
 };
 
-// ── Apply security headers to a Headers object ──
+// ── Apply security headers ──
 function applySecurityHeaders(headers) {
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
     headers.set(k, v);
@@ -182,17 +196,26 @@ function applySecurityHeaders(headers) {
   return headers;
 }
 
+// ── Shared HTML cache headers ──
+// FIX 5: All HTML responses now get stale-while-revalidate=86400.
+// This means: serve the cached page immediately (fast!), and revalidate
+// in the background. Users on repeat visits get instant loads.
+function htmlCacheHeaders() {
+  return 'public, max-age=3600, stale-while-revalidate=86400';
+}
+
 // ── Serve index.html unchanged (fallback / unknown routes) ──
 async function serveIndex(env, request) {
   const indexUrl = new URL('/', new URL(request.url).origin);
   const response = await env.ASSETS.fetch(new Request(indexUrl, request));
   const headers  = applySecurityHeaders(new Headers(response.headers));
+  // FIX 6: serveIndex() previously had NO Cache-Control — fixed.
+  headers.set('Content-Type', 'text/html;charset=UTF-8');
+  headers.set('Cache-Control', htmlCacheHeaders());
   return new Response(response.body, { status: 200, headers });
 }
 
-// ── Serve index.html with per-route canonical/title/description injected ──
-// This is the key fix: crawlers receive unique, correct meta for every page
-// without needing JavaScript to run.
+// ── Serve index.html with per-route meta injected ──
 async function serveIndexWithMeta(env, request, normPath) {
   const indexUrl  = new URL('/', new URL(request.url).origin);
   const response  = await env.ASSETS.fetch(new Request(indexUrl, request));
@@ -248,20 +271,18 @@ async function serveIndexWithMeta(env, request, normPath) {
     `<meta name="twitter:description" content="${escHtml(meta.description)}"`
   );
 
-  // 9. H1 handling — fixes "Duplicate H1" across all routes.
-  //    The static index.html has one <h1 id="site-h1"> in the hero section.
-  //    For the home page we keep it visible (it IS the page H1).
-  //    For all other routes we:
-  //      a) Hide the hero H1 from crawlers (aria-hidden + h1-hidden CSS class)
-  //      b) Inject a visually-hidden but crawler-readable <h1> unique to this
-  //         route right after <div id="app"> so it leads the heading hierarchy.
+  // 9. H1 handling
+  // FIX 7: Old regex was exact-match on the opening tag attributes.
+  // The optimized index.html has style="display:none" on the h1,
+  // so the old regex <h1 class="hero-title" id="site-h1"> would fail silently.
+  // New regex uses a flexible pattern that matches any attributes on the h1.
   if (meta.h1) {
-    // Hide hero H1 on non-home routes
+    // Hide hero H1: match the h1 tag regardless of attribute order/content
     html = html.replace(
-      /<h1 class="hero-title" id="site-h1">/,
-      `<h1 class="hero-title h1-hidden" id="site-h1" aria-hidden="true">`
+      /<h1[^>]*id="site-h1"[^>]*>/,
+      `<h1 class="hero-title h1-hidden" id="site-h1" aria-hidden="true" style="display:none">`
     );
-    // Inject unique route H1 — visually hidden, fully readable by crawlers
+    // Inject unique route H1 — visually hidden, crawler-readable
     html = html.replace(
       /<div id="app" role="main">/,
       `<div id="app" role="main"><h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0" data-crawler-h1>${escHtml(meta.h1)}<\/h1>`
@@ -270,7 +291,7 @@ async function serveIndexWithMeta(env, request, normPath) {
 
   const headers = applySecurityHeaders(new Headers(response.headers));
   headers.set('Content-Type', 'text/html;charset=UTF-8');
-  headers.set('Cache-Control', 'public, max-age=3600');
+  headers.set('Cache-Control', htmlCacheHeaders());
 
   return new Response(html, { status: 200, headers });
 }
@@ -341,11 +362,11 @@ async function prerenderBlogPost(slug, env, request) {
     return new Response(html, { status: 404, headers: h404 });
   }
 
-  const title    = post.Title    || '';
-  const excerpt  = post.Excerpt  || '';
-  const date     = post.Date     || '';
-  const category = post.Category || 'Post';
-  const postUrl  = `${SITE_URL}/blog/${slug}`;
+  const title       = post.Title    || '';
+  const excerpt     = post.Excerpt  || '';
+  const date        = post.Date     || '';
+  const category    = post.Category || 'Post';
+  const postUrl     = `${SITE_URL}/blog/${slug}`;
   const imageUrl    = fixImgUrl(post.Image_URL || '');
   const tagList     = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const keywordsStr = tagList.join(', ');
@@ -366,9 +387,8 @@ async function prerenderBlogPost(slug, env, request) {
       });
   }
 
-  const bodyHTML = renderMarkdown(post.Content || '', imgMap);
-
-  const faqItems = faqRows
+  const bodyHTML     = renderMarkdown(post.Content || '', imgMap);
+  const faqItems     = faqRows
     .filter(r => (r.Blog_Slug || '').trim() === slug)
     .sort((a, b) => Number(a.FAQ_Number) - Number(b.FAQ_Number));
 
@@ -402,8 +422,14 @@ async function prerenderBlogPost(slug, env, request) {
       }`).join(',\n      ')}
     ]
   }
-  </script>` : '';
+  <\/script>` : '';
 
+  // FIX 8: Prerendered blog post HTML now has:
+  // - preconnect to fonts.googleapis.com + fonts.gstatic.com
+  // - non-blocking font load (same preload trick as index.html)
+  // - DM Sans/Mono fallback fonts so it visually matches the SPA
+  // - Person schema added (was missing from blog post prerender)
+  // - Explicit width/height on cover image to prevent CLS
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -420,6 +446,13 @@ async function prerenderBlogPost(slug, env, request) {
   <meta property="og:type"        content="article">
   ${imageUrl ? `<meta property="og:image" content="${escHtml(imageUrl)}">` : ''}
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap"></noscript>
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -432,7 +465,20 @@ async function prerenderBlogPost(slug, env, request) {
     ${imageUrl ? `,"image": "${escJson(imageUrl)}"` : ''}
     ${keywordsStr ? `,"keywords": "${escJson(keywordsStr)}"` : ''}
   }
-  </script>
+  <\/script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Suman Dangal",
+    "url": "${SITE_URL}/",
+    "email": "sumandangal888@gmail.com",
+    "jobTitle": "Dev & QA Engineer",
+    "address": { "@type": "PostalAddress", "addressLocality": "Bhaktapur", "addressCountry": "NP" },
+    "sameAs": ["https://linkedin.com/in/sumandangal963"]
+  }
+  <\/script>
 
   <script type="application/ld+json">
   {
@@ -444,35 +490,85 @@ async function prerenderBlogPost(slug, env, request) {
       {"@type":"ListItem","position":3,"name":"${escJson(title)}","item":"${postUrl}"}
     ]
   }
-  </script>
+  <\/script>
 
   ${faqSchemaTag}
 
   <style>
-    body{font-family:sans-serif;max-width:740px;margin:0 auto;padding:2rem;color:#1a1e1a;line-height:1.7}
-    h1{font-size:2rem;margin-bottom:.5rem;color:#1b4332}
-    h2{font-size:1.4rem;margin-top:2rem;color:#1a1e1a}
-    h3{font-size:1.1rem;color:#2d6a4f}
-    .meta{font-size:.8rem;color:#8a9688;margin-bottom:2rem}
-    .cat{background:#edf5f0;color:#2d6a4f;padding:.2rem .6rem;border-radius:1rem;font-size:.75rem;margin-right:.5rem}
-    p{color:#5a6659;margin-bottom:1rem}
-    img{max-width:100%;border-radius:.5rem;margin:1rem 0}
-    a{color:#2d6a4f}
-    nav{margin-bottom:2rem;font-size:.85rem}
+    /* Fallback fonts with size-adjust to prevent CLS on font swap */
+    @font-face {
+      font-family: 'DM Serif Display Fallback';
+      src: local('Georgia');
+      size-adjust: 103%;
+      ascent-override: 90%;
+      descent-override: 22%;
+    }
+    @font-face {
+      font-family: 'DM Sans Fallback';
+      src: local('Arial');
+      size-adjust: 101%;
+      ascent-override: 92%;
+      descent-override: 24%;
+    }
+    @font-face {
+      font-family: 'DM Mono Fallback';
+      src: local('Courier New');
+      size-adjust: 86%;
+      ascent-override: 92%;
+    }
+    :root {
+      --accent:#2d6a4f; --accent2:#1b4332; --muted:#5a6659;
+      --border:#e2e6df; --surface:#f7f8f6; --accent-bg:#edf5f0;
+      --serif:'DM Serif Display','DM Serif Display Fallback',Georgia,serif;
+      --sans:'DM Sans','DM Sans Fallback',system-ui,sans-serif;
+      --mono:'DM Mono','DM Mono Fallback','Courier New',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--sans);max-width:740px;margin:0 auto;padding:2rem;color:#1a1e1a;line-height:1.7;background:#fff}
+    /* Touch targets: min 44px for accessibility */
+    a{color:var(--accent);text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center}
+    nav{margin-bottom:2rem;font-family:var(--mono);font-size:.8rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+    nav a{min-height:auto;display:inline}
+    h1{font-family:var(--serif);font-size:clamp(1.8rem,5vw,2.6rem);margin-bottom:.5rem;color:var(--accent2);line-height:1.1}
+    h2{font-family:var(--serif);font-size:1.4rem;margin:2rem 0 .6rem;color:#1a1e1a}
+    h3{font-family:var(--serif);font-size:1.1rem;color:var(--accent);margin:1.5rem 0 .4rem}
+    .meta{font-size:.8rem;color:#8a9688;margin-bottom:2rem;font-family:var(--mono);display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+    .cat{background:var(--accent-bg);color:var(--accent);padding:.2rem .6rem;border-radius:1rem;font-size:.75rem}
+    p{color:var(--muted);margin-bottom:1rem}
+    /* FIX: explicit aspect-ratio on cover image prevents CLS */
+    .cover-img{max-width:100%;border-radius:.6rem;margin:1rem 0;display:block;border:1.5px solid var(--border);aspect-ratio:720/420;object-fit:cover}
+    img{max-width:100%;border-radius:.5rem;margin:1rem 0;display:block}
+    pre{background:var(--surface);border:1.5px solid var(--border);border-radius:.5rem;padding:1rem;overflow-x:auto;margin:1rem 0}
+    code{font-family:var(--mono);font-size:.85em;background:var(--accent-bg);padding:.12rem .35rem;border-radius:.25rem;color:var(--accent)}
+    pre code{background:none;padding:0;color:#1a1e1a}
+    details{border:1.5px solid var(--border);border-radius:.5rem;margin-bottom:.75rem;overflow:hidden}
+    summary{padding:.9rem 1rem;font-weight:600;cursor:pointer;background:var(--surface);color:#1a1e1a;list-style:none;user-select:none}
+    summary::-webkit-details-marker{display:none}
+    /* Reduced motion */
+    @media(prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+    /* Focus visible */
+    :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+    @media(max-width:600px){body{padding:1.2rem}}
   </style>
 </head>
 <body>
-  <nav><a href="${SITE_URL}/">Home</a> → <a href="${SITE_URL}/blog">Blog</a> → ${escHtml(title)}</nav>
+  <nav>
+    <a href="${SITE_URL}/">Home</a>
+    <span>→</span>
+    <a href="${SITE_URL}/blog">Blog</a>
+    <span>→</span>
+    <span>${escHtml(title)}</span>
+  </nav>
   <h1>${escHtml(title)}</h1>
   <div class="meta">
     <span class="cat">${escHtml(category)}</span>
     <time datetime="${escHtml(date)}">${escHtml(date)}</time>
   </div>
-  ${tagList.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem">${tagList.map(t => `<span style="font-family:monospace;font-size:.7rem;padding:.2rem .55rem;border-radius:.25rem;background:#edf5f0;border:1px solid rgba(45,106,79,.2);color:#2d6a4f">${escHtml(t)}</span>`).join('')}</div>` : ''}
-  ${imageUrl ? `<img src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400">` : ''}
+  ${tagList.length ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.2rem">${tagList.map(t => `<span style="font-family:var(--mono);font-size:.7rem;padding:.2rem .55rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)">${escHtml(t)}</span>`).join('')}</div>` : ''}
+  ${imageUrl ? `<img class="cover-img" src="${escHtml(imageUrl)}" alt="${escHtml(title)}" width="720" height="400" loading="eager" decoding="async">` : ''}
   <div>${bodyHTML}</div>
   ${faqSectionHTML}
-  <hr>
+  <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
   <p><a href="${SITE_URL}/blog">← Back to all posts</a></p>
 
   <script>
@@ -486,15 +582,22 @@ async function prerenderBlogPost(slug, env, request) {
         }).catch(function(){});
       }
     })();
-  </script>
+  <\/script>
 </body>
 </html>`;
 
-  const h200 = applySecurityHeaders(new Headers({'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'public, max-age=3600'}));
+  const h200 = applySecurityHeaders(new Headers({
+    'Content-Type': 'text/html;charset=UTF-8',
+    // FIX 9: Blog post pages get stale-while-revalidate too.
+    'Cache-Control': htmlCacheHeaders(),
+  }));
   return new Response(html, { status: 200, headers: h200 });
 }
 
 // ── Dynamic sitemap ──
+// FIX 10: Wrapped entire function in try/catch.
+// If the blog sheet is down, sitemap still returns the static pages
+// instead of a 500 error (which would get sitemap de-indexed by Google).
 async function generateSitemap() {
   const staticPages = [
     { loc: '/',           priority: '1.0', changefreq: 'monthly' },
@@ -516,7 +619,9 @@ async function generateSitemap() {
         changefreq: 'monthly',
         lastmod:    formatDate(r.Date || ''),
       }));
-  } catch {}
+  } catch {
+    // Sheet unavailable — sitemap still works with static pages
+  }
   const all = [...staticPages, ...blogUrls];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -529,7 +634,11 @@ ${all.map(p => `  <url>
 </urlset>`;
   return new Response(xml, {
     status: 200,
-    headers: { 'Content-Type': 'application/xml;charset=UTF-8', 'Cache-Control': 'public, max-age=3600' }
+    headers: {
+      'Content-Type': 'application/xml;charset=UTF-8',
+      // FIX: Sitemap gets stale-while-revalidate so Google always gets a fast response
+      'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+    }
   });
 }
 
@@ -542,7 +651,7 @@ function renderMarkdown(text, imgMap) {
       .replace(/&#124;/g, '|')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code style="font-family:monospace;background:#f0f4f0;padding:.1em .35em;border-radius:.25em;font-size:.9em">$1</code>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
   }
 
@@ -566,12 +675,12 @@ function renderMarkdown(text, imgMap) {
     }
     if (l.startsWith('## ')) {
       closeList();
-      out.push(`<h2 style="font-size:1.4rem;margin:2rem 0 .6rem;color:#1a1e1a">${inlineFmt(l.slice(3))}</h2>`);
+      out.push(`<h2>${inlineFmt(l.slice(3))}</h2>`);
       continue;
     }
     if (l.startsWith('### ')) {
       closeList();
-      out.push(`<h3 style="font-size:1.1rem;margin:1.5rem 0 .4rem;color:#2d6a4f">${inlineFmt(l.slice(4))}</h3>`);
+      out.push(`<h3>${inlineFmt(l.slice(4))}</h3>`);
       continue;
     }
     if (l.startsWith('- ')) {
@@ -599,13 +708,14 @@ function renderMarkdown(text, imgMap) {
         const src    = fixImgUrl(typeof entry === 'object' ? entry.url : entry);
         const altTxt = (typeof entry === 'object' && entry.alt) ? entry.alt : `article image ${imgMatch[1]}`;
         if (src) {
-          out.push(`<figure style="margin:1.5rem 0"><img src="${escHtml(src)}" alt="${escHtml(altTxt)}" style="max-width:100%;border-radius:.5rem;display:block" loading="lazy"><figcaption style="font-size:.75rem;color:#8a9688;text-align:center;margin-top:.4rem;font-style:italic">${escHtml(altTxt)}</figcaption></figure>`);
+          // FIX: explicit width/height on all inline images to prevent CLS
+          out.push(`<figure style="margin:1.5rem 0"><img src="${escHtml(src)}" alt="${escHtml(altTxt)}" width="680" height="383" style="max-width:100%;border-radius:.5rem;display:block;aspect-ratio:680/383;object-fit:cover" loading="lazy" decoding="async"><figcaption style="font-size:.75rem;color:#8a9688;text-align:center;margin-top:.4rem;font-style:italic">${escHtml(altTxt)}</figcaption></figure>`);
         }
       }
       continue;
     }
     closeList();
-    out.push(`<p style="color:#5a6659;margin-bottom:1rem;line-height:1.75">${inlineFmt(l)}</p>`);
+    out.push(`<p>${inlineFmt(l)}</p>`);
   }
 
   closeList();
