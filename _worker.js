@@ -391,8 +391,7 @@ async function prerenderBlogPost(slug, env, request) {
     {"@type":"ListItem","position":3,"name":"${escJson(title)}","item":"${postUrl}"}]}
   <\/script>
   ${faqSchemaTag}
-  
-  body { background: #ffffff; }
+
   <style>${PRERENDER_CSS}<\/style>
 </head>
 <body>
@@ -415,11 +414,8 @@ async function prerenderBlogPost(slug, env, request) {
   </nav>
 
   <main class="pre-main">
-    <nav class="pre-breadcrumb" aria-label="Breadcrumb">
-      <a href="${SITE_URL}/">Home</a><span>→</span>
-      <a href="${SITE_URL}/blog">Blog</a><span>→</span>
-      <span>${escHtml(title)}</span>
-    </nav>
+
+    <a class="pre-back" href="${SITE_URL}/blog">← Back to Blog</a>
 
     <div class="pre-meta">
       <span class="pre-cat">${escHtml(category)}</span>
