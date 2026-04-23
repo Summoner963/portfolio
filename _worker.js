@@ -397,8 +397,16 @@ async function prerenderBlogPost(slug, env, request) {
 <body>
 
   <nav class="pre-nav" role="navigation" aria-label="Main navigation">
-    <a class="pre-nav-brand" href="${SITE_URL}/" title="Suman Dangal — Dev &amp; QA Engineer"><img src="https://suman-dangal.com.np/favicon.ico"></a>
-    <button class="pre-burger" id="preBurger" aria-label="Open menu" aria-expanded="false"
+  <a class="pre-nav-brand" href="${SITE_URL}/" title="Suman Dangal — Dev & QA Engineer">
+    <img 
+      src="https://suman-dangal.com.np/icon-48x48.png" 
+      alt="Suman Dangal — Dev & QA Engineer Portfolio Logo" 
+      width="48" 
+      height="48" 
+      fetchpriority="high"
+      loading="eager"
+      decoding="async">
+  </a>    <button class="pre-burger" id="preBurger" aria-label="Open menu" aria-expanded="false"
       onclick="var m=document.getElementById('preNavLinks');var o=!m.classList.contains('open');m.classList.toggle('open',o);this.setAttribute('aria-expanded',o)">
       <span></span><span></span><span></span>
     </button>
