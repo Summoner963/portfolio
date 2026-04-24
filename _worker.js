@@ -397,16 +397,15 @@ async function prerenderBlogPost(slug, env, request) {
 <body>
 
   <nav class="pre-nav" role="navigation" aria-label="Main navigation">
-  <a class="pre-nav-brand" href="${SITE_URL}/" title="Suman Dangal — Dev & QA Engineer">
-    <img 
-      src="https://suman-dangal.com.np/icon-48x48.png" 
-      alt="Suman Dangal — Dev & QA Engineer Portfolio Logo" 
-      width="48" 
-      height="48" 
-      fetchpriority="high"
-      loading="eager"
-      decoding="async">
-  </a>    <button class="pre-burger" id="preBurger" aria-label="Open menu" aria-expanded="false"
+  <a href="${SITE_URL}/" style="display:inline-flex;align-items:center;text-decoration:none" title="Suman Dangal" aria-label="Suman Dangal home">
+  <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <rect width="48" height="48" rx="9" fill="#1b4332"/>
+    <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle"
+      font-family="'Great Vibes','Dancing Script',Georgia,serif"
+      font-size="26" fill="#ffffff">SD</text>
+  </svg>
+</a>    
+  <button class="pre-burger" id="preBurger" aria-label="Open menu" aria-expanded="false"
       onclick="var m=document.getElementById('preNavLinks');var o=!m.classList.contains('open');m.classList.toggle('open',o);this.setAttribute('aria-expanded',o)">
       <span></span><span></span><span></span>
     </button>

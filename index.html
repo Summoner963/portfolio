@@ -62,6 +62,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="style"
+  href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap"
+  onload="this.onload=null;this.rel='stylesheet'" />
+<noscript>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap" />
+</noscript>
+  <link rel="preload" as="style"
     href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
     onload="this.onload=null;this.rel='stylesheet'" />
   <noscript>
@@ -496,15 +503,14 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 <div id="nprogress" aria-hidden="true"></div>
 
 <nav role="navigation" aria-label="Main navigation">
-  <a class="nav-brand" href="/" data-link title="Suman Dangal — Dev & QA Engineer">
-    <img 
-      src="https://suman-dangal.com.np/icon-48x48.png" 
-      alt="Suman Dangal — Dev & QA Engineer Portfolio Logo" 
-      width="48" 
-      height="48" 
-      loading="eager"
-      decoding="async">
-  </a>  
+  <a class="nav-brand" href="/" data-link title="Suman Dangal — Dev &amp; QA Engineer" aria-label="Suman Dangal home">
+  <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <rect width="48" height="48" rx="9" fill="#1b4332"/>
+    <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle"
+      font-family="'Great Vibes','Dancing Script',Georgia,serif"
+      font-size="26" fill="#ffffff">SD</text>
+  </svg>
+</a> 
   <button class="nav-burger" id="burger" aria-label="Open menu" aria-expanded="false">
   <span></span><span></span><span></span>
   </button>
