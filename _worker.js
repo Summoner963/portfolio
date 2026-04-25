@@ -602,9 +602,9 @@ async function prerenderBlogPost(slug, env, request) {
 
     <!-- Breadcrumb visible -->
     <div class="pre-breadcrumb" aria-label="Breadcrumb">
-      <a href="${SITE_URL}/">←Back to Home</a>
+      <a href="${SITE_URL}/">← Back to Home</a>
       <span aria-hidden="true">›</span>
-      <a href="${SITE_URL}/blog">←Back to Blogs</a>
+      <a href="${SITE_URL}/blog">← Back to Blogs</a>
       <span aria-hidden="true">›</span>
       <span>${escHtml(title)}</span>
     </div>
