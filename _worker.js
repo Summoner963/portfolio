@@ -599,7 +599,15 @@ async function prerenderBlogPost(slug, env, request) {
     <meta itemprop="description"   content="${escHtml(excerpt)}">
     <meta itemprop="datePublished" content="${escHtml(date)}">
     <meta itemprop="url"           content="${postUrl}">
-   
+
+    <!-- Breadcrumb visible -->
+    <div class="pre-breadcrumb" aria-label="Breadcrumb">
+      <a href="${SITE_URL}/">Home</a>
+      <span aria-hidden="true">›</span>
+      <a href="${SITE_URL}/blog">Blog</a>
+      <span aria-hidden="true">›</span>
+      <span>${escHtml(title)}</span>
+    </div>
 
     <div class="pre-meta">
       <span class="pre-cat">${escHtml(category)}</span>
