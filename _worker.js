@@ -12,21 +12,26 @@
 // ── Sheet ID (server-side only — never sent to browser) ──────────────────
 // Move this to wrangler.toml [vars] SHEET_ID for extra safety.
 // But keeping here ensures nothing breaks if wrangler.toml isn't updated.
-const SHEET_ID_FALLBACK =
-  '2PACX-1vRQuOox7oJ5frLVTIRzed1hVjUgfa6E0w7RKmAX2CXKmC3RdcPQCgb1jBtdLec8vugpRiYT3_zqH6Qc';
 
-const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e';
 
 // GID map — server-side only, never exposed to client
-const SHEET_GIDS = {
-  blog:     '1132024800',
-  skills:   '302402061',
-  projects: '0',
-  exp:      '245982630',
-  about:    '1066410604',
-  faq:      '303688554',
-  images:   '1267436347',
-};
+// ⚠️  Replace 'YOUR_FEATURED_GID' with the actual GID of your "featured" sheet tab.
+//     To find it: open the sheet tab → look at the URL → ?gid=XXXXXXXXX
+// Safe to commit — no secrets here
+const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e';
+
+function getSheetGids(env) {
+  return {
+    blog:     env.BLOG_GID     || '1132024800',
+    skills:   env.SKILLS_GID   || '302402061',
+    projects: env.PROJECTS_GID || '0',
+    exp:      env.EXP_GID      || '245982630',
+    about:    env.ABOUT_GID    || '1066410604',
+    faq:      env.FAQ_GID      || '303688554',
+    images:   env.IMAGES_GID   || '1267436347',
+    featured: env.FEATURED_GID || '980532084',
+  };
+}
 
 const SITE_URL = 'https://suman-dangal.com.np';
 const CACHE_MS  = 10 * 60 * 1000; // 10 minutes
@@ -70,7 +75,7 @@ const SECURITY_HEADERS = {
   'Permissions-Policy':         'camera=(), microphone=(), geolocation=(), payment=()',
   'Content-Security-Policy':
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline'; " +
+    "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com data:; " +
     "img-src 'self' data: https://lh3.googleusercontent.com https://suman-dangal.com.np; " +
@@ -314,13 +319,12 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
 // ─────────────────────────────────────────────────────────────────────────
 async function handleDataEndpoint(url, env) {
   const sheetName = (url.searchParams.get('sheet') || '').toLowerCase().trim();
+  const SHEET_GIDS = getSheetGids(env);
 
-  // Strict whitelist — only known names accepted
   if (!SHEET_GIDS[sheetName]) {
     return new Response('Not found', { status: 404 });
   }
 
-  // Check in-memory cache first
   const cacheKey = `sheet_${sheetName}`;
   const cached   = memGet(cacheKey);
   if (cached) {
@@ -329,16 +333,22 @@ async function handleDataEndpoint(url, env) {
       headers: {
         'Content-Type':  'text/csv;charset=UTF-8',
         'Cache-Control': 'public, max-age=600, stale-while-revalidate=3600',
-        'Access-Control-Allow-Origin': 'same-origin', // Only same origin
+        'Access-Control-Allow-Origin': 'same-origin',
         'X-Served-From': 'worker-cache',
       },
     });
   }
 
-  // Build sheet URL server-side — never exposed to client
-  const sheetId  = (env && env.SHEET_ID) || SHEET_ID_FALLBACK;
-  const gid      = SHEET_GIDS[sheetName];
-  const sheetUrl = `${SHEET_BASE}/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
+  const sheetBase = env.SHEET_BASE || 'https://docs.google.com/spreadsheets/d/e';
+  const sheetId   = env.SHEET_ID   || '';
+  const gid       = SHEET_GIDS[sheetName];
+
+  if (!sheetId) {
+    console.warn('[/api/data] SHEET_ID secret not set');
+    return new Response('Temporarily unavailable', { status: 503 });
+  }
+
+  const sheetUrl = `${sheetBase}/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
 
   try {
     const resp = await fetch(sheetUrl, {
@@ -528,9 +538,8 @@ async function prerenderBlogPost(slug, env, request) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style"
-    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap"
-    onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap"></noscript>
+  href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"></noscript>
 
   <!-- Structured data: BlogPosting -->
   <script type="application/ld+json">
@@ -728,11 +737,18 @@ async function fetchSheetData(sheetName, env) {
   const cached   = memGet(cacheKey);
   if (cached) return parseCSV(cached);
 
-  const sheetId  = (env && env.SHEET_ID) || SHEET_ID_FALLBACK;
-  const gid      = SHEET_GIDS[sheetName];
+  const SHEET_GIDS = getSheetGids(env);
+  const gid        = SHEET_GIDS[sheetName];
   if (!gid) return [];
 
-  const sheetUrl = `${SHEET_BASE}/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
+  const sheetBase = env.SHEET_BASE || 'https://docs.google.com/spreadsheets/d/e';
+  const sheetId   = env.SHEET_ID   || '';
+  if (!sheetId) {
+    console.warn('[fetchSheetData] SHEET_ID secret not set');
+    return [];
+  }
+
+  const sheetUrl = `${sheetBase}/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
   try {
     const resp = await fetch(sheetUrl, { redirect: 'follow' });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -744,7 +760,6 @@ async function fetchSheetData(sheetName, env) {
     return [];
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────
 //  Markdown renderer (for SSR blog posts)
 // ─────────────────────────────────────────────────────────────────────────

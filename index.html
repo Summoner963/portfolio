@@ -79,11 +79,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="style"
-    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap"
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
     onload="this.onload=null;this.rel='stylesheet'" />
   <noscript>
     <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap" />
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" />
   </noscript>
 
   <style>
@@ -390,6 +390,199 @@ h3.edu-deg{font-family:var(--serif);font-size:1.08rem;margin-bottom:.35rem;color
 /* ── Footer ── */
 footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted);letter-spacing:.04em;background:var(--surface)}
 
+/* ════════════════════════════════════════════════════════
+   FEATURED BLOG POSTS — Home section
+   Horizontal scroll on mobile, grid on desktop.
+   Uses existing design tokens — no new variables needed.
+   ════════════════════════════════════════════════════════ */
+
+/* Section wrapper — sits below the hero, above footer */
+.featured-section{
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:4rem;
+}
+.featured-section .section-inner{
+  max-width:var(--max);
+  margin:0 auto;
+}
+.featured-header{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:2rem;
+  flex-wrap:wrap;
+}
+.featured-heading{
+  font-family:var(--serif);
+  font-size:clamp(1.4rem,2.5vw,1.9rem);
+  color:var(--accent2);
+  line-height:1.15;
+  margin:0;
+}
+.featured-view-all{
+  font-family:var(--mono);
+  font-size:.72rem;
+  color:var(--accent);
+  text-decoration:none;
+  letter-spacing:.07em;
+  white-space:nowrap;
+  transition:color .18s;
+  cursor:pointer;
+}
+.featured-view-all:hover{color:var(--accent2);text-decoration:underline}
+
+/* Card grid — auto-fill with min 260px so 1–3 columns scale naturally */
+.featured-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:1.1rem;
+}
+
+/* Individual featured card */
+.fp-card{
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:.75rem;
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .22s,transform .22s,box-shadow .22s;
+  display:flex;
+  flex-direction:column;
+  box-shadow:var(--shadow-sm);
+  contain:layout style;
+  /* No explicit height — let content drive height for natural cards */
+}
+.fp-card:hover{
+  border-color:rgba(45,106,79,.35);
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-md);
+}
+.fp-card:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+/* Thumbnail — 16:9 aspect ratio, consistent across all cards */
+.fp-thumb{
+  width:100%;
+  aspect-ratio:16/9;
+  overflow:hidden;
+  background:var(--surface);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:2rem;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.fp-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* Card body */
+.fp-body{
+  padding:1.1rem 1.2rem 1.3rem;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+}
+.fp-meta{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  font-family:var(--mono);
+  font-size:.63rem;
+  color:var(--muted-light);
+  letter-spacing:.05em;
+}
+.fp-cat{
+  color:var(--accent);
+  background:var(--accent-bg);
+  border:1px solid rgba(45,106,79,.2);
+  padding:.12rem .45rem;
+  border-radius:1rem;
+  font-size:.62rem;
+  font-weight:500;
+}
+.fp-title{
+  font-family:var(--serif);
+  font-size:1.05rem;
+  line-height:1.28;
+  color:var(--accent2);
+  margin:0;
+  /* Clamp to 3 lines to keep cards uniform */
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.fp-excerpt{
+  font-size:.8rem;
+  color:var(--muted);
+  line-height:1.6;
+  /* Clamp to 2 lines */
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  margin-top:.1rem;
+}
+.fp-arrow{
+  display:inline-flex;
+  align-items:center;
+  gap:.3rem;
+  font-family:var(--mono);
+  font-size:.69rem;
+  color:var(--accent);
+  margin-top:auto;
+  padding-top:.6rem;
+  letter-spacing:.04em;
+  transition:gap .18s;
+}
+.fp-card:hover .fp-arrow{gap:.55rem}
+
+/* Skeleton placeholders while loading */
+.fp-skel-card{
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:.75rem;
+  overflow:hidden;
+}
+.fp-skel-thumb{
+  width:100%;
+  aspect-ratio:16/9;
+  background:var(--surface);
+  position:relative;
+  overflow:hidden;
+}
+.fp-skel-thumb::after,.fp-skel-line::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.6) 50%,transparent 100%);
+  animation:shimmer 1.3s infinite;
+}
+.fp-skel-body{padding:1.1rem 1.2rem 1.3rem;display:flex;flex-direction:column;gap:.7rem}
+.fp-skel-line{
+  height:13px;
+  border-radius:.3rem;
+  background:var(--surface);
+  position:relative;
+  overflow:hidden;
+}
+.fp-skel-line.s{width:40%}
+.fp-skel-line.m{width:68%}
+.fp-skel-line.l{width:90%}
+
+/* Hidden section state (no slugs configured or all failed to match) */
+.featured-section[aria-hidden="true"]{display:none}
+
 /* ── Responsive ── */
 @media(max-width:768px){
   nav{padding:0 1.5rem}
@@ -414,6 +607,24 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   .blog-results-count{margin-left:0}
   .filter-chip{min-height:44px;display:inline-flex;align-items:center}
   .btn{min-height:44px}
+
+  /* Featured section mobile */
+  .featured-section{padding:3rem 1.5rem}
+  .featured-grid{
+    /* On mobile: horizontal scroll row of cards */
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    gap:1rem;
+    padding-bottom:.5rem;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .featured-grid::-webkit-scrollbar{display:none}
+  .fp-card{
+    flex:0 0 78vw;
+    max-width:300px;
+  }
 }
 @media(max-width:480px){.hero-ctas{flex-direction:column}.btn{justify-content:center}}
 @media(prefers-reduced-motion:reduce){
@@ -464,14 +675,70 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
       <div class="hero-glow"  aria-hidden="true"></div>
       <div class="hero-inner">
         <div class="hero-badge">Available for Internship &amp; Junior Roles</div>
-        <h1 class="hero-title" id="site-h1" style="display:none">Dev &amp; QA<br><em>Engineer</em></h1>
-        <p class="hero-sub">Final-year BCA student building and testing full-stack web and mobile applications. I write clean code and break things carefully — so users don't have to.</p>
+          <h1 class="hero-title" id="site-h1">Dev &amp; QA<br><em>Engineer</em></h1>
+          <p class="hero-sub">Final-year BCA student building and testing full-stack web and mobile applications. I write clean code and break things carefully — so users don't have to.</p>
         <div class="hero-ctas">
           <a href="/projects" class="btn btn-solid" data-link>View Projects ↓</a>
         </div>
         <div class="hero-stats">
           <div><span class="stat-num">4+</span><span class="stat-lbl">Projects Built</span></div>
           <div><span class="stat-num">3+</span><span class="stat-lbl">Years Coding</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      ═══════════════════════════════════════════════════════════
+      FEATURED BLOG POSTS SECTION
+      - Hidden by default (aria-hidden="true") until JS loads data
+      - Rendered by renderFeaturedPosts() in the script below
+      - Data source: /api/data?sheet=featured  (single "Slug" column)
+        Cross-referenced against the cached blog sheet data
+      ═══════════════════════════════════════════════════════════
+    -->
+    <section
+      class="featured-section"
+      id="featuredSection"
+      aria-label="Featured blog posts"
+      aria-hidden="true"
+    >
+      <div class="section-inner">
+        <div class="featured-header">
+          <div>
+            <div class="section-eyebrow" style="margin-bottom:.5rem">From the blog</div>
+            <h2 class="featured-heading">Featured Posts</h2>
+          </div>
+          <a href="/blog" class="featured-view-all" data-link aria-label="View all blog posts">
+            View all posts →
+          </a>
+        </div>
+        <!-- Cards injected here by JS -->
+        <div class="featured-grid" id="featuredGrid" role="list">
+          <!-- Skeleton shown until data arrives -->
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -616,6 +883,7 @@ const CFG = {
     about:    '/api/data?sheet=about',
     faq:      '/api/data?sheet=faq',
     images:   '/api/data?sheet=images',
+    featured: '/api/data?sheet=featured', // single-column: Slug
   },
 };
 
@@ -968,7 +1236,9 @@ const rvObs = new IntersectionObserver(entries => {
   if (!revealScheduled) {
     revealScheduled = true;
     requestAnimationFrame(() => {
-      revealQueue.forEach((el, i) => { el.style.transitionDelay = `${i * 55}ms`; el.classList.add('in'); });
+        revealQueue.forEach((el, i) => { el.style.transitionDelay = `${i * 55}ms`; });
+        revealQueue.forEach(el => el.classList.add('in'));
+
       revealQueue.length = 0;
       revealScheduled = false;
     });
@@ -1137,6 +1407,114 @@ function renderFilteredBlog() {
   watchReveals();
 }
 
+// ════════════════════════════════════════════════════════════════
+//  FEATURED POSTS — core render function
+//
+//  Flow:
+//   1. Fetch /api/data?sheet=featured  → [ { Slug: "..." }, ... ]
+//   2. Fetch blog data (reuses cache if already loaded)
+//   3. Match slugs → full post objects
+//   4. Build cards and reveal section
+//
+//  Performance notes:
+//   - Both fetches run in parallel via Promise.all
+//   - Results are localStorage-cached for CFG.cacheMins
+//   - Images use loading="lazy" — zero LCP impact
+//   - Section stays hidden (aria-hidden) until valid cards exist
+//   - Skeleton is pure CSS, no layout shift
+// ════════════════════════════════════════════════════════════════
+async function renderFeaturedPosts() {
+  const section = $('featuredSection');
+  const grid    = $('featuredGrid');
+  if (!section || !grid) return;
+
+  try {
+    // Fetch featured slugs and blog data in parallel
+    const [featuredRows, allBlogRows] = await Promise.all([
+      fetchSheet(CFG.api.featured, 'featured'),
+      fetchSheet(CFG.api.blog,     'blog'),
+    ]);
+
+    // Update shared blogRows cache so blog page doesn't re-fetch
+    if (allBlogRows?.length && !blogRows) blogRows = allBlogRows;
+
+    // No featured slugs configured → keep section hidden, silent fail
+    if (!featuredRows?.length || !allBlogRows?.length) {
+      return;
+    }
+
+    // Build an ordered list of matched posts (order from the featured sheet)
+    const blogMap = {};
+    allBlogRows.forEach(p => { if (p.Slug) blogMap[p.Slug.trim()] = p; });
+
+    const posts = featuredRows
+      .map(r => {
+        // Column header is "Slug" (case-insensitive fallback)
+        const slug = (r.Slug || r.slug || Object.values(r)[0] || '').trim();
+        return slug ? blogMap[slug] : null;
+      })
+      .filter(Boolean); // skip slugs that don't match any blog post
+
+    // If nothing matched, keep section hidden
+    if (!posts.length) return;
+
+    // Build cards
+    const frag = document.createDocumentFragment();
+    posts.forEach(post => {
+      const imgUrl = fixImgUrl(post.Image_URL || '');
+      const slug   = (post.Slug || '').trim();
+
+      const card = document.createElement('article');
+      card.className = 'fp-card';
+      card.setAttribute('role', 'listitem');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', post.Title || 'Featured post');
+
+      const thumbHTML = imgUrl
+        ? `<div class="fp-thumb">
+             <img src="${esc(imgUrl)}"
+                  alt="${esc(post.Image_Alt || post.Title + ' cover image')}"
+                  loading="lazy"
+                  decoding="async"
+                  width="400"
+                  height="225">
+           </div>`
+        : `<div class="fp-thumb" aria-hidden="true">✍️</div>`;
+
+      card.innerHTML =
+        thumbHTML +
+        `<div class="fp-body">` +
+          `<div class="fp-meta">` +
+            `<span class="fp-cat">${esc(post.Category || 'Post')}</span>` +
+            `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
+          `</div>` +
+          `<h3 class="fp-title">${esc(post.Title || '')}</h3>` +
+          (post.Excerpt ? `<p class="fp-excerpt">${esc(post.Excerpt)}</p>` : '') +
+          `<span class="fp-arrow" aria-hidden="true">Read post →</span>` +
+        `</div>`;
+
+      // Navigation — full keyboard + click support
+      const go = () => navigate(`/blog/${slug}`);
+      card.addEventListener('click', go);
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+
+      frag.appendChild(card);
+    });
+
+    // Swap skeletons for real cards and reveal section
+    grid.innerHTML = '';
+    grid.appendChild(frag);
+    section.removeAttribute('aria-hidden');
+    section.setAttribute('aria-hidden', 'false');
+
+  } catch (e) {
+    // Silent fail — section stays hidden, no console noise in production
+    console.warn('[featuredPosts]', e.message);
+  }
+}
+
 // ── Fallback content (shown if API unavailable) ────────────────────────────
 const FB = {
   skills: `<div class="skill-card c-green reveal"><div class="skill-icon">🐍</div><div class="skill-name">Languages</div><div class="tag-row"><span class="tag">Python</span><span class="tag">Java</span><span class="tag">PHP</span><span class="tag">JavaScript</span><span class="tag">HTML5</span><span class="tag">CSS3</span></div></div><div class="skill-card c-blue reveal"><div class="skill-icon">⚙️</div><div class="skill-name">Frameworks &amp; Backend</div><div class="tag-row"><span class="tag">Django</span><span class="tag">Django REST</span><span class="tag">PHP OOP</span><span class="tag">SQLite</span><span class="tag">MySQL</span><span class="tag">MariaDB</span></div></div><div class="skill-card c-amber reveal"><div class="skill-icon">📱</div><div class="skill-name">Mobile &amp; Tools</div><div class="tag-row"><span class="tag">Android Studio</span><span class="tag">Java (Android)</span><span class="tag">XML Layouts</span><span class="tag">Git</span><span class="tag">Bluetooth APIs</span></div></div><div class="skill-card c-green reveal"><div class="skill-icon">🧪</div><div class="skill-name">QA &amp; Concepts</div><div class="tag-row"><span class="tag">Manual Testing</span><span class="tag">Test Case Writing</span><span class="tag">REST APIs</span><span class="tag">OOP</span><span class="tag">SDLC</span><span class="tag">SQL Injection Prevention</span><span class="tag">Prompt Engineering</span></div></div>`,
@@ -1188,7 +1566,10 @@ async function navigate(rawPath, push = true) {
 
   if (route === '') {
     VIEWS.home.classList.add('active');
-    updateSEO({ path: '/' }); watchReveals();
+    updateSEO({ path: '/' });
+    watchReveals();
+    // Kick off featured posts fetch non-blocking — doesn't delay page paint
+    renderFeaturedPosts();
 
   } else if (route === 'skills') {
     VIEWS.skills.classList.add('active');
