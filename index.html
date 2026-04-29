@@ -1757,13 +1757,13 @@ async function renderArticle(slug) {
   const faqHTML = await buildFAQ(slug, faqData);
 
   // Breadcrumb nav visible inside article
-  const breadcrumb =
-    `<nav aria-label="Breadcrumb" style="font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-bottom:1.8rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">` +
-    `<a href="/" data-link style="color:var(--accent);text-decoration:none">Home</a>` +
+const breadcrumb =
+    `<div aria-label="Breadcrumb" style="font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-bottom:1.8rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">` +
+    `<a href="/" data-link style="color:var(--accent);text-decoration:none">← Back to Home</a>` +
     `<span aria-hidden="true">›</span>` +
-    `<a href="/blog" data-link style="color:var(--accent);text-decoration:none">Blog</a>` +
+    `<a href="/blog" data-link style="color:var(--accent);text-decoration:none">← Back to Blogs</a>` +
     `<span aria-hidden="true">›</span>` +
-    `<span>${esc(post.Title)}</span></nav>`;
+    `<span>${esc(post.Title)}</span></div>`;
 
   // Author byline
   const authorLine =
