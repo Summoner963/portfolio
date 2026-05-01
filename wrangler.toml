@@ -30,7 +30,7 @@ compatibility_date = "2024-09-23"
 # ── Pages project config ───────────────────────────────────────────────────
 # Cloudflare Pages serves static assets from the project root.
 # The Worker (worker/index.js) handles all dynamic routing.
-pages_build_output_dir = "."   # root — index.html lives here
+pages_build_output_dir = "public"   # root — index.html lives here
 
 # ── Worker entry point ─────────────────────────────────────────────────────
 # When using Pages Functions, this is ignored in favour of functions/.

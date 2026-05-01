@@ -139,6 +139,40 @@ function _normalisePath(raw) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+//  View ID resolution
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Maps a normalized path to its corresponding view element ID.
+ * This ensures the correct view div gets the .active class after routing.
+ *
+ * @param {string} path — normalized path (e.g. '/', '/skills', '/blog/my-post')
+ * @returns {string|null} — view element ID, or null if no mapping exists
+ */
+function _getViewIdForPath(path) {
+  // Exact route → view mappings
+  const exactMap = {
+    '/':           'view-home',
+    '/skills':     'view-skills',
+    '/projects':   'view-projects',
+    '/blog':       'view-blog',
+    '/experience': 'view-experience',
+    '/about':      'view-about',
+    '/contact':    'view-contact',
+    '/chords':     'view-chords',
+  };
+
+  // Try exact match first
+  if (exactMap[path]) return exactMap[path];
+
+  // Prefix matches — article detail and chord detail pages
+  if (path.startsWith('/blog/'))   return 'view-article';
+  if (path.startsWith('/chords/')) return 'view-chords';
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  Core navigate()
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -210,13 +244,19 @@ export async function navigate(rawPath, push = true) {
     } catch (err) {
       console.error('[router] handler error for', path, err);
     }
+    // Show the appropriate view based on the route
+    const viewId = _getViewIdForPath(path);
+    if (viewId) showView(viewId);
     _currentPath = fullKey;
     watchReveals();
   } else {
     // 404 — show home view with overlay (matches existing pattern)
     const homeHandler = _exactRoutes.get('/');
     if (homeHandler) {
-      try { await homeHandler(ctx); } catch {}
+      try { 
+        await homeHandler(ctx);
+        showView('view-home');
+      } catch {}
     } else {
       showView('view-home');
     }
