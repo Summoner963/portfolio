@@ -372,7 +372,7 @@ SECTION 8 — CODING STANDARDS
 SECTION 9 — EXISTING CODE CONTEXT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-[PASTE YOUR CURRENT index.html AND worker.js FULL CODE HERE
+[MY CURRENT index.html AND worker.js FULL CODE ARE PASTED HERE 
 WHEN STARTING THE CONVERSATION — so the AI can extract the
 exact existing functions, CSS variables, and logic without
 guessing or inventing new patterns]

@@ -1,0 +1,61 @@
+┌─────────────────────────────────────────────┐
+│  STARTING A CHAT                            │
+│  1. Paste master prompt                     │
+│  2. Paste index.html                        │
+│  3. Paste worker.js                         │
+│  4. Paste progress tracker                  │
+│  5. Paste handoff notes (if resuming)       │
+│  6. Wait for confirmation                   │
+│  7. Say "build [filename]"                  │
+├─────────────────────────────────────────────┤
+│  AFTER EACH FILE                            │
+│  1. Copy code → save to correct path        │
+│  2. Copy tracker → update tracker.txt       │
+│  3. Say "build [next file]"                 │
+├─────────────────────────────────────────────┤
+│  BEFORE SWITCHING CHATS                     │
+│  1. Ask for handoff summary                 │
+│  2. Save summary to session-notes.txt       │
+│  3. Update progress-tracker.txt             │
+│  4. Start new chat with full context        │
+├─────────────────────────────────────────────┤
+│  TEST AFTER EACH PHASE                      │
+│  Phase B → open locally, check nav          │
+│  Phase C → deploy, check /api/data          │
+│  Phase D → all simple pages work            │
+│  Phase E → blog fully works                 │
+│  Phase F → chords fully works               │
+│  Phase G → full regression                  │
+└─────────────────────────────────────────────┘
+
+
+
+[PASTE ENTIRE MASTER PROMPT — all 10 sections]
+
+---
+
+Here is my current index.html (original, not yet split):
+[PASTE FULL index.html]
+
+---
+
+Here is my current worker.js (original, not yet split):
+[PASTE FULL worker.js]
+
+---
+
+CURRENT PROGRESS TRACKER:
+[PASTE YOUR UPDATED progress-tracker.txt]
+
+---
+
+HANDOFF NOTES FROM PREVIOUS SESSION:
+[PASTE THE HANDOFF SUMMARY]
+
+---
+
+We are resuming. All files marked [x] in the tracker are
+already written and saved. Do not rewrite them.
+The next file to build is: js/seo.js
+Please confirm you understand the current state,
+then wait for my "build" command.
