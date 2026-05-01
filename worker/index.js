@@ -26,7 +26,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getSheetGids }        from './sheets.js';
-import { escHtml, parseCSV, fixImgUrl, formatDate } from './utils.js';
+import {
+  escHtml, parseCSV, fixImgUrl, formatDate,
+  SECURITY_HEADERS, applySecurityHeaders,
+}                              from './utils.js';
 import { prerenderBlogPost }   from './ssr/blog.js';
 import { prerenderChord }      from './ssr/chords.js';
 import {
@@ -39,7 +42,6 @@ import {
   serveIndex,
   serveIndexWithMeta,
   generateSitemap,
-  SECURITY_HEADERS,
   htmlCacheHeaders,
 }                              from './ssr/meta.js';
 
@@ -99,21 +101,7 @@ function isRateLimited(ip) {
   return entry.count > RL_MAX;
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  Security headers helper
-// ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Applies all security headers to a Headers object in place.
- * @param {Headers} headers
- * @returns {Headers}
- */
-function applySecurityHeaders(headers) {
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
-    headers.set(k, v);
-  }
-  return headers;
-}
+// applySecurityHeaders and SECURITY_HEADERS imported from ./utils.js above.
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Internal sheet fetcher (used by /api/data and by SSR handlers

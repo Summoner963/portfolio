@@ -61,12 +61,11 @@ import { watchReveals }                         from './utils.js';
 
 // ── Home (/') ──────────────────────────────────────────────────────────────
 registerRoute('/', async () => {
-  const { renderHome, renderFeaturedPosts } = await import('./views/home.js');
+  const { renderHome } = await import('./views/home.js');
   updateSEO({ path: '/' });
   await renderHome();
   watchReveals();
-  // Featured posts: non-blocking — must not delay route paint
-  renderFeaturedPosts().catch(e => console.warn('[main] featuredPosts:', e.message));
+  // renderFeaturedPosts is called inside renderHome() — no separate call needed.
 });
 
 // ── Skills (/skills) ───────────────────────────────────────────────────────
@@ -197,40 +196,7 @@ boot();
   if (!navigator.onLine) show();
 })();
 
-// ─────────────────────────────────────────────────────────────────────────
-//  MOBILE NAV BURGER
-//  Wired here so it works from first paint — no view-specific ownership.
-// ─────────────────────────────────────────────────────────────────────────
-(function initBurger() {
-  const burger  = document.getElementById('burger');
-  const navList = document.getElementById('navLinks');
-  if (!burger || !navList) return;
-
-  burger.addEventListener('click', () => {
-    const open = !navList.classList.contains('open');
-    burger.classList.toggle('open', open);
-    navList.classList.toggle('open', open);
-    burger.setAttribute('aria-expanded', String(open));
-  });
-
-  // Close on outside click
-  document.addEventListener('click', e => {
-    if (!navList.contains(e.target) && !burger.contains(e.target)) {
-      navList.classList.remove('open');
-      burger.classList.remove('open');
-      burger.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  // Close when a nav link is followed
-  navList.addEventListener('click', e => {
-    if (e.target.closest('[data-link]')) {
-      navList.classList.remove('open');
-      burger.classList.remove('open');
-      burger.setAttribute('aria-expanded', 'false');
-    }
-  });
-})();
+// Mobile nav burger is wired in js/router.js — no duplicate needed here.
 
 // ─────────────────────────────────────────────────────────────────────────
 //  CACHE PRE-WARM  (optional — fires after first route settles)

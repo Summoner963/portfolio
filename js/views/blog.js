@@ -34,8 +34,8 @@ import { fetchSheet, CFG }              from '../api.js';
 import { esc, md, fixImgUrl,
          sanitizeHTML, loadCSS,
          watchReveals, showToast }      from '../utils.js';
-import { updateSEO, buildFAQ,
-         buildImgMap, removeSchemas }   from '../seo.js';
+import { updateSEO, removeSchemas }   from '../seo.js';
+import { buildFAQ, buildImgMap }      from '../api.js';
 
 // ── Module-level state ──────────────────────────────────────────────────────
 

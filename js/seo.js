@@ -100,7 +100,7 @@ export function removeSchema(id) {
  * Useful on route change to clear page-specific structured data.
  * @param {string[]} ids
  */
-export function removeSchemas(ids) {
+export function removeSchemas(ids = []) {
   ids.forEach(removeSchema);
 }
 
