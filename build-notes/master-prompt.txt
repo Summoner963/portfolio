@@ -1,0 +1,433 @@
+You are a senior full-stack engineer acting as my sole technical collaborator.
+I am building a personal website called Suman Dangal (https://suman-dangal.com.np).
+Read every word of this prompt before writing a single line of code.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1 — WHO I AM AND WHAT EXISTS TODAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I am a final-year BCA student at Tribhuvan University, Bhaktapur, Nepal.
+My site is a personal portfolio + blog, currently built as a single-page
+application (SPA) with:
+
+  - index.html (~1800 lines): all CSS inline in <style>, all JS inline
+    in one <script>, 8 view <div>s for home/skills/projects/blog/
+    experience/about/contact, a client-side router (navigate()),
+    Google Sheets as the database fetched via /api/data?sheet=<name>.
+
+  - worker.js (~600 lines): a Cloudflare Worker handling routing,
+    rate limiting, security headers, /api/data endpoint (proxies
+    named Google Sheets to browser without exposing sheet IDs),
+    blog post SSR prerendering for SEO, sitemap.xml, robots.txt,
+    llms.txt.
+
+  - Hosted on Cloudflare Pages + Workers (free tier). Custom domain.
+    wrangler.toml holds all sheet GIDs as env vars.
+
+  - Design system: CSS custom properties (--accent #2d6a4f green,
+    --accent2 #1b4332 dark green, --bg #ffffff, --surface #f7f8f6),
+    DM Serif Display + DM Mono + DM Sans fonts, card-based UI,
+    reveal-on-scroll animations, mobile-first responsive.
+
+  - All data comes from Google Sheets published as CSV. Each sheet tab
+    has a GID stored in wrangler.toml. The Worker proxies these —
+    sheet URLs and IDs NEVER reach the browser.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2 — THE ARCHITECTURE I AM MIGRATING TO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CORE PRINCIPLE: Open/Closed. Every module is open for extension,
+closed for modification. Adding a new section (like Chords) means
+creating new files only — zero changes to existing files except
+two lines in main.js, one line in worker/sheets.js,
+two lines in worker/index.js, one var in wrangler.toml.
+
+TARGET FILE STRUCTURE:
+
+project/
+├── index.html                 ← shell only: nav HTML, #app div,
+│                                <link> CSS files, <script type=module
+│                                src=js/main.js>. Under 100 lines.
+│
+├── js/
+│   ├── main.js                ← ONLY file listing all routes.
+│   │                            import + registerRoute() per section.
+│   ├── router.js              ← navigate(), registerRoute(),
+│   │                            registerPrefix(), popstate handler,
+│   │                            data-link click, progress bar, 404.
+│   │                            Knows ZERO view names.
+│   ├── api.js                 ← fetchSheet(endpoint, key, onRevalidate),
+│   │                            parseCSV, cGet/cSet (localStorage cache),
+│   │                            CFG object with all api endpoints.
+│   ├── seo.js                 ← updateSEO({title,desc,path,ogImage,
+│   │                            articleMeta}), buildFAQ, buildImgMap,
+│   │                            injectSchema helpers.
+│   ├── utils.js               ← esc, md (markdown renderer), fixImgUrl,
+│   │                            sanitizeHTML, watchReveals,
+│   │                            IntersectionObserver setup, pStart/pEnd.
+│   └── views/
+│       ├── home.js            ← renderHome(), renderFeaturedPosts()
+│       ├── blog.js            ← renderBlogList(), renderArticle(slug),
+│       │                        blogState, initBlogToolbar,
+│       │                        renderFilteredBlog, buildCategoryChips
+│       ├── skills.js          ← renderSkills()
+│       ├── projects.js        ← renderProjects()
+│       ├── about.js           ← renderAbout()
+│       ├── experience.js      ← renderExperience()
+│       ├── contact.js         ← renderContact()
+│       └── chords.js          ← NEW: renderChords(slug) — see Section 4
+│
+├── css/
+│   ├── base.css               ← :root tokens, *, body, nav, buttons,
+│   │                            hero, footer, .reveal, .skel, .sr-only,
+│   │                            #nprogress, offline-banner, 404 styles.
+│   ├── blog.css               ← .blog-card, .blog-toolbar, .article-body,
+│   │                            .article-cover, .faq-*, pagination,
+│   │                            .blog-inline-img, .blog-figure.
+│   ├── skills.css             ← .skills-grid, .skill-card, .tag-row, .tag.
+│   ├── projects.css           ← .projects-grid, .proj-card, .proj-*.
+│   ├── about.css              ← .timeline, .about-grid, .edu-card,
+│   │                            .info-row, .contact-grid, .contact-tile.
+│   ├── featured.css           ← .featured-section, .fp-card, .fp-thumb,
+│   │                            .fp-skel-*, .fp-body, .fp-arrow.
+│   └── chords.css             ← NEW: all chord page styles isolated.
+│
+└── worker/
+    ├── index.js               ← thin fetch() router only. Imports and
+    │                            delegates to handlers. Rate limit,
+    │                            security headers, asset pass-through.
+    ├── sheets.js              ← getSheetGids(env). SINGLE source of
+    │                            truth for ALL GIDs. One line per section.
+    ├── utils.js               ← escHtml, escJson, parseCSV, fixImgUrl,
+    │                            renderMarkdown, formatDate, sanitizeHTML.
+    │                            Shared by all SSR handlers — no duplication.
+    └── ssr/
+        ├── blog.js            ← prerenderBlogPost(slug, env, request).
+        │                        Pure function. Imports worker/utils.js.
+        ├── meta.js            ← PRERENDER_CSS, ROUTE_META,
+        │                        serveIndexWithMeta, generateSitemap,
+        │                        SECURITY_HEADERS, htmlCacheHeaders.
+        └── chords.js          ← NEW: prerenderChord(slug, env, request).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3 — SECURITY REQUIREMENTS (NON-NEGOTIABLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These must be preserved exactly in every file you generate:
+
+1. Sheet IDs and GIDs NEVER reach the browser. Only
+   /api/data?sheet=<name> is called from client JS.
+   Sheet URLs live only in worker/sheets.js + worker/index.js.
+
+2. All API endpoints are whitelisted by name. Unknown sheet
+   names return 404, not a proxy to arbitrary URLs.
+
+3. Security headers on every response:
+   X-Frame-Options: SAMEORIGIN
+   X-Content-Type-Options: nosniff
+   Referrer-Policy: strict-origin-when-cross-origin
+   Cross-Origin-Opener-Policy: same-origin-allow-popups
+   Content-Security-Policy: connect-src 'self' only
+     (no Google URLs from browser)
+
+4. Rate limiting: 120 req/min per IP, in-memory in worker.
+
+5. HTML escaping: esc() used on ALL user-facing data before
+   innerHTML insertion. No raw string interpolation of sheet data.
+
+6. Access-Control-Allow-Origin: same-origin on all /api/data
+   responses. No wildcard CORS.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 4 — THE CHORDS APP (NEW SECTION)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is a separate app-like section, linked from the home page
+hero and the about page. It lives at /chords and /chords/:slug.
+It is NOT in the main nav. It is inspired by Ultimate Guitar /
+Tabs Ultimate but is entirely my own original design.
+
+DATA SOURCE: A separate Google Sheet with these columns:
+  Slug, Title, Artist, Album, Year, Key, Capo, Difficulty
+  (beginner/intermediate/advanced), Category (pop/rock/folk/
+  classical/devotional/nepali), Tags, Intro_Text, Chords_Used
+  (comma-separated list of chord names e.g. "G,Em,C,D"),
+  Tab_Content (the actual lyrics+chords in plain text using
+  [G] notation), BPM, Time_Signature, Tuning, Date_Added,
+  Featured (true/false), Image_URL, Image_Alt, Excerpt
+
+The [G] notation in Tab_Content works like this:
+  "Amazing [G]grace how [Em]sweet the [C]sound [G]"
+  Square brackets wrap the chord name that appears above
+  the following word.
+
+FEATURES REQUIRED — build all of these:
+
+  1. CHORD LIST PAGE (/chords):
+     - Search bar (searches Title + Artist + Tags)
+     - Filter chips by Category
+     - Filter by Difficulty (beginner / intermediate / advanced)
+     - Filter by Key (A through G#/Ab etc)
+     - Sort: newest, A-Z, by artist
+     - Card grid showing: song title, artist, key, capo,
+       difficulty badge, category badge, thumbnail
+     - Pagination (same pattern as blog, 12 per page)
+     - Featured songs section at top (Featured=true rows)
+     - SEO: updateSEO for /chords page
+
+  2. CHORD DETAIL PAGE (/chords/:slug):
+     - Song header: title, artist, key, capo, BPM,
+       time signature, tuning, difficulty, tags
+     - TRANSPOSE control: +/- semitone buttons and a
+       display of current key. Transposes ALL chord
+       names in the rendered tab in real time.
+       Transpose range: -6 to +6 semitones.
+       Chord name mapping must handle enharmonic equivalents
+       (C# = Db, F# = Gb etc). Must handle minor chords (Em,
+       Am), seventh chords (G7, Cmaj7, Dm7), suspended
+       (Dsus2, Asus4), add chords (Cadd9), power chords (A5).
+     - CAPO DISPLAY: when user transposes, show the
+       "play with capo X at fret Y" suggestion. Logic:
+       if transposed key can be played with a capo, show it.
+     - CHORD DIAGRAM HOVER / CLICK: every chord name in
+       the rendered tab is a clickable/hoverable element.
+       On hover (desktop) or tap (mobile), show a popover
+       with the chord diagram — a visual fretboard showing
+       finger positions. Chord diagrams must be generated
+       as inline SVG — no external images, no library.
+       Must cover: all major, minor, 7th, maj7, m7,
+       sus2, sus4, add9, power chords for all 12 roots.
+       Store chord finger data as a JS object in
+       js/data/chord-shapes.js.
+     - FONT SIZE control: A- / A+ buttons to increase or
+       decrease the tab text size. Preference saved to
+       localStorage.
+     - SCROLL MODE: auto-scroll toggle with speed control
+       (slider 1-10). Starts/stops auto-scrolling the page
+       at chosen speed for hands-free playing.
+     - PRINT / SHARE: a print button that opens a
+       clean print-friendly version (no nav, no controls,
+       just title + tab). A share button that copies the
+       URL to clipboard with a toast notification.
+     - SEO for each chord page: updateSEO with title,
+       description (excerpt), structured data as
+       MusicComposition schema (schema.org/MusicComposition),
+       og tags, canonical URL.
+     - SSR prerender: worker/ssr/chords.js renders full
+       HTML for bots with all the same SEO. Tab content
+       rendered as plain pre-formatted text for crawlers.
+
+  3. CHORD DIAGRAM SVG SPEC:
+     - Fretboard: 5 frets x 6 strings
+     - Show fret number if chord starts above fret 1
+     - Nut at top if open chord (fret 1 start)
+     - Open string: small circle above nut
+     - Muted string: X above nut
+     - Finger dot: filled circle at fret position
+     - Barre: filled rounded rect spanning strings
+     - Finger number inside dot (1=index, 2=middle,
+       3=ring, 4=pinky)
+     - SVG dimensions: 80px wide x 100px tall
+     - Colors: use site CSS variables
+       (--accent for dots, --text for strings/frets)
+     - Popover: appears above the chord name on desktop,
+       centered on screen on mobile. Closes on outside click.
+       Show chord name at top of popover.
+
+  4. DESIGN REQUIREMENTS:
+     - Matches existing design system exactly:
+       same --accent green, same fonts, same card style,
+       same .reveal animations, same .skel skeletons.
+     - Tab content rendered in DM Mono font, fixed-width,
+       with chords appearing above lyrics in a different
+       color (--accent green).
+     - Mobile: tab content scrolls horizontally if wider
+       than viewport. Controls (transpose, font size,
+       scroll) stay fixed at bottom on mobile.
+     - NOT in main nav. Linked from:
+       (a) Home hero section: a new "Chord Sheets" button
+           alongside the existing "View Projects" button.
+       (b) About page: a line "I also maintain a chord
+           sheet collection →" linking to /chords.
+     - Entry in sitemap.xml for /chords and all
+       /chords/:slug URLs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 5 — SEO REQUIREMENTS (preserve all existing)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every page must have:
+- <title> tag updated per route
+- <meta name="description"> updated per route
+- <link rel="canonical"> updated per route
+- og:title, og:description, og:url, og:image updated per route
+- twitter:card, twitter:title, twitter:description updated
+- BreadcrumbList schema injected per route
+- Person + Organization + WebSite schema on home
+- BlogPosting schema on blog article pages
+- FAQPage schema on blog articles that have FAQ rows
+- MusicComposition schema on chord detail pages (NEW)
+- All schema injected as <script type="application/ld+json">
+- Sitemap includes all blog slugs + all chord slugs
+- robots.txt: disallow /api/
+- llms.txt: updated to mention chord sheets section
+
+SSR prerender (worker): bots get full static HTML with all
+meta tags, structured data, and content. Real users get
+the SPA (hydration script in SSR HTML redirects them).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 6 — PERFORMANCE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Target: 90+ mobile PageSpeed, 95+ desktop.
+
+- CSS: base.css loaded in <head>. Section CSS loaded lazily
+  by each view module (dynamic import or <link> injection).
+  No section's CSS blocks another section's render.
+- JS: main.js is type=module. Views imported only when
+  their route is first visited (dynamic import() in router).
+- Images: loading="lazy" on all non-hero images.
+  fetchpriority="high" on hero and article cover images.
+- Fonts: preconnect + preload pattern (already in index.html,
+  preserve it).
+- Cache: localStorage cache 10 minutes for sheet data.
+  Cloudflare edge cache 10 minutes for /api/data responses.
+  Static assets: Cache-Control immutable for hashed assets.
+- No render-blocking scripts. No synchronous XHR.
+- content-visibility: auto on large grids (chord list,
+  blog grid, skills grid).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 7 — HOW TO WORK WITH ME (CRITICAL — READ THIS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I will ask you to build this one file at a time.
+Each file I ask for: give me the COMPLETE file, production-ready,
+no placeholders, no "// TODO", no truncation. Full code only.
+
+When you finish a file, end your response with this exact block:
+
+--- PROGRESS TRACKER ---
+COMPLETED: [filename]
+STATUS: [one line describing what this file does]
+NEXT SUGGESTED: [filename] — [why it should come next]
+REMAINING FILES:
+  [ ] js/router.js
+  [ ] js/api.js
+  [ ] js/seo.js
+  [ ] js/utils.js
+  [ ] js/main.js
+  [ ] js/views/home.js
+  [ ] js/views/blog.js
+  [ ] js/views/skills.js
+  [ ] js/views/projects.js
+  [ ] js/views/about.js
+  [ ] js/views/experience.js
+  [ ] js/views/contact.js
+  [ ] js/views/chords.js
+  [ ] js/data/chord-shapes.js
+  [ ] css/base.css
+  [ ] css/blog.css
+  [ ] css/skills.css
+  [ ] css/projects.css
+  [ ] css/about.css
+  [ ] css/featured.css
+  [ ] css/chords.css
+  [ ] index.html
+  [ ] worker/index.js
+  [ ] worker/sheets.js
+  [ ] worker/utils.js
+  [ ] worker/ssr/blog.js
+  [ ] worker/ssr/meta.js
+  [ ] worker/ssr/chords.js
+  [ ] wrangler.toml
+(mark completed ones with [x])
+--- END TRACKER ---
+
+If I switch to a new chat, I will paste the tracker to resume.
+You will know exactly what is done and what remains.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 8 — CODING STANDARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Vanilla JS only. No React, no Vue, no jQuery, no build step.
+  ES modules (import/export) via <script type=module>.
+- No TypeScript. Plain JS with JSDoc comments where helpful.
+- All DOM manipulation: createElement + appendChild over
+  innerHTML where possible. innerHTML only for trusted,
+  already-escaped template strings.
+- Error handling: every fetchSheet call wrapped in try/catch.
+  Fallback content (the FB object) shown if API unavailable.
+  Never a blank white screen.
+- Accessibility: aria-label on all interactive elements,
+  role attributes on regions, keyboard navigation on cards
+  (Enter/Space), focus-visible outlines preserved.
+- Mobile: min touch target 44px. No hover-only interactions
+  (chord popover must also work on tap).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 9 — EXISTING CODE CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[PASTE YOUR CURRENT index.html AND worker.js FULL CODE HERE
+WHEN STARTING THE CONVERSATION — so the AI can extract the
+exact existing functions, CSS variables, and logic without
+guessing or inventing new patterns]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 10 — START COMMAND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Confirm you have read and understood all 9 sections above.
+Then tell me:
+  1. The recommended build order (which file first, why)
+  2. Any clarifying questions before we start
+  3. Wait for me to say "build [filename]" before writing code.
+
+Do not write any code until I say "build [filename]".
+
+Phase A — foundation (start here, everything depends on these)
+  1. worker/sheets.js      — GID registry, no dependencies
+  2. worker/utils.js       — shared helpers, no dependencies
+  3. js/utils.js           — browser helpers, no dependencies
+  4. js/api.js             — needs utils.js
+  5. js/seo.js             — needs utils.js
+
+Phase B — routing core
+  6. js/router.js          — needs utils.js
+  7. css/base.css          — independent
+  8. index.html            — needs router.js to exist
+
+Phase C — worker split
+  9. worker/ssr/meta.js    — needs worker/utils.js
+  10. worker/ssr/blog.js   — needs worker/utils.js + meta.js
+  11. worker/index.js      — needs all worker files
+
+Phase D — view modules (any order, each independent)
+  12. js/views/skills.js
+  13. js/views/projects.js
+  14. js/views/experience.js
+  15. js/views/about.js
+  16. js/views/contact.js
+  17. css/skills.css
+  18. css/projects.css
+  19. css/about.css
+
+Phase E — blog (most complex existing feature)
+  20. css/blog.css
+  21. css/featured.css
+  22. js/views/blog.js
+  23. js/views/home.js
+
+Phase F — chords (new feature, built last so nothing else depends on it)
+  24. js/data/chord-shapes.js
+  25. css/chords.css
+  26. js/views/chords.js
+  27. worker/ssr/chords.js
+
+Phase G — wiring
+  28. js/main.js           — imports all views, registers all routes
+  29. wrangler.toml        — all env vars consolidated

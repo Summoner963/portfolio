@@ -1,0 +1,39 @@
+--- PROGRESS TRACKER ---
+SESSION: 1
+DATE STARTED: [today's date]
+
+COMPLETED FILES: none yet
+
+REMAINING FILES:
+  [ ] worker/sheets.js
+  [ ] worker/utils.js
+  [ ] js/utils.js
+  [ ] js/api.js
+  [ ] js/seo.js
+  [ ] js/router.js
+  [ ] css/base.css
+  [ ] index.html (new slim version)
+  [ ] worker/ssr/meta.js
+  [ ] worker/ssr/blog.js
+  [ ] worker/index.js
+  [ ] js/views/skills.js
+  [ ] js/views/projects.js
+  [ ] js/views/experience.js
+  [ ] js/views/about.js
+  [ ] js/views/contact.js
+  [ ] css/skills.css
+  [ ] css/projects.css
+  [ ] css/about.css
+  [ ] css/blog.css
+  [ ] css/featured.css
+  [ ] js/views/blog.js
+  [ ] js/views/home.js
+  [ ] js/data/chord-shapes.js
+  [ ] css/chords.css
+  [ ] js/views/chords.js
+  [ ] worker/ssr/chords.js
+  [ ] js/main.js
+  [ ] wrangler.toml
+
+NOTES: Starting fresh. Source files are original index.html and worker.js.
+--- END TRACKER ---
