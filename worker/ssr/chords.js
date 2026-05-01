@@ -30,12 +30,12 @@ import {
   escJson,
   fixImgUrl,
   renderTabSSR,
+  SECURITY_HEADERS,
 } from '../utils.js';
 
 import {
   SITE_URL,
   PRERENDER_CSS,
-  SECURITY_HEADERS,
   preNavHTML,
   preFooterHTML,
   hydrationScript,
