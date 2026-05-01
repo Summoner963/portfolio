@@ -1,22 +1,131 @@
-name = "suman-dangal"
-main = "_worker.js"
-compatibility_date = "2024-01-01"
+# ═══════════════════════════════════════════════════════════════════════════
+#  wrangler.toml — Suman Dangal · Cloudflare Pages + Workers
+#
+#  HOW THIS WORKS
+#  ──────────────
+#  Cloudflare Pages Functions use wrangler.toml for:
+#    [vars]          → plain-text env vars (safe to commit — no secrets here)
+#    [[d1_databases]] / [[kv_namespaces]] → bindings (if needed later)
+#
+#  SECRETS (never commit these — set via Cloudflare dashboard or CLI):
+#    SHEET_ID        → the long alphanumeric ID in your Google Sheets publish URL
+#                      e.g. 2PACX-1vXxxx... (everything between /d/e/ and /pub)
+#
+#    Set with:
+#      wrangler pages secret put SHEET_ID --project-name suman-dangal
+#    Or in Cloudflare dashboard → Pages → your project → Settings → Variables
+#    → Add variable → mark as "Secret"
+#
+#  GIDs (sheet tab IDs) are NOT secrets — they're meaningless without SHEET_ID.
+#  They live here in [vars] for transparency and easy editing.
+#
+#  To find a GID: open the Google Sheet tab → look at the URL bar:
+#    ...spreadsheets/d/.../edit#gid=XXXXXXXXX
+#  That XXXXXXXXX is the GID.
+# ═══════════════════════════════════════════════════════════════════════════
 
+name            = "suman-dangal"
+compatibility_date = "2024-09-23"
+
+# ── Pages project config ───────────────────────────────────────────────────
+# Cloudflare Pages serves static assets from the project root.
+# The Worker (worker/index.js) handles all dynamic routing.
+pages_build_output_dir = "."   # root — index.html lives here
+
+# ── Worker entry point ─────────────────────────────────────────────────────
+# When using Pages Functions, this is ignored in favour of functions/.
+# If you're deploying as a standalone Worker (wrangler deploy), set this.
+# main = "worker/index.js"
+
+# ─────────────────────────────────────────────────────────────────────────
+#  [vars] — plain-text environment variables
+#  All of these are visible in wrangler.toml and in the Cloudflare
+#  dashboard. They contain zero secrets — the actual SHEET_ID secret
+#  is set separately via `wrangler pages secret put` or the dashboard.
+# ─────────────────────────────────────────────────────────────────────────
 [vars]
-BLOG_GID     = "1132024800"
-SKILLS_GID   = "302402061"
-PROJECTS_GID = "0"
-EXP_GID      = "245982630"
-ABOUT_GID    = "1066410604"
-FAQ_GID      = "303688554"
-IMAGES_GID   = "1267436347"
-FEATURED_GID = "980532084"
-SITE_URL     = "https://suman-dangal.com.np"
 
-# SHEET_ID is NOT here — it is a secret in Cloudflare dashboard
-# SHEET_BASE is NOT here — assembled in worker.js
+# ── Google Sheets base URL ─────────────────────────────────────────────────
+# The fixed prefix for all published Google Sheet CSV exports.
+# Never changes — safe to commit.
+SHEET_BASE = "https://docs.google.com/spreadsheets/d/e"
 
-# Add new sections here when ready:
-# CHORDS_GID = "your_gid"
-# RECIPES_GID = "your_gid"
-# dev branch setup
+# ── Sheet tab GIDs ────────────────────────────────────────────────────────
+# One entry per named sheet. The Worker reads these via getSheetGids(env).
+# Replace each value with the actual ?gid=XXXXXXXXX from your sheet URL.
+#
+# Sheet name      GID from URL          Notes
+# ─────────────────────────────────────────────────────────────────────────
+BLOG_GID      = "1132024800"   # Blog posts sheet tab
+SKILLS_GID    = "302402061"    # Skills & stack sheet tab
+PROJECTS_GID  = "0"            # Projects sheet tab (gid=0 = first/default tab)
+EXP_GID       = "245982630"    # Work experience sheet tab
+ABOUT_GID     = "1066410604"   # About / bio sheet tab
+FAQ_GID       = "303688554"    # FAQ rows (linked to blog posts by slug)
+IMAGES_GID    = "1267436347"   # Inline blog images sheet tab
+FEATURED_GID  = "980532084"    # Featured post slugs (single Slug column)
+CHORDS_GID    = "YOUR_CHORDS_GID_HERE"  # ← Replace with your Chords sheet tab GID
+
+# ─────────────────────────────────────────────────────────────────────────
+#  SECRET (set this via CLI or dashboard — DO NOT put it here)
+#  ─────────────────────────────────────────────────────────────────────────
+#
+#  SHEET_ID  →  the published spreadsheet's document ID
+#
+#  How to set it:
+#    wrangler pages secret put SHEET_ID --project-name suman-dangal
+#    (paste the ID when prompted — it will never appear in this file)
+#
+#  How to find it:
+#    In your Google Sheet → File → Share → Publish to web
+#    The CSV URL looks like:
+#      https://docs.google.com/spreadsheets/d/e/2PACX-1v.../pub?gid=0&output=csv
+#    Copy everything between /d/e/ and /pub — that is your SHEET_ID.
+# ─────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────
+#  ENVIRONMENT OVERRIDES
+#  Use [env.production] / [env.preview] to override vars per environment.
+#  Example below — uncomment and fill in if you have a staging sheet.
+# ─────────────────────────────────────────────────────────────────────────
+
+# [env.preview]
+# [env.preview.vars]
+# BLOG_GID = "YOUR_STAGING_BLOG_GID"  # point preview builds at a test sheet
+
+# ─────────────────────────────────────────────────────────────────────────
+#  ROUTES (Pages Functions routing)
+#  Cloudflare Pages automatically routes /* to the Worker when a
+#  _worker.js or functions/ directory exists.
+#  If deploying as a standalone Worker, uncomment the routes block below.
+# ─────────────────────────────────────────────────────────────────────────
+
+# [[routes]]
+# pattern = "suman-dangal.com.np/*"
+# zone_name = "suman-dangal.com.np"
+
+# ─────────────────────────────────────────────────────────────────────────
+#  DEPLOYMENT CHECKLIST
+#  ─────────────────────────────────────────────────────────────────────────
+#  Before your first deploy:
+#
+#  1. Replace CHORDS_GID with the real GID from your Chords sheet tab.
+#
+#  2. Set the SHEET_ID secret:
+#       wrangler pages secret put SHEET_ID --project-name suman-dangal
+#
+#  3. Verify all other GIDs match your live Google Sheet tabs.
+#     Open each tab → URL bar → ?gid=XXXXXXXXX → update here if changed.
+#
+#  4. In Cloudflare Pages dashboard → Settings → Functions:
+#       Compatibility date: 2024-09-23  (or latest)
+#       Placement: Smart (default)
+#
+#  5. Confirm worker/sheets.js reads env.CHORDS_GID:
+#       chords: env.CHORDS_GID || 'YOUR_CHORDS_GID_HERE',
+#     (It should — it was written as part of the chords section build.)
+#
+#  6. Deploy:
+#       wrangler pages deploy . --project-name suman-dangal
+#     or push to your connected Git repo for auto-deploy.
+# ─────────────────────────────────────────────────────────────────────────
