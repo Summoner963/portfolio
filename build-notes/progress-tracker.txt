@@ -1,7 +1,7 @@
 --- PROGRESS TRACKER ---
-COMPLETED: css/base.css
-STATUS: All design tokens, reset, nav, hero, buttons, skeleton, reveal, 404, offline banner, toast, footer, accessibility utilities, responsive breakpoints, print and reduced-motion overrides. No section-specific styles.
-NEXT SUGGESTED: index.html — shell only (<100 lines); depends on css/base.css existing; once built, the full dev loop can run.
+COMPLETED: worker/ssr/blog.js
+STATUS: prerenderBlogPost() pure function. BlogPosting + BreadcrumbList + Person + FAQPage schema. Two-source image map. fetchSheetData passed in to avoid circular imports. 404 returns true HTTP 404.
+NEXT SUGGESTED: worker/index.js — thin fetch() router; imports all worker files; rate limiting, security headers, asset passthrough, all route dispatch. All its dependencies now exist.
 REMAINING FILES:
   [x] worker/sheets.js
   [x] worker/utils.js
@@ -10,9 +10,9 @@ REMAINING FILES:
   [x] js/seo.js
   [x] js/router.js
   [x] css/base.css
-  [ ] index.html
-  [ ] worker/ssr/meta.js
-  [ ] worker/ssr/blog.js
+  [x] index.html
+  [x] worker/ssr/meta.js
+  [x] worker/ssr/blog.js
   [ ] worker/index.js
   [ ] js/views/skills.js
   [ ] js/views/projects.js
@@ -33,7 +33,6 @@ REMAINING FILES:
   [ ] js/main.js
   [ ] wrangler.toml
 --- END TRACKER ---
-
 
 We are resuming. All files marked [x] in the tracker are
 already written and saved. Do not rewrite them.

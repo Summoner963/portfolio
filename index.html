@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suman Dangal — Dev &amp; QA Engineer</title>
+  <meta name="description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships in Nepal." />
+  <meta name="robots" content="index, follow" />
+  <link id="canonical" rel="canonical" href="https://suman-dangal.com.np/" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/favicon.ico" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="Suman Dangal" />
+  <meta property="og:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
+  <meta property="og:description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships." />
+  <meta property="og:url"         content="https://suman-dangal.com.np/" />
+  <meta property="og:image"       content="https://suman-dangal.com.np/og.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
+  <meta name="twitter:description" content="Final-year BCA student. Full-stack Dev &amp; QA." />
+  <meta name="twitter:image"       content="https://suman-dangal.com.np/og.png" />
+
+  <!-- Fonts — preconnect + preload (non-render-blocking) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" />
+  </noscript>
+
+  <!-- Base styles (only blocking stylesheet — all section CSS loaded lazily) -->
+  <link rel="stylesheet" href="/css/base.css" />
+</head>
+<body>
+
+<!-- ── Progress bar ─────────────────────────────────────────────────────── -->
+<div id="nprogress" aria-hidden="true"></div>
+
+<!-- ── Offline banner ───────────────────────────────────────────────────── -->
+<div id="offline-banner" role="status" aria-live="polite">
+  ⚡ You appear to be offline — showing cached content
+</div>
+
+<!-- ── Navigation ───────────────────────────────────────────────────────── -->
+<nav role="navigation" aria-label="Main navigation">
+  <a class="nav-brand" href="/" data-link
+     title="Suman Dangal — Dev &amp; QA Engineer"
+     aria-label="Suman Dangal home">
+    <svg width="40" height="40" viewBox="0 0 48 48" fill="none"
+         xmlns="http://www.w3.org/2000/svg"
+         aria-hidden="true" focusable="false">
+      <rect width="48" height="48" rx="9" fill="#1b4332"/>
+      <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle"
+            font-family="'Great Vibes','Dancing Script',Georgia,serif"
+            font-size="26" fill="#ffffff">SD</text>
+    </svg>
+  </a>
+
+  <button class="nav-burger" id="burger"
+          aria-label="Open navigation menu"
+          aria-expanded="false"
+          aria-controls="navLinks">
+    <span></span><span></span><span></span>
+  </button>
+
+  <ul class="nav-links" id="navLinks" role="menubar">
+    <li role="none"><a href="/"           data-link role="menuitem">Home</a></li>
+    <li role="none"><a href="/skills"     data-link role="menuitem">Skills</a></li>
+    <li role="none"><a href="/projects"   data-link role="menuitem">Projects</a></li>
+    <li role="none"><a href="/blog"       data-link role="menuitem">Blog</a></li>
+    <li role="none"><a href="/experience" data-link role="menuitem">Experience</a></li>
+    <li role="none"><a href="/about"      data-link role="menuitem">About</a></li>
+    <li role="none"><a href="/contact"    data-link role="menuitem">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- ── App shell ────────────────────────────────────────────────────────── -->
+<div id="app" role="main">
+
+  <!-- HOME -->
+  <div id="view-home" class="view" role="region" aria-label="Home">
+
+    <section class="hero" id="heroSection" aria-label="Hero section">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="hero-glow"  aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="hero-badge">Available for Internship &amp; Junior Roles</div>
+        <h1 class="hero-title" id="site-h1">
+          Dev &amp; QA<br><em>Engineer</em>
+        </h1>
+        <p class="hero-sub">
+          Final-year BCA student building and testing full-stack web and
+          mobile applications. I write clean code and break things carefully —
+          so users don't have to.
+        </p>
+        <div class="hero-ctas">
+          <a href="/projects" class="btn btn-solid" data-link>View Projects ↓</a>
+          <a href="/chords"   class="btn btn-ghost" data-link>Chord Sheets ♪</a>
+        </div>
+        <div class="hero-stats">
+          <div><span class="stat-num">4+</span><span class="stat-lbl">Projects Built</span></div>
+          <div><span class="stat-num">3+</span><span class="stat-lbl">Years Coding</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured blog posts — rendered by js/views/home.js -->
+    <section class="featured-section" id="featuredSection"
+             aria-label="Featured blog posts" aria-hidden="true">
+      <div class="section-inner">
+        <div class="featured-header">
+          <div>
+            <div class="section-eyebrow" style="margin-bottom:.5rem">From the blog</div>
+            <h2 class="featured-heading">Featured Posts</h2>
+          </div>
+          <a href="/blog" class="featured-view-all" data-link
+             aria-label="View all blog posts">View all posts →</a>
+        </div>
+        <div class="featured-grid" id="featuredGrid" role="list">
+          <!-- Skeleton cards — replaced by real cards once data loads -->
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- #view-home -->
+
+  <!-- SKILLS -->
+  <div id="view-skills" class="view" role="region" aria-label="Skills and stack">
+    <section class="container">
+      <div class="section-eyebrow">What I Work With</div>
+      <h2 class="section-heading">Skills &amp; Stack</h2>
+      <div class="skills-grid" id="skillsGrid" aria-live="polite">
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- PROJECTS -->
+  <div id="view-projects" class="view" role="region" aria-label="Projects">
+    <section class="container">
+      <div class="section-eyebrow">What I've Built</div>
+      <h2 class="section-heading">Projects</h2>
+      <div class="projects-grid" id="projectsGrid" aria-live="polite">
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- BLOG LIST -->
+  <div id="view-blog" class="view" role="region" aria-label="Blog posts">
+    <section class="container">
+      <div class="section-eyebrow">Writing &amp; Notes</div>
+      <h2 class="section-heading">Blog</h2>
+      <!-- Toolbar injected by js/views/blog.js once data loads -->
+      <div class="blog-toolbar" id="blogToolbar" style="display:none"
+           role="search" aria-label="Blog search and filters">
+        <div class="blog-search-wrap">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round" aria-hidden="true"
+               style="fill:none;stroke:var(--muted)">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input type="search" id="blogSearch"
+                 placeholder="Search posts…"
+                 autocomplete="off"
+                 aria-label="Search blog posts" />
+        </div>
+        <div class="blog-filters" id="blogFilters"
+             aria-label="Filter by category">
+          <span class="filter-label">Filter:</span>
+        </div>
+        <div class="blog-sort-wrap">
+          <label for="blogSort" class="sr-only">Sort posts</label>
+          <select id="blogSort" aria-label="Sort posts">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Title A → Z</option>
+            <option value="za">Title Z → A</option>
+          </select>
+        </div>
+        <span class="blog-results-count" id="blogResultsCount"
+              aria-live="polite" aria-atomic="true"></span>
+      </div>
+      <div id="blogGrid" class="blog-grid"
+           aria-live="polite" aria-label="Blog post list"></div>
+      <div id="blogPagination" class="pagination"
+           aria-label="Blog pagination"></div>
+    </section>
+  </div>
+
+  <!-- SINGLE ARTICLE -->
+  <div id="view-article" class="view" role="region" aria-label="Blog article">
+    <div class="container">
+      <article id="articleWrap" aria-live="polite"></article>
+    </div>
+  </div>
+
+  <!-- EXPERIENCE -->
+  <div id="view-experience" class="view" role="region" aria-label="Work experience">
+    <section class="container">
+      <div class="section-eyebrow">Work History</div>
+      <h2 class="section-heading">Experience</h2>
+      <div class="timeline" id="expTimeline" aria-live="polite">
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ABOUT -->
+  <div id="view-about" class="view" role="region" aria-label="About Suman Dangal">
+    <section class="container">
+      <div class="section-eyebrow">Background</div>
+      <h2 class="section-heading">About Me</h2>
+      <div class="about-grid">
+        <div class="about-text" id="aboutText" aria-live="polite">
+          <div class="skel skel-line" style="margin-bottom:1rem"></div>
+          <div class="skel skel-line m" style="margin-bottom:1rem"></div>
+          <div class="skel skel-line" style="margin-bottom:1rem"></div>
+          <div class="skel skel-line m"></div>
+        </div>
+        <div class="about-info">
+          <div class="info-row">
+            <span class="info-label">Location</span>
+            <span class="info-val">Balkot, Bhaktapur, Nepal</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Availability</span>
+            <span class="info-val" style="color:var(--accent);font-weight:500">
+              Open to Opportunities
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Languages</span>
+            <span class="info-val">English · Nepali · Hindi</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Focus</span>
+            <span class="info-val">Full-Stack Dev, QA Testing</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <!-- Email obfuscated via HTML entities -->
+            <span class="info-val">&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</span>
+          </div>
+          <div class="edu-card">
+            <h3 class="edu-deg">Bachelor in Computer Applications (BCA)</h3>
+            <div class="edu-uni">
+              Tribhuvan University · 2021–Present · Bhaktapur, Nepal
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- CONTACT -->
+  <div id="view-contact" class="view" role="region" aria-label="Contact">
+    <section class="container" style="text-align:center">
+      <div class="section-eyebrow" style="justify-content:center">
+        Let's Connect
+      </div>
+      <h2 class="section-heading" style="text-align:center">Get In Touch</h2>
+      <p style="color:var(--muted);font-size:.94rem;max-width:480px;margin:0 auto">
+        Looking for a Dev or QA intern? I'm actively seeking
+        opportunities — let's talk.
+      </p>
+      <div class="contact-grid">
+        <!-- Email obfuscated via HTML entities -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;"
+           class="contact-tile">
+          <span aria-hidden="true">📧</span>
+          &#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        </a>
+        <a href="https://linkedin.com/in/sumandangal963"
+           target="_blank" rel="noopener noreferrer"
+           class="contact-tile">
+          <span aria-hidden="true">🔗</span>
+          linkedin.com/in/sumandangal963
+        </a>
+        <a href="tel:+9779803340063" class="contact-tile">
+          <span aria-hidden="true">📞</span>
+          +977 9803340063
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <!-- CHORDS LIST -->
+  <div id="view-chords" class="view" role="region" aria-label="Chord sheets">
+  </div>
+
+  <!-- CHORD DETAIL -->
+  <div id="view-chord-detail" class="view" role="region" aria-label="Chord sheet detail">
+  </div>
+
+</div><!-- #app -->
+
+<!-- ── Footer ────────────────────────────────────────────────────────────── -->
+<footer role="contentinfo">
+  <span>© 2026 Suman Dangal</span>
+  <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
+</footer>
+
+<!-- ── SPA entry point ───────────────────────────────────────────────────── -->
+<script type="module" src="/js/main.js"></script>
+
+</body>
+</html>
