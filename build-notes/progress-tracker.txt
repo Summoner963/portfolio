@@ -1,18 +1,16 @@
 --- PROGRESS TRACKER ---
-SESSION: 1
-DATE STARTED: [today's date]
-
-COMPLETED FILES: none yet
-
+COMPLETED: css/base.css
+STATUS: All design tokens, reset, nav, hero, buttons, skeleton, reveal, 404, offline banner, toast, footer, accessibility utilities, responsive breakpoints, print and reduced-motion overrides. No section-specific styles.
+NEXT SUGGESTED: index.html — shell only (<100 lines); depends on css/base.css existing; once built, the full dev loop can run.
 REMAINING FILES:
-  [ ] worker/sheets.js
-  [ ] worker/utils.js
-  [ ] js/utils.js
-  [ ] js/api.js
-  [ ] js/seo.js
-  [ ] js/router.js
-  [ ] css/base.css
-  [ ] index.html (new slim version)
+  [x] worker/sheets.js
+  [x] worker/utils.js
+  [x] js/utils.js
+  [x] js/api.js
+  [x] js/seo.js
+  [x] js/router.js
+  [x] css/base.css
+  [ ] index.html
   [ ] worker/ssr/meta.js
   [ ] worker/ssr/blog.js
   [ ] worker/index.js
@@ -34,6 +32,11 @@ REMAINING FILES:
   [ ] worker/ssr/chords.js
   [ ] js/main.js
   [ ] wrangler.toml
-
-NOTES: Starting fresh. Source files are original index.html and worker.js.
 --- END TRACKER ---
+
+
+We are resuming. All files marked [x] in the tracker are
+already written and saved. Do not rewrite them.
+The next file to build is to be planned as the phase plan given above
+Please confirm you understand the current state,
+then wait for my "build" command.

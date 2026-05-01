@@ -1,0 +1,83 @@
+Handoff Summary — Suman Dangal Portfolio Refactor
+Completed Files (5 of 29)
+worker/sheets.js
+Exports: getSheetGids(env), getAllowedSheetNames(env)
+Does: Single source of truth for all Google Sheet GIDs. All real GID values are hardcoded as fallbacks (matching your existing worker.js). chords entry is present but defaults to '' (safe 404 until you set CHORDS_GID env var). getAllowedSheetNames is derived from getSheetGids so the whitelist can never drift out of sync.
+
+worker/utils.js
+Exports: escHtml, escJson, parseCSV, fixImgUrl, formatDate, sanitizeHTML, renderMarkdown, renderTabSSR, SECURITY_HEADERS, applySecurityHeaders, memGet, memSet, memDel, isRateLimited
+Does: All shared server-side helpers. Leaf node — imports nothing. sanitizeHTML uses regex (not DOMParser — unavailable in Workers runtime). renderTabSSR is new: converts [G]notation tab content to crawler-readable <pre> with stacked chord/lyric lines for worker/ssr/chords.js. SECURITY_HEADERS is the single definition used by all responses.
+
+js/utils.js
+Exports: esc, fixImgUrl, sanitizeHTML, md, pStart, pEnd, watchReveals, showToast, copyToClipboard, loadCSS, skelCards, skelLines, debounce, formatDisplayDate, initOfflineBanner
+Does: Browser-side utility leaf node — imports nothing. Key additions vs your monolithic index.html: loadCSS(href) for lazy per-section stylesheet injection (idempotent, returns Promise); showToast for chord share/copy feedback; copyToClipboard with execCommand fallback for iOS; debounce for search inputs; skelCards/skelLines DRY helpers. watchReveals uses a single shared IntersectionObserver with lazy init.
+
+js/api.js
+Exports: CFG, parseCSV, cGet, cSet, cDel, fetchSheet, buildImgMap, buildFAQ, prefetchSheets
+Does: Client data layer. CFG has siteUrl, cacheMins: 10, postsPerPage: 6, chordsPerPage: 12, all api endpoints including chords: '/api/data?sheet=chords'. Cache namespace is sd5_ (bumped from your existing sd4_ — this automatically invalidates old cached data on deploy, no migration needed). fetchSheet implements full stale-while-revalidate. buildFAQ accepts pre-fetched rows to avoid redundant network calls when renderArticle fetches blog+faq+images in parallel. prefetchSheets is fire-and-forget cache warmer.
+
+js/seo.js
+Exports: updateSEO, injectSchema, removeSchema, removeSchemas, buildBreadcrumb, buildBlogPosting, buildMusicComposition, buildHomeSchemas
+Does: All SEO head tag management. updateSEO(opts) is the single call every view makes — handles title, description, robots, canonical, all OG tags, Twitter Card, h1 visibility, BreadcrumbList, and page-specific structured data in one shot. Schemas are idempotent by DOM id — navigating back and forth updates rather than duplicates them. updateSEO calls removeSchemas(['dyn-schema', 'chord-schema', 'faq-schema']) on every navigation to clean up previous route's schemas before injecting new ones. buildMusicComposition implements schema.org/MusicComposition with musicalKey, composer, dateCreated, publisher fields.
+
+Decisions Made That Aren't in the Master Prompt
+
+Cache namespace sd5_ — bumped from your existing sd4_. The new architecture's parseCSV output shape is identical but the module structure is different enough that stale cache could cause subtle bugs. Bumping the namespace means every user gets a clean cache on first load of the new site with zero code needed.
+loadCSS(href) in js/utils.js — The master prompt says section CSS is loaded lazily by each view module but doesn't specify the mechanism. Decision: each view calls loadCSS('/css/blog.css') at the top of its render function. loadCSS is idempotent (tracks injected hrefs in a Set) and returns a Promise so views can await loadCSS(...) before rendering if needed. In practice, CSS loads fast enough that views don't await it.
+chordsPerPage: 12 — The master prompt specifies 12 per page for chords but doesn't say where this config lives. It's in CFG in js/api.js, matching the pattern of postsPerPage: 6.
+renderTabSSR in worker/utils.js — The master prompt specifies SSR for chord pages but doesn't detail the tab rendering algorithm for the server side. Decision: chords SSR renders tab content as a <pre> block with chord names on a line above lyrics (plain text, no [G] tokens), which is maximally crawler-friendly and readable without JS.
+prefetchSheets in js/api.js — Not in the master prompt. Added as a fire-and-forget cache warmer called on home page load. Warms blog, skills, projects so navigating to those sections feels instant. Does nothing if cache is already fresh.
+buildHomeSchemas in js/seo.js — The master prompt specifies Person + Organization + WebSite schema on home but doesn't say whether they should be static in index.html or dynamic. Decision: they're in js/seo.js as buildHomeSchemas() called by updateSEO on the home route. This means index.html can be a clean shell without inline schemas (the static schemas in your current index.html will be removed when we build index.html).
+sanitizeHTML uses regex in worker/utils.js, DOMParser in js/utils.js — Different implementations for different environments. Workers runtime has no DOMParser. Both implementations have the same safe tag/attribute whitelist. Next Claude needs to keep these in sync if the whitelist changes.
+removeSchemas cleans ['dyn-schema', 'chord-schema', 'faq-schema'] on every updateSEO call — Proactive cleanup ensures no schema leakage between routes (e.g. navigating from a chord page to a blog page never leaves a MusicComposition schema behind).
+
+
+Gotchas for the Next Claude
+Architecture
+
+js/utils.js and js/api.js are the only leaf nodes on the browser side. Every other JS file imports from one or both of these. js/seo.js imports esc from js/utils.js and CFG from js/api.js. View modules will import from all three plus js/router.js.
+worker/utils.js is the only leaf node on the worker side. worker/sheets.js imports nothing. worker/ssr/blog.js, worker/ssr/chords.js, worker/ssr/meta.js all import from worker/utils.js and worker/sheets.js. worker/index.js imports from all of them.
+
+index.html (not yet built)
+
+Must be a shell under 100 lines — no inline <style> block, no inline <script> block.
+The three static JSON-LD schemas (Person, Org, WebSite) that are currently in index.html should be removed — buildHomeSchemas() in js/seo.js handles them dynamically now.
+Must have <script type="module" src="js/main.js"> — not a classic script.
+Must keep the font preconnect + preload pattern exactly as-is (already in the existing index.html).
+#nprogress, #offline-banner, nav HTML, #app div, footer, and all view <div> shells still go here.
+css/base.css is the only stylesheet in <head> — all other section CSS is lazy-loaded by view modules via loadCSS().
+
+js/router.js (next file)
+
+Must export navigate(path, push), registerRoute(path, handler), registerPrefix(prefix, handler).
+js/main.js is the only file that calls registerRoute and registerPrefix — the router knows zero view names.
+The router must handle the /chords prefix (list) and /chords/:slug (detail) — registerPrefix('/chords', handler) is the mechanism.
+Must preserve the URL cleanup logic from your existing navigate(): strips /portfolio-upload/, /index.html, deduplicates slashes.
+The 404 overlay logic (injects into #heroSection) must be preserved exactly.
+blogState.page is currently read from ?page= query param in the existing router — this must be preserved for blog pagination deep links.
+
+js/views/chords.js (Phase F)
+
+The chord transpose logic must handle: major, minor (m), 7th (7), maj7, m7, sus2, sus4, add9, power (5) for all 12 roots including enharmonic equivalents.
+Chord diagram popovers: hover on desktop, tap on mobile. The popover must close on outside click/tap. SVG diagrams are generated from js/data/chord-shapes.js — no external images or libraries.
+Auto-scroll speed preference and font size preference both saved to localStorage (use the sd5_ namespace for consistency, e.g. sd5_chordFontSize, sd5_chordScrollSpeed).
+Mobile: transpose/font-size/scroll controls are fixed at bottom of viewport. Tab content scrolls horizontally.
+
+worker/index.js (Phase C)
+
+Must import getSheetGids and getAllowedSheetNames from worker/sheets.js.
+Must import all helpers from worker/utils.js — not redefine them.
+The SHEET_ID is a Cloudflare secret (set via dashboard), not a [vars] entry. It's accessed as env.SHEET_ID. It must never appear in wrangler.toml or any committed file.
+Must add routes for /chords (serve index with chords meta) and /chords/:slug (call prerenderChord from worker/ssr/chords.js).
+
+wrangler.toml (last file)
+
+SHEET_ID must not appear here — it's a secret, not a var.
+CHORDS_GID should be a placeholder comment explaining where to find the GID.
+All other GIDs use the real values from the existing worker.js.
+
+General
+
+Every view module follows the same pattern: export async function renderX() { await loadCSS('/css/x.css'); ... }. The CSS load is the first line.
+Fallback content (FB object) from the existing index.html should be split: each view module gets its own FB constant with its own fallback HTML. Don't put them all in one place.
+js/main.js is the only file that imports view modules and calls registerRoute. It's also where initOfflineBanner() from js/utils.js is called at boot.

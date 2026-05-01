@@ -431,3 +431,13 @@ Phase F — chords (new feature, built last so nothing else depends on it)
 Phase G — wiring
   28. js/main.js           — imports all views, registers all routes
   29. wrangler.toml        — all env vars consolidated
+
+
+
+Before I switch to a new chat, give me a handoff summary.
+Include: what files are done, what each one exports/does,
+any decisions we made that aren't in the master prompt,
+and any gotchas I should tell the next Claude.
+
+
+

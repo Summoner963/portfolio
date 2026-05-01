@@ -1,0 +1,835 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   css/base.css — Suman Dangal
+   Design tokens, reset, nav, hero, buttons, layout helpers, skeleton,
+   reveal animations, 404 overlay, offline banner, footer, accessibility.
+
+   SCOPE: Loaded in <head> for every page. Contains ONLY styles shared
+   across all sections. Section-specific styles live in their own CSS files
+   (blog.css, skills.css, etc.) loaded lazily by each view module.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. DESIGN TOKENS
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Palette */
+  --bg:             #ffffff;
+  --surface:        #f7f8f6;
+  --card:           #ffffff;
+  --border:         #e2e6df;
+  --border-dark:    #c8d0c4;
+
+  /* Brand greens */
+  --accent:         #2d6a4f;
+  --accent-light:   #52b788;
+  --accent-bg:      #edf5f0;
+  --accent2:        #1b4332;
+
+  /* Amber accent for alt highlights */
+  --accent3:        #b7791f;
+
+  /* Text */
+  --text:           #1a1e1a;
+  --muted:          #5a6659;
+  --muted-light:    #8a9688;
+
+  /* Typography stacks */
+  --serif: 'DM Serif Display', 'DM Serif Display Fallback', Georgia, serif;
+  --mono:  'DM Mono', 'DM Mono Fallback', 'Courier New', monospace;
+  --sans:  'DM Sans', 'DM Sans Fallback', system-ui, -apple-system, sans-serif;
+
+  /* Layout */
+  --nav-h:   62px;
+  --max:     1080px;
+
+  /* Easing */
+  --ease:    cubic-bezier(.4, 0, .2, 1);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, .09);
+  --shadow-md: 0 4px 18px rgba(0, 0, 0, .10);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, .12);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. FONT-FACE FALLBACKS (size-adjust to prevent layout shift)
+   ───────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'DM Serif Display Fallback';
+  src: local('Georgia');
+  size-adjust: 103%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'DM Mono Fallback';
+  src: local('Courier New');
+  size-adjust: 86%;
+  ascent-override: 92%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'DM Sans Fallback';
+  src: local('Arial');
+  size-adjust: 101%;
+  ascent-override: 92%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. RESET & BASE
+   ───────────────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background:    var(--bg);
+  color:         var(--text);
+  font-family:   var(--sans);
+  line-height:   1.6;
+  overflow-x:    hidden;
+  /* Reserve space for fixed nav so content is never under it */
+  padding-top:   var(--nav-h);
+}
+
+/* Thin accent scrollbar — Chrome/Edge/Safari */
+::-webkit-scrollbar        { width: 3px; }
+::-webkit-scrollbar-thumb  { background: var(--accent); border-radius: 2px; }
+::-webkit-scrollbar-track  { background: transparent; }
+
+img, svg { display: block; max-width: 100%; }
+
+a {
+  color:                  var(--accent);
+  text-underline-offset:  3px;
+}
+
+button { font-family: inherit; }
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. PROGRESS BAR (NProgress-style, driven by js/utils.js pStart/pEnd)
+   ───────────────────────────────────────────────────────────────────────── */
+
+#nprogress {
+  position:       fixed;
+  top:            0;
+  left:           0;
+  height:         2px;
+  width:          0%;
+  background:     var(--accent);
+  z-index:        10001;
+  box-shadow:     0 0 6px rgba(45, 106, 79, .4);
+  transition:     width .25s var(--ease), opacity .4s;
+  pointer-events: none;
+  border-radius:  0 1px 1px 0;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. NAVIGATION
+   ───────────────────────────────────────────────────────────────────────── */
+
+nav {
+  position:        fixed;
+  top:             0;
+  left:            0;
+  right:           0;
+  height:          var(--nav-h);
+  z-index:         1000;
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0 4rem;
+  background:      rgba(255, 255, 255, .92);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border-bottom:   1px solid var(--border);
+  box-shadow:      var(--shadow-sm);
+  will-change:     transform;
+  contain:         layout style;
+}
+
+.nav-brand {
+  font-family:    var(--mono);
+  font-size:      .84rem;
+  color:          var(--accent);
+  letter-spacing: .06em;
+  text-decoration: none;
+  cursor:         pointer;
+  font-weight:    500;
+  display:        inline-flex;
+  align-items:    center;
+  gap:            .6rem;
+}
+
+.nav-links {
+  display:     flex;
+  gap:         2.4rem;
+  list-style:  none;
+}
+
+.nav-links a {
+  font-family:    var(--mono);
+  font-size:      .75rem;
+  color:          var(--muted);
+  text-decoration: none;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  transition:     color .2s;
+  cursor:         pointer;
+  /* Ensure minimum tap target height via line-height, not padding, so nav stays compact */
+  display:        inline-flex;
+  align-items:    center;
+  min-height:     44px;
+}
+
+.nav-links a:hover,
+.nav-links a[aria-current="page"] {
+  color: var(--accent);
+}
+
+.nav-links a[aria-current="page"] {
+  font-weight: 500;
+}
+
+/* Hamburger button (visible only on mobile — see responsive section) */
+.nav-burger {
+  display:         none;
+  flex-direction:  column;
+  gap:             5px;
+  background:      none;
+  border:          none;
+  cursor:          pointer;
+  padding:         4px;
+  min-width:       44px;
+  min-height:      44px;
+  align-items:     center;
+  justify-content: center;
+}
+
+.nav-burger span {
+  display:       block;
+  width:         21px;
+  height:        1.5px;
+  background:    var(--text);
+  border-radius: 1px;
+  transition:    transform .3s, opacity .3s;
+}
+
+.nav-burger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.nav-burger.open span:nth-child(2) { opacity: 0; }
+.nav-burger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. APP SHELL & VIEW TRANSITIONS
+   ───────────────────────────────────────────────────────────────────────── */
+
+#app {
+  min-height: calc(100vh - var(--nav-h));
+}
+
+/* All views hidden by default; .active shows them */
+.view {
+  display: none;
+}
+
+.view.active {
+  display:   block;
+  animation: viewIn .32s var(--ease) both;
+}
+
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Hidden on-page h1 for home (visible to crawlers via SSR) */
+h1.hero-title.h1-hidden { display: none; }
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   7. LAYOUT PRIMITIVES
+   ───────────────────────────────────────────────────────────────────────── */
+
+.container {
+  max-width: var(--max);
+  margin:    0 auto;
+  padding:   5rem 4rem;
+}
+
+.section-eyebrow {
+  font-family:    var(--mono);
+  font-size:      .7rem;
+  color:          var(--accent);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  display:        flex;
+  align-items:    center;
+  gap:            .8rem;
+  margin-bottom:  1rem;
+  font-weight:    500;
+}
+
+.section-eyebrow::after {
+  content:    '';
+  flex:       1;
+  height:     1px;
+  background: var(--border);
+  max-width:  64px;
+}
+
+.section-heading {
+  font-family:   var(--serif);
+  font-size:     clamp(1.9rem, 3.5vw, 2.8rem);
+  line-height:   1.15;
+  margin-bottom: 2.8rem;
+  color:         var(--accent2);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   8. HERO
+   ───────────────────────────────────────────────────────────────────────── */
+
+.hero {
+  min-height: calc(100vh - var(--nav-h));
+  display:    grid;
+  place-items: center;
+  padding:    4rem;
+  position:   relative;
+  overflow:   hidden;
+  background:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px),
+    linear-gradient(160deg, #f0f7f2 0%, #ffffff 55%, #f7f8f6 100%);
+  background-size: 48px 48px, 48px 48px, 100% 100%;
+}
+
+/* Legacy decoration divs — kept for DOM compatibility, hidden */
+.hero-grid,
+.hero-glow { display: none; }
+
+.hero-inner {
+  position:  relative;
+  max-width: 860px;
+  width:     100%;
+}
+
+.hero-badge {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            .5rem;
+  font-family:    var(--mono);
+  font-size:      .7rem;
+  color:          var(--accent);
+  background:     var(--accent-bg);
+  border:         1px solid rgba(45, 106, 79, .2);
+  padding:        .3rem .9rem;
+  border-radius:  2rem;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  margin-bottom:  1.8rem;
+  animation:      fadeUp .55s ease both;
+  font-weight:    500;
+}
+
+/* Pulsing status dot inside badge */
+.hero-badge::before {
+  content:       '';
+  width:         6px;
+  height:        6px;
+  border-radius: 50%;
+  background:    var(--accent);
+  animation:     pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .3; }
+}
+
+h1.hero-title {
+  font-family:    var(--serif);
+  font-size:      clamp(3rem, 8.5vw, 7rem);
+  line-height:    1.04;
+  letter-spacing: -.02em;
+  margin-bottom:  1.5rem;
+  animation:      fadeUp .55s .08s ease both;
+  color:          var(--accent2);
+}
+
+h1.hero-title em {
+  font-style: italic;
+  color:      var(--accent);
+}
+
+.hero-sub {
+  font-size:     1.05rem;
+  color:         var(--muted);
+  max-width:     500px;
+  line-height:   1.75;
+  margin-bottom: 2.4rem;
+  animation:     fadeUp .55s .15s ease both;
+}
+
+.hero-ctas {
+  display:    flex;
+  gap:        1rem;
+  flex-wrap:  wrap;
+  animation:  fadeUp .55s .22s ease both;
+}
+
+.hero-stats {
+  display:       flex;
+  gap:           3rem;
+  flex-wrap:     wrap;
+  margin-top:    4rem;
+  padding-top:   2.5rem;
+  border-top:    1px solid var(--border);
+  animation:     fadeUp .55s .3s ease both;
+}
+
+.stat-num {
+  font-family: var(--serif);
+  font-size:   2.1rem;
+  color:       var(--accent);
+  display:     block;
+}
+
+.stat-lbl {
+  font-family:    var(--mono);
+  font-size:      .67rem;
+  color:          var(--muted);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   9. BUTTONS
+   ───────────────────────────────────────────────────────────────────────── */
+
+.btn {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             .45rem;
+  font-family:     var(--mono);
+  font-size:       .8rem;
+  font-weight:     500;
+  letter-spacing:  .05em;
+  padding:         .8rem 1.8rem;
+  border-radius:   .4rem;
+  text-decoration: none;
+  cursor:          pointer;
+  border:          none;
+  transition:      background-color .2s, border-color .2s, color .2s,
+                   box-shadow .2s, transform .2s;
+  white-space:     nowrap;
+  min-height:      44px;    /* WCAG touch target */
+}
+
+.btn-solid {
+  background: var(--accent);
+  color:      #ffffff;
+}
+
+.btn-solid:hover {
+  background:  var(--accent2);
+  transform:   translateY(-2px);
+  box-shadow:  var(--shadow-md);
+}
+
+.btn-ghost {
+  background:   transparent;
+  border:       1.5px solid var(--border-dark);
+  color:        var(--text);
+}
+
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color:        var(--accent);
+  transform:    translateY(-2px);
+  background:   var(--accent-bg);
+}
+
+/* Small icon-only variant */
+.btn-icon {
+  padding:       .5rem;
+  border-radius: .35rem;
+  background:    transparent;
+  border:        1.5px solid var(--border);
+  color:         var(--muted);
+  cursor:        pointer;
+  font-family:   var(--mono);
+  font-size:     .78rem;
+  display:       inline-flex;
+  align-items:   center;
+  justify-content: center;
+  min-width:     36px;
+  min-height:    36px;
+  transition:    border-color .18s, color .18s, background-color .18s;
+}
+
+.btn-icon:hover {
+  border-color: var(--accent);
+  color:        var(--accent);
+  background:   var(--accent-bg);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   10. SKELETON LOADING
+   ───────────────────────────────────────────────────────────────────────── */
+
+.skel {
+  background:    var(--surface);
+  border-radius: .5rem;
+  overflow:      hidden;
+  position:      relative;
+}
+
+.skel::after {
+  content:    '';
+  position:   absolute;
+  inset:      0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, .6) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.3s infinite;
+}
+
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+.skel-card        { height: 200px; }
+.skel-line        { height: 15px; margin-bottom: .75rem; }
+.skel-line.s      { width: 38%; }
+.skel-line.m      { width: 62%; }
+.skel-line.l      { width: 85%; }
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   11. REVEAL ON SCROLL
+   ───────────────────────────────────────────────────────────────────────── */
+
+.reveal {
+  opacity:    0;
+  transform:  translate3d(0, 18px, 0);
+  transition: opacity .5s var(--ease), transform .5s var(--ease);
+}
+
+.reveal.in {
+  opacity:   1;
+  transform: translate3d(0, 0, 0);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   12. EMPTY STATE
+   ───────────────────────────────────────────────────────────────────────── */
+
+.empty-state {
+  grid-column: 1 / -1;
+  font-family: var(--mono);
+  font-size:   .84rem;
+  color:       var(--muted-light);
+  padding:     3rem 0;
+  text-align:  center;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   13. 404 OVERLAY (SPA not-found; injected into #heroSection by router.js)
+   ───────────────────────────────────────────────────────────────────────── */
+
+#spa-404-overlay {
+  position:        absolute;
+  inset:           0;
+  display:         grid;
+  place-items:     center;
+  z-index:         10;
+  background:      var(--bg);
+}
+
+.not-found-wrap {
+  text-align: center;
+  padding:    2rem;
+}
+
+.not-found-code {
+  font-family:   var(--serif);
+  font-size:     7rem;
+  color:         var(--accent);
+  opacity:       .1;
+  line-height:   1;
+  margin-bottom: .5rem;
+  display:       block;
+}
+
+.not-found-wrap h2 {
+  font-family:   var(--serif);
+  font-size:     2rem;
+  margin-bottom: .7rem;
+  color:         var(--accent2);
+}
+
+.not-found-wrap p {
+  color:      var(--muted);
+  font-size:  .9rem;
+  max-width:  400px;
+  margin:     0 auto 2rem;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   14. OFFLINE BANNER
+   ───────────────────────────────────────────────────────────────────────── */
+
+#offline-banner {
+  display:       none;
+  position:      fixed;
+  bottom:        1rem;
+  left:          50%;
+  transform:     translateX(-50%);
+  background:    var(--accent2);
+  color:         #fff;
+  font-family:   var(--mono);
+  font-size:     .72rem;
+  padding:       .5rem 1.2rem;
+  border-radius: 2rem;
+  z-index:       9999;
+  letter-spacing: .05em;
+  box-shadow:    var(--shadow-md);
+  white-space:   nowrap;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   15. TOAST NOTIFICATION (js/utils.js showToast)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.sd-toast {
+  position:      fixed;
+  bottom:        5rem;
+  left:          50%;
+  transform:     translateX(-50%) translateY(0);
+  background:    var(--accent2);
+  color:         #fff;
+  font-family:   var(--mono);
+  font-size:     .75rem;
+  padding:       .55rem 1.3rem;
+  border-radius: 2rem;
+  z-index:       10000;
+  box-shadow:    var(--shadow-md);
+  letter-spacing: .04em;
+  pointer-events: none;
+  animation:     toastIn .25s var(--ease) both;
+}
+
+.sd-toast.out {
+  animation: toastOut .3s var(--ease) both;
+}
+
+@keyframes toastIn  {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   16. FOOTER
+   ───────────────────────────────────────────────────────────────────────── */
+
+footer {
+  border-top:      1px solid var(--border);
+  padding:         1.8rem 4rem;
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  font-family:     var(--mono);
+  font-size:       .69rem;
+  color:           var(--muted);
+  letter-spacing:  .04em;
+  background:      var(--surface);
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   17. ACCESSIBILITY UTILITIES
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position:   absolute;
+  width:      1px;
+  height:     1px;
+  padding:    0;
+  margin:     -1px;
+  overflow:   hidden;
+  clip:       rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border:     0;
+}
+
+/* Focus ring — consistent across all interactive elements */
+:focus-visible {
+  outline:        2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius:  3px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline:        2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   18. RESPONSIVE — TABLET (≤ 768px)
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+
+  /* Nav */
+  nav { padding: 0 1.5rem; }
+
+  .nav-links {
+    display:         none;
+    flex-direction:  column;
+    gap:             0;
+    position:        fixed;
+    top:             var(--nav-h);
+    left:            0;
+    right:           0;
+    background:      rgba(255, 255, 255, .97);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom:   1px solid var(--border);
+    padding:         1rem 1.5rem;
+    z-index:         999;
+  }
+
+  .nav-links.open { display: flex; }
+
+  .nav-links li {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-links li:last-child { border-bottom: none; }
+
+  .nav-links a {
+    display:     flex;
+    padding:     .85rem 0;
+    font-size:   .82rem;
+    min-height:  44px;
+    align-items: center;
+  }
+
+  .nav-burger { display: flex; }
+
+  /* Layout */
+  .container { padding: 3.5rem 1.5rem; }
+
+  /* Hero */
+  .hero { padding: 3rem 1.5rem; }
+
+  h1.hero-title { font-size: clamp(2.4rem, 11vw, 4rem); }
+
+  .hero-stats { gap: 1.8rem; }
+
+  /* Footer */
+  footer {
+    flex-direction: column;
+    gap:            .45rem;
+    text-align:     center;
+    padding:        1.5rem;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   19. RESPONSIVE — MOBILE (≤ 480px)
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .hero-ctas { flex-direction: column; }
+  .btn       { justify-content: center; }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   20. PRINT
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media print {
+  nav,
+  footer,
+  .hero-grid,
+  .hero-glow,
+  #nprogress,
+  #offline-banner,
+  .sd-toast,
+  .nav-burger { display: none; }
+
+  body    { padding-top: 0; }
+  .container { padding: 1rem; }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   21. REDUCED MOTION
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration:        .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration:       .01ms !important;
+  }
+
+  .reveal {
+    opacity:   1;
+    transform: none;
+  }
+
+  html { scroll-behavior: auto; }
+}
