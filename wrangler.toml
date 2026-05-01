@@ -19,7 +19,7 @@
 #  GIDs (sheet tab IDs) are NOT secrets — they're meaningless without SHEET_ID.
 #  They live here in [vars] for transparency and easy editing.
 #
-#  To find a GID: open the Google Sheet tab → look at the URL bar:
+#  To find  GID: open the Google Sheet tab → look at the URL bar:
 #    ...spreadsheets/d/.../edit#gid=XXXXXXXXX
 #  That XXXXXXXXX is the GID.
 # ═══════════════════════════════════════════════════════════════════════════
