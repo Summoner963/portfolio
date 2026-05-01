@@ -1,0 +1,1084 @@
+/**
+ * css/chords.css
+ *
+ * All styles for the Chords section (/chords and /chords/:slug).
+ * Loaded lazily by js/views/chords.js — never blocks other views.
+ *
+ * Does NOT redefine any :root CSS custom properties.
+ * All tokens (--accent, --text, --mono, --serif, --sans, --surface,
+ * --card, --border, --border-dark, --muted, --muted-light,
+ * --accent-bg, --accent2, --shadow-sm, --shadow-md, --nav-h) come
+ * from base.css which is always loaded first.
+ *
+ * Structure:
+ *  1. Chord List page  (.chords-*)
+ *  2. Featured chord strip
+ *  3. Chord card grid
+ *  4. Chord Detail page (.chord-detail-*)
+ *  5. Tab renderer (.tab-*)
+ *  6. Chord token + popover + SVG diagram
+ *  7. Controls bar (transpose / font-size / scroll)
+ *  8. Mobile overrides
+ *  9. Print styles
+ * 10. Reduced-motion overrides
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   1. CHORD LIST PAGE — /chords
+   ═══════════════════════════════════════════════════════════ */
+
+.chords-hero {
+  background:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px),
+    linear-gradient(160deg, #f0f7f2 0%, #ffffff 55%, #f7f8f6 100%);
+  background-size: 48px 48px, 48px 48px, 100% 100%;
+  padding: 4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chords-hero-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+}
+
+.chords-hero-eyebrow {
+  font-family: var(--mono);
+  font-size: .7rem;
+  color: var(--accent);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.chords-hero-eyebrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  max-width: 64px;
+}
+
+.chords-hero-title {
+  font-family: var(--serif);
+  font-size: clamp(1.9rem, 3.5vw, 2.8rem);
+  line-height: 1.15;
+  color: var(--accent2);
+  margin-bottom: .6rem;
+}
+
+.chords-hero-sub {
+  font-size: .9rem;
+  color: var(--muted);
+  max-width: 520px;
+  line-height: 1.65;
+}
+
+/* Toolbar */
+.chords-toolbar {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 1.4rem 4rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .9rem;
+  align-items: center;
+}
+
+.chords-search-wrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.chords-search-wrap svg {
+  position: absolute;
+  left: .75rem;
+  width: 15px;
+  height: 15px;
+  stroke: var(--muted);
+  fill: none;
+  pointer-events: none;
+}
+
+#chordsSearch {
+  width: 100%;
+  height: 38px;
+  padding: 0 .75rem 0 2.4rem;
+  border: 1.5px solid var(--border);
+  border-radius: .4rem;
+  background: var(--card);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: .85rem;
+  outline: none;
+  transition: border-color .2s;
+}
+
+#chordsSearch::placeholder { color: var(--muted-light); }
+#chordsSearch:focus { border-color: var(--accent); }
+
+.chords-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
+
+.chords-filter-label {
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Reuse .filter-chip from base/blog — also define locally for safety */
+.chord-chip {
+  font-family: var(--mono);
+  font-size: .7rem;
+  padding: .32rem .8rem;
+  border-radius: 2rem;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color .18s, color .18s, background-color .18s;
+  letter-spacing: .04em;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chord-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.chord-chip.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.chords-sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-left: auto;
+}
+
+#chordsSort {
+  height: 38px;
+  padding: 0 2rem 0 .75rem;
+  border: 1.5px solid var(--border);
+  border-radius: .4rem;
+  background: var(--card);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: .75rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a6659' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .6rem center;
+  transition: border-color .2s;
+}
+
+#chordsSort:focus { border-color: var(--accent); }
+
+.chords-results-count {
+  font-family: var(--mono);
+  font-size: .7rem;
+  color: var(--muted-light);
+  white-space: nowrap;
+}
+
+/* Section container */
+.chords-section {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 2rem 4rem 5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   2. FEATURED CHORD STRIP
+   ═══════════════════════════════════════════════════════════ */
+
+.chords-featured {
+  margin-bottom: 3rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chords-featured-heading {
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--accent);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 1.1rem;
+}
+
+.chords-featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Featured card — compact variant */
+.chord-feat-card {
+  background: var(--accent-bg);
+  border: 1.5px solid rgba(45, 106, 79, .2);
+  border-radius: .7rem;
+  padding: 1.1rem 1.2rem;
+  cursor: pointer;
+  transition: border-color .22s, transform .22s, box-shadow .22s;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.chord-feat-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.chord-feat-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chord-feat-title {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--accent2);
+  line-height: 1.2;
+}
+
+.chord-feat-artist {
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+
+.chord-feat-badges {
+  display: flex;
+  gap: .35rem;
+  flex-wrap: wrap;
+  margin-top: .2rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   3. CHORD CARD GRID
+   ═══════════════════════════════════════════════════════════ */
+
+.chords-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.3rem;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 600px;
+}
+
+.chord-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .8rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .25s, transform .25s, box-shadow .25s;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  contain: layout style;
+}
+
+.chord-card:hover {
+  border-color: rgba(45, 106, 79, .3);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.chord-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Thumbnail */
+.chord-card-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chord-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .35s;
+}
+
+.chord-card:hover .chord-card-thumb img {
+  transform: scale(1.04);
+}
+
+/* Card body */
+.chord-card-body {
+  padding: 1.2rem 1.3rem 1.3rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.chord-card-meta {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted-light);
+  letter-spacing: .05em;
+}
+
+.chord-card-title {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  color: var(--accent2);
+  line-height: 1.22;
+  margin: 0;
+}
+
+.chord-card-artist {
+  font-family: var(--mono);
+  font-size: .73rem;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+
+.chord-card-badges {
+  display: flex;
+  gap: .35rem;
+  flex-wrap: wrap;
+  margin-top: .15rem;
+}
+
+/* Shared badge styles */
+.chord-badge {
+  font-family: var(--mono);
+  font-size: .63rem;
+  padding: .18rem .55rem;
+  border-radius: 1rem;
+  letter-spacing: .04em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chord-badge-cat {
+  background: var(--accent-bg);
+  border: 1px solid rgba(45, 106, 79, .2);
+  color: var(--accent);
+}
+
+.chord-badge-diff-beginner {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #15803d;
+}
+
+.chord-badge-diff-intermediate {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.chord-badge-diff-advanced {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+.chord-badge-key {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* Pagination — reuses blog pattern */
+.chords-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 3rem;
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: var(--muted);
+  min-height: 52px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   4. CHORD DETAIL PAGE — /chords/:slug
+   ═══════════════════════════════════════════════════════════ */
+
+.chord-detail-wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 3.5rem 4rem 8rem; /* bottom padding for mobile controls bar */
+}
+
+.chord-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 2rem;
+  transition: color .2s;
+  letter-spacing: .05em;
+  min-height: 44px;
+}
+
+.chord-detail-back:hover { color: var(--accent); }
+
+/* Song header */
+.chord-detail-header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chord-detail-title {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.1;
+  color: var(--accent2);
+  margin-bottom: .4rem;
+}
+
+.chord-detail-artist {
+  font-family: var(--mono);
+  font-size: .82rem;
+  color: var(--muted);
+  letter-spacing: .05em;
+  margin-bottom: 1.2rem;
+}
+
+.chord-detail-cover {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: .7rem;
+  border: 1.5px solid var(--border);
+  margin-bottom: 1.6rem;
+  display: block;
+  aspect-ratio: 16 / 6;
+}
+
+/* Meta row: key · capo · BPM · time sig · tuning */
+.chord-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem 1.4rem;
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--muted-light);
+  letter-spacing: .05em;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.chord-detail-meta strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.chord-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: 1rem;
+}
+
+.chord-detail-intro {
+  font-size: .88rem;
+  color: var(--muted);
+  line-height: 1.75;
+  max-width: 680px;
+  margin-bottom: 1.2rem;
+}
+
+/* Chords-used row */
+.chord-used-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  align-items: center;
+  margin-top: .6rem;
+}
+
+.chord-used-label {
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-right: .2rem;
+}
+
+/* Clickable chord name pill in "chords used" list */
+.chord-used-pill {
+  font-family: var(--mono);
+  font-size: .72rem;
+  padding: .28rem .7rem;
+  border-radius: 1rem;
+  background: var(--accent-bg);
+  border: 1.5px solid rgba(45, 106, 79, .25);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background-color .18s, border-color .18s, transform .18s;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chord-used-pill:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Capo suggestion banner */
+.chord-capo-suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--accent2);
+  background: var(--accent-bg);
+  border: 1.5px solid rgba(45, 106, 79, .22);
+  border-radius: .45rem;
+  padding: .55rem 1rem;
+  margin-top: .8rem;
+  letter-spacing: .04em;
+}
+
+.chord-capo-suggestion[hidden] { display: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   5. TAB RENDERER
+   ═══════════════════════════════════════════════════════════ */
+
+.tab-container {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: .8rem;
+  padding: 2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) var(--surface);
+  /* Smooth horizontal scroll on mobile */
+  scroll-snap-type: x proximity;
+}
+
+.tab-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tab-container::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+/* The pre-formatted tab body */
+.tab-body {
+  font-family: var(--mono);
+  font-size: var(--tab-font-size, .88rem);
+  line-height: 2;
+  white-space: pre;
+  color: var(--text);
+  min-width: max-content; /* prevents wrapping; container scrolls */
+  transition: font-size .15s;
+}
+
+/* Chord token — the clickable/hoverable chord name above lyrics */
+.chord-token {
+  font-family: var(--mono);
+  font-size: inherit;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+  padding: 0 .08em;
+  border-radius: .2em;
+  transition: background-color .15s, color .15s;
+  /* Minimum touch target */
+  min-width: 28px;
+  text-align: center;
+}
+
+.chord-token:hover,
+.chord-token.active {
+  background: var(--accent);
+  color: #fff;
+  border-radius: .25em;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   6. CHORD DIAGRAM POPOVER + SVG
+   ═══════════════════════════════════════════════════════════ */
+
+/* Popover container */
+.chord-popover {
+  position: fixed; /* always fixed — works for both desktop hover and mobile tap */
+  z-index: 2000;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .7rem;
+  box-shadow: var(--shadow-md);
+  padding: .9rem .9rem .7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+  pointer-events: none;           /* desktop: mouse passes through */
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .18s, transform .18s;
+  min-width: 110px;
+}
+
+/* Visible state */
+.chord-popover.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;           /* mobile: allow tap-to-close */
+}
+
+/* Popover chord name label */
+.chord-popover-name {
+  font-family: var(--mono);
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--accent2);
+  letter-spacing: .06em;
+  text-align: center;
+}
+
+/* "No diagram" fallback text */
+.chord-popover-unknown {
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted-light);
+  text-align: center;
+  padding: .4rem 0;
+}
+
+/* SVG diagram — dimensions set on element; use CSS vars for color */
+.chord-diagram-svg {
+  display: block;
+  overflow: visible;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   7. CONTROLS BAR (transpose / font-size / auto-scroll)
+   ═══════════════════════════════════════════════════════════ */
+
+/*
+ * Desktop: inline panel below the song header, above the tab.
+ * Mobile:  position: fixed; bottom: 0 — always visible while playing.
+ */
+
+.chord-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .7rem;
+  padding: 1rem 1.4rem;
+  margin-bottom: 1.8rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Each control group: label + interactive elements */
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+}
+
+.ctrl-label {
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* +/- step buttons */
+.ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: .35rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .18s, background-color .18s, color .18s, transform .15s;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.ctrl-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.ctrl-btn:active { transform: scale(.93); }
+
+.ctrl-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* Transpose display (current semitone offset or key name) */
+.ctrl-transpose-display {
+  font-family: var(--mono);
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--accent2);
+  min-width: 52px;
+  text-align: center;
+  letter-spacing: .04em;
+}
+
+/* Font-size display */
+.ctrl-fontsize-display {
+  font-family: var(--mono);
+  font-size: .75rem;
+  color: var(--muted);
+  min-width: 28px;
+  text-align: center;
+}
+
+/* Auto-scroll toggle */
+.ctrl-scroll-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem 1rem;
+  border-radius: .35rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: .72rem;
+  cursor: pointer;
+  transition: border-color .18s, background-color .18s, color .18s;
+  min-height: 44px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.ctrl-scroll-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.ctrl-scroll-toggle.scrolling {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Speed slider */
+.ctrl-speed-wrap {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.ctrl-speed {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 90px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.ctrl-speed::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.ctrl-speed::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+/* Action buttons (print, share) */
+.ctrl-actions {
+  display: flex;
+  gap: .55rem;
+  margin-left: auto;
+}
+
+.ctrl-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem .9rem;
+  border-radius: .35rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: .7rem;
+  cursor: pointer;
+  transition: border-color .18s, background-color .18s, color .18s;
+  min-height: 44px;
+  letter-spacing: .04em;
+}
+
+.ctrl-action-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   8. MOBILE OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* ── List page ── */
+  .chords-hero     { padding: 3rem 1.5rem; }
+  .chords-toolbar  { padding: 1rem 1.5rem 0; }
+  .chords-section  { padding: 1.8rem 1.5rem 10rem; }
+
+  .chords-featured-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: .9rem;
+    padding-bottom: .4rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .chords-featured-grid::-webkit-scrollbar { display: none; }
+
+  .chord-feat-card {
+    flex: 0 0 72vw;
+    max-width: 260px;
+  }
+
+  .chords-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Detail page ── */
+  .chord-detail-wrap {
+    padding: 2.5rem 1.5rem 10rem; /* 10rem bottom = room for fixed controls */
+  }
+
+  /* Controls bar: fixed to bottom of viewport on mobile */
+  .chord-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-top: 1.5px solid var(--border);
+    margin-bottom: 0;
+    padding: .75rem 1rem;
+    gap: .6rem 1rem;
+    /* Scroll horizontally if controls overflow narrow screen */
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    background: rgba(255, 255, 255, .97);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 -2px 16px rgba(0,0,0,.08);
+    /* Safe area for iPhone home indicator */
+    padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
+  }
+
+  .chord-controls::-webkit-scrollbar { display: none; }
+
+  /* Tighten up labels on mobile */
+  .ctrl-label {
+    font-size: .6rem;
+  }
+
+  /* Shrink slider on mobile */
+  .ctrl-speed {
+    width: 64px;
+  }
+
+  /* Actions move to same row — never push to margin:auto on mobile */
+  .ctrl-actions {
+    margin-left: 0;
+  }
+
+  /* Popover: centered on screen for tap */
+  .chord-popover {
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  .chord-popover.visible {
+    transform: translate(-50%, -50%) !important;
+  }
+
+  /* Tab horizontal scroll */
+  .tab-container {
+    padding: 1.2rem 1rem;
+    border-radius: .6rem;
+  }
+
+  /* Toolbar column stacking */
+  .chords-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chords-sort-wrap {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .chord-detail-title {
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   9. PRINT STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+@media print {
+  .chord-controls,
+  .chord-detail-back,
+  .chord-used-row,
+  .chord-capo-suggestion,
+  .chord-popover,
+  nav,
+  footer {
+    display: none !important;
+  }
+
+  .chord-detail-wrap {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  .tab-container {
+    border: 1px solid #ccc;
+    border-radius: 0;
+    overflow: visible;
+    padding: 1rem;
+  }
+
+  .tab-body {
+    font-size: .78rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .chord-token {
+    color: #000;
+    font-weight: 700;
+    background: none !important;
+  }
+
+  .chord-detail-title {
+    font-size: 1.6rem;
+  }
+
+  .chord-detail-meta,
+  .chord-detail-badges {
+    display: flex;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   10. REDUCED-MOTION OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .chord-card,
+  .chord-feat-card,
+  .chord-popover,
+  .chord-token,
+  .chord-card-thumb img {
+    transition: none !important;
+    animation: none !important;
+  }
+}

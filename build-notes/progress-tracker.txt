@@ -1,7 +1,6 @@
 --- PROGRESS TRACKER ---
-COMPLETED: js/views/blog.js
-STATUS: Exports renderBlogList, renderArticle, setBlogRows, blogState, initBlogToolbar, renderFilteredBlog, buildCategoryChips. Module-scoped blogRows. Direct /blog/:slug navigation works without prior /blog visit. onRevalidate callback keeps list live. Router imported lazily via dynamic import('../router.js') to avoid circular dependency. buildCard uses createElement for outer element. FAQ + image data fetched in parallel with Promise.all.
-NEXT SUGGESTED: js/views/home.js — calls buildHomeSchemas(), renders featured posts, exports renderHome. Depends on setBlogRows from this file.
+COMPLETED: css/chords.css
+STATUS: All chord page styles. List page: hero, toolbar, search, filter chips, sort, featured strip (horizontal scroll on mobile), card grid, pagination. Detail page: header, cover, meta row, badges, intro, chords-used pills, capo suggestion banner, tab container + body, chord tokens. Popover: fixed-position, opacity/transform transition, centered on mobile via left:50%;top:50%;transform:translate(-50%,-50%). Controls bar: inline on desktop, position:fixed;bottom:0 on mobile with backdrop-filter and safe-area-inset-bottom. Print: hides controls, uses pre-wrap for tab body, tokens go bold black.
 REMAINING FILES:
 [x] worker/sheets.js
 [x] worker/utils.js
@@ -25,10 +24,10 @@ REMAINING FILES:
 [x] css/blog.css
 [x] css/featured.css
 [x] js/views/blog.js
-[ ] js/views/home.js
-[ ] js/data/chord-shapes.js
-[ ] css/chords.css
-[ ] js/views/chords.js
+[x] js/views/home.js
+[x] js/data/chord-shapes.js
+[x] css/chords.css
+[x] js/views/chords.js
 [ ] worker/ssr/chords.js
 [ ] js/main.js
 [ ] wrangler.toml
