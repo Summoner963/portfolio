@@ -1,0 +1,864 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   css/blog.css
+   Scope: ALL blog-related styles:
+     - Blog list view:  .blog-toolbar, .blog-search-wrap, .blog-filters,
+                        .filter-chip, .blog-sort-wrap, .blog-results-count,
+                        .blog-grid, .blog-card and all .blog-card-* children,
+                        .blog-tag, .pagination
+     - Article view:    .article-back, .article-meta, .article-title,
+                        .article-tags, .article-tag, .article-cover,
+                        .article-body (all child elements), .article-author,
+                        .blog-inline-img, .blog-figure
+     - FAQ accordion:   .faq-section, .faq-item, .faq-question, .faq-answer
+     - Sheet HTML:      .sheet-html-block table styles
+   All :root tokens live in base.css — never redeclared here.
+   Loaded lazily by js/views/blog.js via loadCSS('/css/blog.css').
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 1 — BLOG TOOLBAR  (search + filters + sort)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.blog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .9rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.2rem 1.4rem;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: .8rem;
+  contain: layout style;
+}
+
+/* ── Search input wrapper ──────────────────────────────────────────────── */
+.blog-search-wrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Magnifier icon — positioned absolutely inside the wrapper */
+.blog-search-wrap svg {
+  position: absolute;
+  left: .75rem;
+  width: 15px;
+  height: 15px;
+  stroke: var(--muted);
+  fill: none;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+#blogSearch {
+  width: 100%;
+  height: 38px;
+  padding: 0 .75rem 0 2.4rem;
+  border: 1.5px solid var(--border);
+  border-radius: .4rem;
+  background: var(--card);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: .85rem;
+  outline: none;
+  transition: border-color .2s var(--ease);
+  /* 44px min touch target achieved via height + surrounding padding */
+}
+
+#blogSearch::placeholder {
+  color: var(--muted-light);
+}
+
+#blogSearch:focus {
+  border-color: var(--accent);
+}
+
+/* ── Category filter chips ─────────────────────────────────────────────── */
+.blog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
+
+.filter-label {
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-right: .2rem;
+  font-weight: 500;
+}
+
+.filter-chip {
+  font-family: var(--mono);
+  font-size: .7rem;
+  padding: .32rem .8rem;
+  border-radius: 2rem;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    border-color   .18s var(--ease),
+    color          .18s var(--ease),
+    background-color .18s var(--ease);
+  letter-spacing: .04em;
+  /* Enforce 44px touch target on mobile */
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.filter-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.filter-chip.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.filter-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Sort dropdown ─────────────────────────────────────────────────────── */
+.blog-sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-left: auto;
+}
+
+#blogSort {
+  height: 38px;
+  padding: 0 2rem 0 .75rem;
+  border: 1.5px solid var(--border);
+  border-radius: .4rem;
+  background: var(--card);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: .75rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  /* Custom chevron arrow via inline SVG data URI */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a6659' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .6rem center;
+  transition: border-color .2s var(--ease);
+}
+
+#blogSort:focus {
+  border-color: var(--accent);
+}
+
+/* ── Results count ─────────────────────────────────────────────────────── */
+.blog-results-count {
+  font-family: var(--mono);
+  font-size: .7rem;
+  color: var(--muted-light);
+  margin-left: auto;
+  white-space: nowrap;
+  letter-spacing: .04em;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 2 — BLOG CARD GRID
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 1.4rem;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+
+/* ── Individual blog card ──────────────────────────────────────────────── */
+.blog-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .8rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color .25s var(--ease),
+    transform    .25s var(--ease),
+    box-shadow   .25s var(--ease);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  contain: layout style;
+}
+
+.blog-card:hover {
+  border-color: rgba(45, 106, 79, .3);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.blog-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: .8rem;
+}
+
+/* ── Thumbnail ─────────────────────────────────────────────────────────── */
+.blog-card-thumb {
+  width: 100%;
+  height: 172px;
+  overflow: hidden;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  /* Aspect ratio hint prevents layout shift before image loads */
+  aspect-ratio: 310 / 172;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.blog-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .4s var(--ease);
+}
+
+.blog-card:hover .blog-card-thumb img {
+  transform: scale(1.04);
+}
+
+/* ── Card body ─────────────────────────────────────────────────────────── */
+.blog-card-body {
+  padding: 1.4rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.blog-card-meta {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted-light);
+  letter-spacing: .06em;
+  margin-bottom: .7rem;
+  flex-wrap: wrap;
+}
+
+/* Category badge inside card meta */
+.blog-cat {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid rgba(45, 106, 79, .2);
+  padding: .14rem .5rem;
+  border-radius: 1rem;
+  font-size: .65rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+h3.blog-card-title {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  margin-bottom: .5rem;
+  line-height: 1.25;
+  /* flex:1 pushes excerpt + tags to the bottom so cards in the same
+     row align their excerpts regardless of title length. */
+  flex: 1;
+  color: var(--accent2);
+}
+
+.blog-card-excerpt {
+  font-size: .83rem;
+  color: var(--muted);
+  line-height: 1.65;
+  /* Clamp to 3 lines so all cards have the same excerpt height */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Card tags (list at bottom) ────────────────────────────────────────── */
+.blog-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-top: .75rem;
+}
+
+.blog-tag {
+  font-family: var(--mono);
+  font-size: .63rem;
+  padding: .18rem .55rem;
+  border-radius: .25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted-light);
+  letter-spacing: .03em;
+  transition:
+    border-color .15s var(--ease),
+    color        .15s var(--ease);
+  user-select: none;
+}
+
+.blog-tag:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Empty state ───────────────────────────────────────────────────────── */
+.blog-grid .empty-state {
+  grid-column: 1 / -1;
+  font-family: var(--mono);
+  font-size: .84rem;
+  color: var(--muted-light);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+/* ── Pagination ────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 3rem;
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: var(--muted);
+  min-height: 52px;
+  flex-wrap: wrap;
+}
+
+.pagination .btn {
+  padding: .5rem 1.2rem;
+  font-size: .75rem;
+  min-height: 44px;
+}
+
+.pagination span[aria-live] {
+  font-size: .75rem;
+  letter-spacing: .05em;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 3 — ARTICLE VIEW
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Narrow max-width for comfortable reading line length */
+#view-article .container {
+  max-width: 720px;
+}
+
+/* ── Back button ───────────────────────────────────────────────────────── */
+.article-back {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 2.4rem;
+  transition: color .2s var(--ease);
+  letter-spacing: .05em;
+  min-height: 44px;
+}
+
+.article-back:hover {
+  color: var(--accent);
+}
+
+.article-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ── Article meta row (category badge + date) ──────────────────────────── */
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: .7rem;
+  color: var(--muted-light);
+  margin-bottom: 1.4rem;
+  letter-spacing: .06em;
+}
+
+/* ── Tags row ──────────────────────────────────────────────────────────── */
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: 1.6rem;
+}
+
+.article-tag {
+  font-family: var(--mono);
+  font-size: .68rem;
+  padding: .22rem .65rem;
+  border-radius: .25rem;
+  background: var(--accent-bg);
+  border: 1px solid rgba(45, 106, 79, .2);
+  color: var(--accent);
+  user-select: none;
+}
+
+/* ── Article title ─────────────────────────────────────────────────────── */
+h2.article-title {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.1;
+  margin-bottom: 1.8rem;
+  color: var(--accent2);
+}
+
+/* ── Cover image ───────────────────────────────────────────────────────── */
+.article-cover {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: .7rem;
+  border: 1.5px solid var(--border);
+  margin-bottom: 2.2rem;
+  display: block;
+  /* Stable layout slot prevents CLS — browser reserves space before load */
+  aspect-ratio: 720 / 420;
+}
+
+/* ── Article body — all child element styles ────────────────────────────── */
+.article-body {
+  line-height: 1.82;
+  font-size: .94rem;
+}
+
+.article-body h2 {
+  font-family: var(--serif);
+  font-size: 1.55rem;
+  margin: 2rem 0 1rem;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.article-body h3 {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  margin: 1.5rem 0 .7rem;
+  color: var(--accent);
+  line-height: 1.3;
+}
+
+.article-body p {
+  color: var(--muted);
+  line-height: 1.82;
+  margin-bottom: 1.2rem;
+  font-size: .94rem;
+}
+
+.article-body p strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.article-body a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+  transition: color .15s;
+}
+
+.article-body a:hover {
+  color: var(--accent2);
+}
+
+.article-body ul,
+.article-body ol {
+  padding-left: 1.4rem;
+  margin-bottom: 1.2rem;
+}
+
+.article-body li {
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.8;
+  margin-bottom: .3rem;
+}
+
+.article-body blockquote {
+  border-left: 2px solid var(--accent);
+  padding: .4rem 0 .4rem 1.4rem;
+  margin: 1.5rem 0;
+  background: var(--accent-bg);
+  border-radius: 0 .4rem .4rem 0;
+}
+
+.article-body blockquote p {
+  color: var(--text);
+  font-style: italic;
+  margin: 0;
+}
+
+.article-body code {
+  font-family: var(--mono);
+  font-size: .8rem;
+  background: var(--accent-bg);
+  border: 1px solid rgba(45, 106, 79, .18);
+  padding: .14rem .38rem;
+  border-radius: .25rem;
+  color: var(--accent);
+}
+
+.article-body pre {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: .6rem;
+  padding: 1.4rem;
+  overflow-x: auto;
+  margin-bottom: 1.4rem;
+  /* Allow pre blocks to scroll without expanding article width */
+  max-width: 100%;
+}
+
+.article-body pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  font-size: .82rem;
+  white-space: pre;
+}
+
+/* ── Inline images ([img1], [img2] …) ──────────────────────────────────── */
+.blog-inline-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: .6rem;
+  border: 1.5px solid var(--border);
+  /* Stable aspect ratio slot — prevents CLS while loading */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--surface);
+}
+
+figure.blog-figure {
+  margin: 2rem 0;
+}
+
+figure.blog-figure figcaption {
+  font-family: var(--mono);
+  font-size: .7rem;
+  color: var(--muted-light);
+  text-align: center;
+  margin-top: .55rem;
+  letter-spacing: .04em;
+  font-style: italic;
+}
+
+/* ── Sheet HTML table (Table_HTML column) ──────────────────────────────── */
+.sheet-html-block {
+  margin: 1.8rem 0;
+  overflow-x: auto;
+  border-radius: .5rem;
+  border: 1.5px solid var(--border);
+}
+
+.sheet-html-block table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: .77rem;
+}
+
+.sheet-html-block th {
+  background: var(--accent-bg);
+  color: var(--accent2);
+  padding: .6rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid rgba(45, 106, 79, .2);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sheet-html-block td {
+  padding: .55rem 1rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.sheet-html-block tr:last-child td {
+  border-bottom: none;
+}
+
+.sheet-html-block tr:hover td {
+  background: var(--surface);
+}
+
+/* ── Author byline ─────────────────────────────────────────────────────── */
+.article-author {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  font-family: var(--mono);
+  font-size: .75rem;
+  color: var(--muted-light);
+  margin: 2rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.article-author a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.article-author a:hover {
+  text-decoration: underline;
+}
+
+.article-author svg {
+  flex-shrink: 0;
+  opacity: .6;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 4 — FAQ ACCORDION
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.faq-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.faq-section h2 {
+  font-family: var(--serif);
+  font-size: 1.55rem;
+  margin-bottom: 1.4rem;
+  color: var(--accent2);
+}
+
+/* <details> element — border changes on open state */
+details.faq-item {
+  border: 1.5px solid var(--border);
+  border-radius: .6rem;
+  margin-bottom: .75rem;
+  overflow: hidden;
+  transition: border-color .2s var(--ease);
+  background: var(--card);
+}
+
+details.faq-item[open] {
+  border-color: rgba(45, 106, 79, .3);
+}
+
+/* <summary> — hides default browser triangle, adds custom +/× icon */
+summary.faq-question {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: .92rem;
+  padding: 1rem 1.2rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text);
+  user-select: none;
+  min-height: 44px;
+}
+
+summary.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+/* Custom + icon that rotates to × when open */
+summary.faq-question::after {
+  content: '+';
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  color: var(--accent);
+  transition: transform .25s var(--ease);
+  flex-shrink: 0;
+  margin-left: .8rem;
+  line-height: 1;
+}
+
+details.faq-item[open] summary.faq-question::after {
+  transform: rotate(45deg);
+}
+
+summary.faq-question:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.faq-answer {
+  padding: .75rem 1.2rem 1rem;
+  font-size: .88rem;
+  color: var(--muted);
+  line-height: 1.75;
+  border-top: 1px solid var(--border);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet / mobile (≤ 768px) ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Toolbar stacks vertically */
+  .blog-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+  }
+
+  .blog-search-wrap {
+    min-width: 0;
+  }
+
+  .blog-sort-wrap {
+    margin-left: 0;
+  }
+
+  .blog-results-count {
+    margin-left: 0;
+    text-align: center;
+  }
+
+  .filter-chip {
+    min-height: 44px;
+  }
+
+  /* Card grid: single column */
+  .blog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Article: slightly smaller title */
+  h2.article-title {
+    font-size: clamp(1.5rem, 7vw, 2.2rem);
+  }
+
+  .article-cover {
+    max-height: 260px;
+  }
+
+  /* Pagination buttons full touch area */
+  .pagination {
+    gap: .8rem;
+  }
+}
+
+/* ── Small mobile (≤ 480px) ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .blog-card-body {
+    padding: 1.1rem;
+  }
+
+  .article-body pre {
+    padding: 1rem;
+    font-size: .78rem;
+  }
+
+  .faq-section h2 {
+    font-size: 1.3rem;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .blog-card,
+  .filter-chip,
+  summary.faq-question::after,
+  details.faq-item {
+    transition: none;
+  }
+
+  .blog-card:hover {
+    transform: none;
+  }
+
+  .blog-card:hover .blog-card-thumb img {
+    transform: none;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PRINT
+   ════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  .blog-toolbar,
+  .pagination,
+  .article-back,
+  .article-author {
+    display: none;
+  }
+
+  .blog-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border-color: var(--border-dark);
+  }
+
+  .article-body pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .article-cover {
+    max-height: 300px;
+  }
+
+  details.faq-item {
+    border: 1px solid #ccc;
+  }
+
+  /* Force open all FAQ items for print */
+  details.faq-item[open],
+  details.faq-item {
+    border-color: #ccc;
+  }
+
+  .faq-answer {
+    display: block !important;
+  }
+}

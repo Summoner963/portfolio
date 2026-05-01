@@ -1,38 +1,39 @@
 --- PROGRESS TRACKER ---
-COMPLETED: worker/ssr/blog.js
-STATUS: prerenderBlogPost() pure function. BlogPosting + BreadcrumbList + Person + FAQPage schema. Two-source image map. fetchSheetData passed in to avoid circular imports. 404 returns true HTTP 404.
-NEXT SUGGESTED: worker/index.js — thin fetch() router; imports all worker files; rate limiting, security headers, asset passthrough, all route dispatch. All its dependencies now exist.
+COMPLETED: js/views/blog.js
+STATUS: Exports renderBlogList, renderArticle, setBlogRows, blogState, initBlogToolbar, renderFilteredBlog, buildCategoryChips. Module-scoped blogRows. Direct /blog/:slug navigation works without prior /blog visit. onRevalidate callback keeps list live. Router imported lazily via dynamic import('../router.js') to avoid circular dependency. buildCard uses createElement for outer element. FAQ + image data fetched in parallel with Promise.all.
+NEXT SUGGESTED: js/views/home.js — calls buildHomeSchemas(), renders featured posts, exports renderHome. Depends on setBlogRows from this file.
 REMAINING FILES:
-  [x] worker/sheets.js
-  [x] worker/utils.js
-  [x] js/utils.js
-  [x] js/api.js
-  [x] js/seo.js
-  [x] js/router.js
-  [x] css/base.css
-  [x] index.html
-  [x] worker/ssr/meta.js
-  [x] worker/ssr/blog.js
-  [ ] worker/index.js
-  [ ] js/views/skills.js
-  [ ] js/views/projects.js
-  [ ] js/views/experience.js
-  [ ] js/views/about.js
-  [ ] js/views/contact.js
-  [ ] css/skills.css
-  [ ] css/projects.css
-  [ ] css/about.css
-  [ ] css/blog.css
-  [ ] css/featured.css
-  [ ] js/views/blog.js
-  [ ] js/views/home.js
-  [ ] js/data/chord-shapes.js
-  [ ] css/chords.css
-  [ ] js/views/chords.js
-  [ ] worker/ssr/chords.js
-  [ ] js/main.js
-  [ ] wrangler.toml
+[x] worker/sheets.js
+[x] worker/utils.js
+[x] js/utils.js
+[x] js/api.js
+[x] js/seo.js
+[x] js/router.js
+[x] css/base.css
+[x] index.html
+[x] worker/ssr/meta.js
+[x] worker/ssr/blog.js
+[x] worker/index.js
+[x] js/views/skills.js
+[x] js/views/projects.js
+[x] js/views/experience.js
+[x] js/views/about.js
+[x] js/views/contact.js
+[x] css/skills.css
+[x] css/projects.css
+[x] css/about.css
+[x] css/blog.css
+[x] css/featured.css
+[x] js/views/blog.js
+[ ] js/views/home.js
+[ ] js/data/chord-shapes.js
+[ ] css/chords.css
+[ ] js/views/chords.js
+[ ] worker/ssr/chords.js
+[ ] js/main.js
+[ ] wrangler.toml
 --- END TRACKER ---
+
 
 We are resuming. All files marked [x] in the tracker are
 already written and saved. Do not rewrite them.

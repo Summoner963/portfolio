@@ -1,0 +1,447 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   css/featured.css
+   Scope: Featured blog posts section on the home page ONLY.
+     - .featured-section        wrapper (surface bg, top border)
+     - .featured-header         heading row + "View all" link
+     - .featured-heading        serif section title
+     - .featured-view-all       mono "View all posts →" link
+     - .featured-grid           auto-fill card grid (desktop) /
+                                horizontal scroll row (mobile)
+     - .fp-card                 individual featured post card
+     - .fp-thumb                16:9 thumbnail slot
+     - .fp-body                 card body padding wrapper
+     - .fp-meta                 category badge + date row
+     - .fp-cat                  accent category chip
+     - .fp-title                serif card title (3-line clamp)
+     - .fp-excerpt              muted excerpt (2-line clamp)
+     - .fp-arrow                "Read post →" CTA at card bottom
+     - .fp-skel-card            skeleton card placeholder
+     - .fp-skel-thumb           skeleton thumbnail
+     - .fp-skel-body            skeleton body wrapper
+     - .fp-skel-line            skeleton text line (.s / .m / .l widths)
+   All :root tokens live in base.css — never redeclared here.
+   Loaded lazily by js/views/home.js via loadCSS('/css/featured.css').
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION WRAPPER
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Sits directly below the hero section, above the footer.
+   Surface background + top border creates a clear visual break from hero. */
+.featured-section {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 4rem;
+}
+
+/* Inner max-width container — matches site --max token */
+.featured-section .section-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+}
+
+/* Hidden state — JS keeps aria-hidden="true" until valid cards are ready.
+   Using display:none so no space is reserved for a section that may be
+   empty (no featured slugs configured, all slugs unmatched, API down).   */
+.featured-section[aria-hidden="true"] {
+  display: none;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION HEADER  (heading + "View all" link)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.featured-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+/* Serif heading — slightly smaller than main section headings so the
+   featured section reads as a supporting element, not a peer section.    */
+.featured-heading {
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+  color: var(--accent2);
+  line-height: 1.15;
+  margin: 0;
+}
+
+/* Mono "View all posts →" link — right-aligned, accent colour */
+.featured-view-all {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--accent);
+  text-decoration: none;
+  letter-spacing: .07em;
+  white-space: nowrap;
+  transition: color .18s var(--ease);
+  cursor: pointer;
+  /* Enforce touch target */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.featured-view-all:hover {
+  color: var(--accent2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.featured-view-all:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CARD GRID
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Desktop: auto-fill with 260px minimum — scales naturally from 1 to 3+
+   columns depending on viewport width without any explicit breakpoints.   */
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.1rem;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FEATURED CARD  (.fp-card)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.fp-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .75rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color .22s var(--ease),
+    transform    .22s var(--ease),
+    box-shadow   .22s var(--ease);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  contain: layout style;
+}
+
+.fp-card:hover {
+  border-color: rgba(45, 106, 79, .35);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.fp-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: .75rem;
+}
+
+/* ── Thumbnail — 16:9 aspect ratio, consistent across all cards ───────── */
+.fp-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Emoji fallback font-family for consistent rendering */
+  font-size: 2rem;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.fp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .4s var(--ease);
+}
+
+.fp-card:hover .fp-thumb img {
+  transform: scale(1.04);
+}
+
+/* ── Card body ─────────────────────────────────────────────────────────── */
+.fp-body {
+  padding: 1.1rem 1.2rem 1.3rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+/* ── Meta row: category badge + date ───────────────────────────────────── */
+.fp-meta {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-family: var(--mono);
+  font-size: .63rem;
+  color: var(--muted-light);
+  letter-spacing: .05em;
+  flex-wrap: wrap;
+}
+
+/* Category chip — matches .blog-cat visual style */
+.fp-cat {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid rgba(45, 106, 79, .2);
+  padding: .12rem .45rem;
+  border-radius: 1rem;
+  font-size: .62rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Title — 3-line clamp keeps all cards the same height ──────────────── */
+.fp-title {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.28;
+  color: var(--accent2);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Excerpt — 2-line clamp ────────────────────────────────────────────── */
+.fp-excerpt {
+  font-size: .8rem;
+  color: var(--muted);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: .1rem;
+}
+
+/* ── "Read post →" CTA ─────────────────────────────────────────────────── */
+.fp-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-family: var(--mono);
+  font-size: .69rem;
+  color: var(--accent);
+  /* Push to bottom of card body so all arrows align across same-row cards */
+  margin-top: auto;
+  padding-top: .6rem;
+  letter-spacing: .04em;
+  transition: gap .18s var(--ease);
+  user-select: none;
+}
+
+.fp-card:hover .fp-arrow {
+  gap: .55rem;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SKELETON PLACEHOLDERS  (.fp-skel-*)
+   Shown while fetchSheet calls are in flight. Pure CSS shimmer —
+   no JS class toggling required. Replaced wholesale by real cards
+   once data arrives (grid.innerHTML = '' then appendChild frag).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.fp-skel-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .75rem;
+  overflow: hidden;
+  /* Match fp-card height so the section doesn't jump on hydration */
+  min-height: 280px;
+}
+
+.fp-skel-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shimmer sweep — same keyframe as base.css .skel::after */
+.fp-skel-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, .6) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.3s infinite;
+}
+
+.fp-skel-body {
+  padding: 1.1rem 1.2rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+}
+
+.fp-skel-line {
+  height: 13px;
+  border-radius: .3rem;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Width variants — .s short, .m medium, .l long */
+.fp-skel-line.s { width: 40%; }
+.fp-skel-line.m { width: 68%; }
+.fp-skel-line.l { width: 90%; }
+
+.fp-skel-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, .6) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.3s infinite;
+}
+
+/* Stagger the shimmer on sibling skeleton lines so they don't all
+   flash in sync — subtle but noticeably more polished.               */
+.fp-skel-line:nth-child(2)::after { animation-delay: .15s; }
+.fp-skel-line:nth-child(3)::after { animation-delay: .3s;  }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 1024px) — tighten padding slightly ──────────────────────── */
+@media (max-width: 1024px) {
+  .featured-section {
+    padding: 3.5rem 3rem;
+  }
+}
+
+/* ── Mobile (≤ 768px) ───────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .featured-section {
+    padding: 3rem 1.5rem;
+  }
+
+  /* Switch from grid to a single horizontal scroll row.
+     Cards peek at the right edge to signal scrollability.
+     -webkit-overflow-scrolling:touch enables momentum scrolling on iOS.
+     scrollbar-width:none + ::-webkit-scrollbar hides the scrollbar on
+     all browsers without removing scroll functionality.                  */
+  .featured-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 1rem;
+    padding-bottom: .75rem;   /* room for shadow not to clip */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Negative margin trick: allow cards to bleed to the screen edge
+       while keeping the section padding for non-grid content above.      */
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .featured-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Fixed card width on mobile — 78vw peeks the next card into view,
+     max-width 300px prevents huge cards on larger phones / tablets.      */
+  .fp-card {
+    flex: 0 0 78vw;
+    max-width: 300px;
+  }
+
+  /* Skeleton cards match real card width */
+  .fp-skel-card {
+    flex: 0 0 78vw;
+    max-width: 300px;
+  }
+
+  /* Featured header: stack on very small screens if needed */
+  .featured-header {
+    margin-bottom: 1.4rem;
+  }
+}
+
+/* ── Small mobile (≤ 480px) ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .fp-card {
+    flex: 0 0 85vw;
+  }
+
+  .fp-skel-card {
+    flex: 0 0 85vw;
+  }
+
+  .fp-title {
+    font-size: .97rem;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .fp-card {
+    transition: none;
+  }
+
+  .fp-card:hover {
+    transform: none;
+  }
+
+  .fp-card:hover .fp-thumb img {
+    transform: none;
+  }
+
+  .fp-card:hover .fp-arrow {
+    gap: .3rem;
+  }
+
+  .fp-skel-thumb::after,
+  .fp-skel-line::after {
+    animation: none;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PRINT
+   ════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Hide the featured section entirely on print —
+     the full blog list is available at /blog.        */
+  .featured-section {
+    display: none;
+  }
+}

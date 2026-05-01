@@ -54,8 +54,4 @@ HANDOFF NOTES FROM PREVIOUS SESSION:
 
 ---
 
-We are resuming. All files marked [x] in the tracker are
-already written and saved. Do not rewrite them.
-The next file to build is: js/seo.js
-Please confirm you understand the current state,
-then wait for my "build" command.
+Before I switch to a new chat, give me a handoff summary. Include: what files are done, what each one exports/does, any decisions we made that aren't in the master prompt, and any gotchas I should tell the next Claude.

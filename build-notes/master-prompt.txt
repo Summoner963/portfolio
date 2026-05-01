@@ -434,8 +434,7 @@ Phase G — wiring
 
 
 
-Before I switch to a new chat, give me a handoff summary.
-Include: what files are done, what each one exports/does,
+after every build give me  what files are done, what each one exports/does,
 any decisions we made that aren't in the master prompt,
 and any gotchas I should tell the next Claude.
 

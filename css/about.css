@@ -1,0 +1,484 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   css/about.css
+   Scope: THREE view modules load this single file:
+     - js/views/experience.js  → .timeline, .tl-*
+     - js/views/about.js       → .about-grid, .about-text, .info-row,
+                                  .info-label, .info-val, .edu-card,
+                                  .edu-deg, .edu-uni, .chord-callout
+     - js/views/contact.js     → .contact-grid, .contact-tile
+   All :root tokens live in base.css — never redeclared here.
+   Loaded lazily via loadCSS('/css/about.css') in each view module.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 1 — TIMELINE  (experience view)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Container — left-border acts as the vertical spine of the timeline.
+   content-visibility defers off-screen paint; contain-intrinsic-size
+   gives the browser a layout hint before the element is painted.           */
+.timeline {
+  position: relative;
+  padding-left: 1.9rem;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px;
+}
+
+/* Vertical spine: gradient fades from accent at the top to border at the
+   bottom so the line feels like it's "trailing off" into the future.       */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: .4rem;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent), var(--border));
+  border-radius: 2px;
+}
+
+/* ── Individual timeline entry ─────────────────────────────────────────── */
+.tl-item {
+  position: relative;
+  padding-bottom: 3rem;
+}
+
+/* Remove bottom padding from the last item — no need for breathing room
+   after the final entry, and it prevents a gap before the footer.         */
+.tl-item:last-child {
+  padding-bottom: 0;
+}
+
+/* Dot — sits on the spine, visually connecting the entry to the line.
+   Double ring: filled accent circle + white gap + accent outer glow.      */
+.tl-dot {
+  position: absolute;
+  left: -2.4rem;
+  top: .35rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+  /* Smooth appearance when .reveal triggers */
+  transition: background-color .2s, box-shadow .2s;
+}
+
+.tl-item:hover .tl-dot {
+  background: var(--accent2);
+  box-shadow: 0 0 0 2px var(--accent2), 0 0 8px rgba(45, 106, 79, .3);
+}
+
+/* Date / period label */
+.tl-date {
+  font-family: var(--mono);
+  font-size: .7rem;
+  color: var(--accent);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: .45rem;
+  font-weight: 500;
+  display: block;
+}
+
+/* Role / job title */
+h3.tl-role {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  margin-bottom: .2rem;
+  line-height: 1.25;
+  color: var(--accent2);
+}
+
+/* Organisation / company name */
+.tl-org {
+  font-family: var(--mono);
+  font-size: .75rem;
+  color: var(--muted);
+  margin-bottom: .9rem;
+  letter-spacing: .03em;
+}
+
+/* Optional type badge (data-type attribute set from sheet "type" column).
+   Example: data-type="internship" → tinted chip beside the org line.      */
+.tl-item[data-type]::after {
+  content: attr(data-type);
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid rgba(45, 106, 79, .2);
+  border-radius: 1rem;
+  padding: .1rem .55rem;
+  margin-left: .5rem;
+  vertical-align: middle;
+  position: relative;
+  top: -.1rem;
+}
+
+/* Bullet list of achievements within a timeline entry */
+.tl-list {
+  list-style: none;
+  padding: 0;
+}
+
+.tl-list li {
+  font-size: .86rem;
+  color: var(--muted);
+  padding: .35rem 0 .35rem 1.1rem;
+  position: relative;
+  line-height: 1.6;
+}
+
+.tl-list li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-size: .67rem;
+  top: .42rem;
+  font-family: var(--mono);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 2 — ABOUT GRID  (about view)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Two-column layout: bio text left, info panel right.
+   align-items:start so the shorter column doesn't stretch.                 */
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: start;
+}
+
+/* ── Bio text column ───────────────────────────────────────────────────── */
+.about-text p {
+  color: var(--muted);
+  line-height: 1.82;
+  margin-bottom: 1.2rem;
+  font-size: .94rem;
+}
+
+.about-text p:last-child {
+  margin-bottom: 0;
+}
+
+.about-text strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.about-text a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+/* Chord-sheets callout — appended by about.js with createElement.
+   Styled inline in about.js (single-use element, no CSS class needed).
+   The rule below is a fallback in case a class is ever added.              */
+.chord-callout {
+  margin-top: 1.6rem;
+  padding: 1rem 1.2rem;
+  background: var(--accent-bg);
+  border: 1.5px solid rgba(45, 106, 79, .2);
+  border-left: 3px solid var(--accent);
+  border-radius: .6rem;
+  font-family: var(--mono);
+  font-size: .78rem;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+
+.chord-callout a {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.chord-callout a:hover {
+  text-decoration: underline;
+}
+
+/* ── Info panel (right column) ─────────────────────────────────────────── */
+
+/* Each info row: label left, value right, divider border at the bottom.   */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .9rem 0;
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+}
+
+.info-row:last-of-type {
+  border-bottom: none;
+}
+
+.info-label {
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.info-val {
+  color: var(--text);
+  font-size: .88rem;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Availability row typically gets a green tint via inline style in HTML.
+   Provide a utility class so future JS can set it programmatically.       */
+.info-val.available {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ── Education card ────────────────────────────────────────────────────── */
+.edu-card {
+  background: var(--accent-bg);
+  border: 1.5px solid rgba(45, 106, 79, .2);
+  border-left: 3px solid var(--accent);
+  border-radius: .7rem;
+  padding: 1.4rem;
+  margin-top: 1.4rem;
+  transition: border-color .2s var(--ease);
+}
+
+.edu-card:hover {
+  border-color: rgba(45, 106, 79, .45);
+}
+
+h3.edu-deg {
+  font-family: var(--serif);
+  font-size: 1.08rem;
+  margin-bottom: .35rem;
+  line-height: 1.3;
+  color: var(--accent2);
+}
+
+.edu-uni {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--muted);
+  line-height: 1.6;
+  letter-spacing: .02em;
+}
+
+/* Year / status badge inside .edu-uni — wrap in <span class="edu-status"> */
+.edu-status {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: .62rem;
+  color: var(--accent);
+  background: rgba(45, 106, 79, .12);
+  border-radius: 1rem;
+  padding: .08rem .5rem;
+  margin-left: .4rem;
+  vertical-align: middle;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 3 — CONTACT  (contact view)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Centred flex row of tiles; wraps to column on mobile (handled below).   */
+.contact-grid {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+/* ── Individual contact tile ───────────────────────────────────────────── */
+.contact-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .85rem 1.7rem;
+  border: 1.5px solid var(--border);
+  border-radius: .5rem;
+  text-decoration: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: .77rem;
+  letter-spacing: .05em;
+  transition:
+    border-color   .2s var(--ease),
+    color          .2s var(--ease),
+    transform      .2s var(--ease),
+    background-color .2s var(--ease),
+    box-shadow     .2s var(--ease);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  /* Enforce 44px touch target height */
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.contact-tile:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  background: var(--accent-bg);
+}
+
+.contact-tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: .5rem;
+}
+
+/* Emoji icon inside tile — consistent rendering across platforms */
+.contact-tile > span[aria-hidden="true"] {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 900px) ──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .about-grid {
+    gap: 2.8rem;
+  }
+}
+
+/* ── Mobile (≤ 768px) ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Timeline */
+  .timeline {
+    padding-left: 1.5rem;
+  }
+
+  .tl-dot {
+    left: -2rem;
+  }
+
+  h3.tl-role {
+    font-size: 1.1rem;
+  }
+
+  /* About grid collapses to single column */
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 2.2rem;
+  }
+
+  /* Info rows: stack label above value instead of side-by-side */
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .2rem;
+  }
+
+  .info-val {
+    text-align: left;
+  }
+
+  /* Contact tiles: full-width column, centred text */
+  .contact-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .contact-tile {
+    width: 100%;
+    max-width: 340px;
+    justify-content: center;
+  }
+}
+
+/* ── Small mobile (≤ 480px) ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  h3.tl-role {
+    font-size: 1rem;
+  }
+
+  .tl-list li {
+    font-size: .82rem;
+  }
+
+  .edu-card {
+    padding: 1.1rem;
+  }
+
+  h3.edu-deg {
+    font-size: 1rem;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .tl-dot,
+  .edu-card,
+  .contact-tile {
+    transition: none;
+  }
+
+  .contact-tile:hover {
+    transform: none;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PRINT
+   ════════════════════════════════════════════════════════════════════════════ */
+@media print {
+  .timeline::before {
+    background: #ccc;
+  }
+
+  .tl-dot {
+    background: #666;
+    box-shadow: none;
+    border-color: #fff;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .contact-grid {
+    display: none;
+  }
+
+  .contact-tile {
+    box-shadow: none;
+    border-color: var(--border-dark);
+  }
+
+  .edu-card {
+    border: 1px solid #ccc;
+    background: none;
+  }
+}
