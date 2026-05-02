@@ -207,7 +207,7 @@ export async function navigate(rawPath, push = true) {
   const parts = path.replace(/^\//, '').split('/').filter(Boolean);
   // parts[0] = first segment ('' for root), parts[1] = slug etc.
   const route = parts[0] || '';    // '' = home
-  const slug  = parts[1] || '';
+  const slug  = parts[1] ? decodeURIComponent(parts[1]) : '';
 
   /** @type {RouteContext} */
   const ctx = { path, parts, slug, params: {}, searchParams };
@@ -231,7 +231,8 @@ export async function navigate(rawPath, push = true) {
   if (!handler) {
     // Try prefix routes in registration order
     for (const { prefix, handler: ph } of _prefixRoutes) {
-      if (path === prefix || path.startsWith(prefix + '/')) {
+      const p = prefix.endsWith('/') ? prefix : prefix + '/';
+      if (path === prefix || path.startsWith(p)) {
         handler = ph;
         break;
       }
