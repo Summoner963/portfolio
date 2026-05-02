@@ -31,40 +31,7 @@ async function ensureCSS() {
   _cssLoaded = true;
 }
 
-// ── Hero CTA patch ────────────────────────────────────────────────────────
-// index.html ships with one CTA: "View Projects ↓"
-// We add a "Chord Sheets ♪" ghost button next to it.
-// Guard against double-injection across same-session navigations.
-let _heroPatched = false;
-function patchHeroCTAs() {
-  if (_heroPatched) return;
-  const ctas = document.querySelector('.hero-ctas');
-  if (!ctas) return;
-
-  // Only add if the button doesn't already exist
-  if (ctas.querySelector('[data-chord-cta]')) {
-    _heroPatched = true;
-    return;
-  }
-
-  const btn = document.createElement('a');
-  btn.href            = '/chords';
-  btn.className       = 'btn btn-ghost';
-  btn.setAttribute('data-link', '');
-  btn.setAttribute('data-chord-cta', '');
-  btn.setAttribute('aria-label', 'Browse chord sheets');
-  btn.textContent     = 'Chord Sheets ♪';
-
-  // Insert after the first button
-  const first = ctas.querySelector('.btn');
-  if (first && first.nextSibling) {
-    ctas.insertBefore(btn, first.nextSibling);
-  } else {
-    ctas.appendChild(btn);
-  }
-
-  _heroPatched = true;
-}
+// (Removed dynamic hero patching since index.html now has the chords button statically)
 
 // ── Featured posts renderer ───────────────────────────────────────────────
 /**
