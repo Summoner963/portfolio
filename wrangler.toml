@@ -64,7 +64,7 @@ ABOUT_GID     = "1066410604"   # About / bio sheet tab
 FAQ_GID       = "303688554"    # FAQ rows (linked to blog posts by slug)
 IMAGES_GID    = "1267436347"   # Inline blog images sheet tab
 FEATURED_GID  = "980532084"    # Featured post slugs (single Slug column)
-CHORDS_GID    = "YOUR_CHORDS_GID_HERE"  # ← Replace with your Chords sheet tab GID
+CHORDS_GID    = "687736904"  # ← Replace with your Chords sheet tab GID
 
 # ─────────────────────────────────────────────────────────────────────────
 #  SECRET (set this via CLI or dashboard — DO NOT put it here)
