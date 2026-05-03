@@ -159,151 +159,147 @@ function capoSuggestion(originalKey, originalCapo, semitones) {
  * @param {object} shape     - from CHORD_SHAPES
  * @returns {string}         - SVG markup string
  */
+
+
 function buildDiagramSVG(chordName, shape) {
   if (!shape) {
     return `<svg width="100" height="120" viewBox="0 0 100 120"
-      xmlns="http://www.w3.org/2000/svg" aria-label="${esc(chordName)} chord diagram"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="${esc(chordName)} chord diagram"
       class="chord-diagram-svg">
-      <text x="40" y="50" text-anchor="middle" font-family="var(--mono)"
-        font-size="9" fill="var(--muted)">No diagram</text>
+      <text x="50" y="60" text-anchor="middle"
+        font-family="var(--mono)" font-size="9"
+        fill="var(--muted)">No diagram</text>
     </svg>`;
   }
 
   const { frets, fingers, barre, baseFret = 1 } = shape;
 
-  // Grid geometry
-const LEFT    = 16;
-const TOP     = 26;
-const WIDTH   = 54;
-const HEIGHT  = 65;
-const STRINGS = 6;
-const FRETS   = 5;
-const STR_GAP = WIDTH  / (STRINGS - 1);
-const FRT_GAP = HEIGHT / FRETS;
-const DOT_R   = 6; finger dot radius
+  const LEFT    = 16;
+  const TOP     = 26;
+  const WIDTH   = 54;
+  const HEIGHT  = 65;
+  const STRINGS = 6;
+  const FRETS   = 5;
+  const STR_GAP = WIDTH  / (STRINGS - 1);
+  const FRT_GAP = HEIGHT / FRETS;
+  const DOTR    = 6;
 
-  // Positions
-  const sx = i => LEFT + (STRINGS - 1 - i) * STR_GAP; // string i x coord (0=right)
-  const fy = f => TOP + (f - 0.5) * FRT_GAP;           // fret f center y (1-based)
+  const sx = i => LEFT + (STRINGS - 1 - i) * STR_GAP;
+  const fy = f => TOP + (f - 0.5) * FRT_GAP;
 
-  let parts = [];
+  const parts = [];
 
-  // ── Nut / fret number ──────────────────────────────────────────────
+  // Nut or fret number
   if (baseFret === 1) {
-    // Nut: thick line at top
     parts.push(
-      `<line x1="${LEFT}" y1="${TOP}" x2="${LEFT + WIDTH}" y2="${TOP}"
-        stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>`
+      `<line x1="${LEFT}" y1="${TOP}" x2="${LEFT + WIDTH}" y2="${TOP}"` +
+      ` stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>`
     );
   } else {
-    // Fret position label
     parts.push(
-      `<text x="${LEFT - 4}" y="${TOP + FRT_GAP * 0.6}" text-anchor="end"
-        font-family="var(--mono)" font-size="8" fill="var(--muted)"
-        dominant-baseline="middle">${baseFret}</text>`
+      `<text x="${LEFT - 4}" y="${TOP + FRT_GAP * 0.6}"` +
+      ` text-anchor="end" font-family="var(--mono)" font-size="8"` +
+      ` fill="var(--muted)" dominant-baseline="middle">${baseFret}</text>`
     );
   }
 
-  // ── Strings (vertical lines) ───────────────────────────────────────
+  // Strings
   for (let s = 0; s < STRINGS; s++) {
     const x = sx(s);
     parts.push(
-      `<line x1="${x}" y1="${TOP}" x2="${x}" y2="${TOP + HEIGHT}"
-        stroke="var(--text)" stroke-width="1" opacity="0.45"/>`
+      `<line x1="${x}" y1="${TOP}" x2="${x}" y2="${TOP + HEIGHT}"` +
+      ` stroke="var(--text)" stroke-width="1" opacity="0.45"/>`
     );
   }
 
-  // ── Fret lines (horizontal) ────────────────────────────────────────
+  // Fret lines
   for (let f = 1; f <= FRETS; f++) {
     const y = TOP + f * FRT_GAP;
     parts.push(
-      `<line x1="${LEFT}" y1="${y}" x2="${LEFT + WIDTH}" y2="${y}"
-        stroke="var(--border-dark,#c8d0c4)" stroke-width="0.8"/>`
+      `<line x1="${LEFT}" y1="${y}" x2="${LEFT + WIDTH}" y2="${y}"` +
+      ` stroke="var(--border-dark,#c8d0c4)" stroke-width="0.8"/>`
     );
   }
 
-  // ── Barre ──────────────────────────────────────────────────────────
+  // Barre
   if (barre) {
-    const { fret: bf, from, to } = barre;
-    const localFret = bf - baseFret + 1;
+    const localFret = barre.fret - baseFret + 1;
     if (localFret >= 1 && localFret <= FRETS) {
-      const x1  = sx(to);   // to is higher string index → leftmost
-      const x2  = sx(from); // from is lower string index → rightmost
-      const by  = fy(localFret);
+      const x1 = sx(barre.to);
+      const x2 = sx(barre.from);
+      const by = fy(localFret);
       parts.push(
-        `<rect x="${x1 - DOT_R}" y="${by - DOT_R}"
-          width="${x2 - x1 + DOT_R * 2}" height="${DOT_R * 2}"
-          rx="${DOT_R}" fill="var(--accent)" opacity="0.9"/>`
+        `<rect x="${x1 - DOTR}" y="${by - DOTR}"` +
+        ` width="${x2 - x1 + DOTR * 2}" height="${DOTR * 2}"` +
+        ` rx="${DOTR}" fill="var(--accent)" opacity="0.9"/>`
       );
     }
   }
 
-  // ── Open / muted markers above nut ────────────────────────────────
+  // Open and muted markers above nut
   for (let s = 0; s < STRINGS; s++) {
     const f = frets[s];
     const x = sx(s);
-    const y = TOP - 9;
+    const y = TOP - 10;
     if (f === -1) {
-      // Muted: × symbol
       const d = 4;
       parts.push(
-        `<line x1="${x-d}" y1="${y-d}" x2="${x+d}" y2="${y+d}"
-          stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>
-         <line x1="${x+d}" y1="${y-d}" x2="${x-d}" y2="${y+d}"
-          stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>`
+        `<line x1="${x - d}" y1="${y - d}" x2="${x + d}" y2="${y + d}"` +
+        ` stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>` +
+        `<line x1="${x + d}" y1="${y - d}" x2="${x - d}" y2="${y + d}"` +
+        ` stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>`
       );
     } else if (f === 0) {
-      // Open: small circle
       parts.push(
-        `<circle cx="${x}" cy="${y}" r="4"
-          fill="none" stroke="var(--text)" stroke-width="1.3" opacity="0.6"/>`
+        `<circle cx="${x}" cy="${y}" r="4"` +
+        ` fill="none" stroke="var(--text)" stroke-width="1.3" opacity="0.6"/>`
       );
     }
   }
 
-  // ── Finger dots ────────────────────────────────────────────────────
+  // Finger dots
   for (let s = 0; s < STRINGS; s++) {
-    const f    = frets[s];
-    const fnum = fingers[s];
-    if (f <= 0) continue; // open, muted, or zero handled above
+    const fretNum  = frets[s];
+    const fingerNum = fingers[s];
+    if (fretNum <= 0) continue;
 
-    const localFret = f - baseFret + 1;
+    const localFret = fretNum - baseFret + 1;
     if (localFret < 1 || localFret > FRETS) continue;
 
     const x = sx(s);
     const y = fy(localFret);
 
-    // Skip dot at barre position (barre already drawn)
     const onBarre = barre &&
-      (f === barre.fret) &&
-      (s >= Math.min(barre.from, barre.to)) &&
-      (s <= Math.max(barre.from, barre.to));
+      fretNum === barre.fret &&
+      s >= Math.min(barre.from, barre.to) &&
+      s <= Math.max(barre.from, barre.to);
 
     if (!onBarre) {
       parts.push(
-        `<circle cx="${x}" cy="${y}" r="${DOT_R}" fill="var(--accent)"/>`
+        `<circle cx="${x}" cy="${y}" r="${DOTR}" fill="var(--accent)"/>`
       );
     }
 
-    // Finger number
-    if (fnum && fnum > 0) {
+    if (fingerNum && fingerNum > 0) {
       parts.push(
-        `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
-          font-family="var(--mono)" font-size="7" fill="#fff" font-weight="600"
-          pointer-events="none">${fnum}</text>`
+        `<text x="${x}" y="${y}" text-anchor="middle"` +
+        ` dominant-baseline="middle" font-family="var(--mono)"` +
+        ` font-size="7" fill="#fff" font-weight="600"` +
+        ` pointer-events="none">${fingerNum}</text>`
       );
     }
   }
 
-  return `<svg width="80" height="100" viewBox="0 0 80 100"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-label="${esc(chordName)} chord diagram"
-    class="chord-diagram-svg"
-    role="img">
-    ${parts.join('\n    ')}
-  </svg>`;
+  return (
+    `<svg width="100" height="120" viewBox="0 0 100 120"` +
+    ` xmlns="http://www.w3.org/2000/svg"` +
+    ` aria-label="${esc(chordName)} chord diagram"` +
+    ` class="chord-diagram-svg" role="img">` +
+    parts.join('') +
+    `</svg>`
+  );
 }
-
 // ─────────────────────────────────────────────────────────────────────────
 //  TAB RENDERER — [G] notation → HTML with clickable chord tokens
 // ─────────────────────────────────────────────────────────────────────────
