@@ -395,33 +395,45 @@ function showPopover(chordName, anchorEl) {
       ? diagramSVG
       : `<div class="chord-popover-unknown">No diagram available</div>`);
 
+  // Make visible but off-screen first so we can measure real dimensions
+  pop.style.visibility = 'hidden';
+  pop.style.left = '0px';
+  pop.style.top  = '0px';
   pop.classList.add('visible');
 
-  // Position: desktop — above the token; mobile — CSS centres it
   const isMobile = window.matchMedia('(hover: none)').matches;
-  if (!isMobile && anchorEl) {
-    const rect     = anchorEl.getBoundingClientRect();
-    const popW     = 120; // approximate; real width after paint
-    const popH     = 130;
-    let left = rect.left + rect.width / 2 - popW / 2;
-    let top  = rect.top  - popH - 8 + window.scrollY;
 
-    // Clamp to viewport
+  if (!isMobile && anchorEl) {
+    // Use real measured dimensions after making visible
+    const popRect  = pop.getBoundingClientRect();
+    const popW     = popRect.width  || 120;
+    const popH     = popRect.height || 130;
+    const rect     = anchorEl.getBoundingClientRect();
+
+    // Position is fixed — all coordinates are viewport-relative
+    // Do NOT add window.scrollY
+    let left = rect.left + rect.width / 2 - popW / 2;
+    let top  = rect.top - popH - 8;
+
+    // Clamp horizontally so it never goes off screen
     left = Math.max(8, Math.min(left, window.innerWidth - popW - 8));
-    if (top < window.scrollY + 8) {
-      // Flip below if not enough room above
-      top = rect.bottom + 8 + window.scrollY;
+
+    // If not enough room above, flip below the token
+    if (top < 8) {
+      top = rect.bottom + 8;
     }
 
     pop.style.left = `${left}px`;
     pop.style.top  = `${top}px`;
   } else {
-    // Mobile: CSS handles centering via translate(-50%,-50%)
+    // Mobile: CSS centers it via translate(-50%, -50%)
     pop.style.left = '50%';
     pop.style.top  = '50%';
   }
-}
 
+  // Now reveal it in the correct position
+  pop.style.visibility = '';
+}
 function hidePopover() {
   if (_popover) _popover.classList.remove('visible');
   _activeToken = null;

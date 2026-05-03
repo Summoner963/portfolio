@@ -686,8 +686,10 @@
    ═══════════════════════════════════════════════════════════ */
 
 /* Popover container */
+/* REPLACE your existing .chord-popover and .chord-popover.visible rules */
+
 .chord-popover {
-  position: fixed; /* always fixed — works for both desktop hover and mobile tap */
+  position: fixed;
   z-index: 2000;
   background: var(--card);
   border: 1.5px solid var(--border);
@@ -698,18 +700,23 @@
   flex-direction: column;
   align-items: center;
   gap: .4rem;
-  pointer-events: none;           /* desktop: mouse passes through */
+  pointer-events: none;
   opacity: 0;
-  transform: translateY(4px);
-  transition: opacity .18s, transform .18s;
+  transition: opacity .18s;
   min-width: 110px;
+  /* No transform here — position set entirely by JS */
 }
 
-/* Visible state */
 .chord-popover.visible {
   opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;           /* mobile: allow tap-to-close */
+  pointer-events: auto;
+}
+
+/* Mobile override — JS sets left:50% top:50%, CSS does the centering */
+@media (hover: none) {
+  .chord-popover.visible {
+    transform: translate(-50%, -50%);
+  }
 }
 
 /* Popover chord name label */
@@ -1009,18 +1016,7 @@
     margin-left: 0;
   }
 
-  /* Popover: centered on screen for tap */
-  .chord-popover {
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
-  }
-
-  .chord-popover.visible {
-    transform: translate(-50%, -50%) !important;
-  }
-
-  /* Tab horizontal scroll */
+    /* Tab horizontal scroll */
   .tab-container {
     padding: 1.2rem 1rem;
     border-radius: .6rem;
