@@ -167,7 +167,7 @@ function _getViewIdForPath(path) {
 
   // Prefix matches — article detail and chord detail pages
   if (path.startsWith('/blog/'))   return 'view-article';
-  if (path.startsWith('/chords/')) return 'view-chords';
+  if (path.startsWith('/chords/')) return 'view-chord-detail';
 
   return null;
 }
