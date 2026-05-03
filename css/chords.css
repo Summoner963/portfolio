@@ -686,8 +686,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 /* Popover container */
-/* REPLACE your existing .chord-popover and .chord-popover.visible rules */
-
+/* FIND and UPDATE .chord-popover */
 .chord-popover {
   position: fixed;
   z-index: 2000;
@@ -703,8 +702,8 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity .18s;
-  min-width: 110px;
-  /* No transform here — position set entirely by JS */
+  min-width: 120px;   /* ← was 110px */
+  width: max-content; /* ← add this — lets popover size to its content */
 }
 
 .chord-popover.visible {
@@ -712,13 +711,11 @@
   pointer-events: auto;
 }
 
-/* Mobile override — JS sets left:50% top:50%, CSS does the centering */
 @media (hover: none) {
   .chord-popover.visible {
     transform: translate(-50%, -50%);
   }
 }
-
 /* Popover chord name label */
 .chord-popover-name {
   font-family: var(--mono);

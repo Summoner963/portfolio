@@ -161,7 +161,7 @@ function capoSuggestion(originalKey, originalCapo, semitones) {
  */
 function buildDiagramSVG(chordName, shape) {
   if (!shape) {
-    return `<svg width="80" height="100" viewBox="0 0 80 100"
+    return `<svg width="100" height="120" viewBox="0 0 100 120"
       xmlns="http://www.w3.org/2000/svg" aria-label="${esc(chordName)} chord diagram"
       class="chord-diagram-svg">
       <text x="40" y="50" text-anchor="middle" font-family="var(--mono)"
@@ -172,15 +172,15 @@ function buildDiagramSVG(chordName, shape) {
   const { frets, fingers, barre, baseFret = 1 } = shape;
 
   // Grid geometry
-  const LEFT    = 14;  // left edge (room for mute/open markers + fret num)
-  const TOP     = 22;  // top edge (room for open/mute circles and fret label)
-  const WIDTH   = 52;  // string span width
-  const HEIGHT  = 62;  // fret span height
-  const STRINGS = 6;
-  const FRETS   = 5;
-  const STR_GAP = WIDTH  / (STRINGS - 1);  // horizontal gap between strings
-  const FRT_GAP = HEIGHT / FRETS;           // vertical gap between frets
-  const DOT_R   = 6.5;  // finger dot radius
+const LEFT    = 16;
+const TOP     = 26;
+const WIDTH   = 54;
+const HEIGHT  = 65;
+const STRINGS = 6;
+const FRETS   = 5;
+const STR_GAP = WIDTH  / (STRINGS - 1);
+const FRT_GAP = HEIGHT / FRETS;
+const DOT_R   = 6; finger dot radius
 
   // Positions
   const sx = i => LEFT + (STRINGS - 1 - i) * STR_GAP; // string i x coord (0=right)
@@ -393,47 +393,54 @@ function showPopover(chordName, anchorEl) {
     `<div class="chord-popover-name">${esc(chordName)}</div>` +
     (shape
       ? diagramSVG
-      : `<div class="chord-popover-unknown">No diagram available</div>`);
-
-  // Make visible but off-screen first so we can measure real dimensions
-  pop.style.visibility = 'hidden';
-  pop.style.left = '0px';
-  pop.style.top  = '0px';
-  pop.classList.add('visible');
+      : `<div class="chord-popover-unknown">No diagram</div>`);
 
   const isMobile = window.matchMedia('(hover: none)').matches;
 
   if (!isMobile && anchorEl) {
-    // Use real measured dimensions after making visible
-    const popRect  = pop.getBoundingClientRect();
-    const popW     = popRect.width  || 120;
-    const popH     = popRect.height || 130;
-    const rect     = anchorEl.getBoundingClientRect();
+    // Position off-screen first, make visible, then measure and reposition
+    pop.style.left       = '-9999px';
+    pop.style.top        = '-9999px';
+    pop.style.transform  = 'none';
+    pop.style.visibility = 'hidden';
+    pop.classList.add('visible');
 
-    // Position is fixed — all coordinates are viewport-relative
-    // Do NOT add window.scrollY
-    let left = rect.left + rect.width / 2 - popW / 2;
-    let top  = rect.top - popH - 8;
+    // Use rAF to ensure browser has painted and dimensions are real
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const popW  = pop.offsetWidth  || 130;
+        const popH  = pop.offsetHeight || 140;
+        const rect  = anchorEl.getBoundingClientRect();
 
-    // Clamp horizontally so it never goes off screen
-    left = Math.max(8, Math.min(left, window.innerWidth - popW - 8));
+        // position: fixed — viewport coordinates only, no scrollY
+        let left = rect.left + rect.width / 2 - popW / 2;
+        let top  = rect.top - popH - 10;
 
-    // If not enough room above, flip below the token
-    if (top < 8) {
-      top = rect.bottom + 8;
-    }
+        // Clamp to viewport
+        left = Math.max(8, Math.min(left, window.innerWidth  - popW - 8));
+        top  = Math.max(8, Math.min(top,  window.innerHeight - popH - 8));
 
-    pop.style.left = `${left}px`;
-    pop.style.top  = `${top}px`;
+        // Flip below if not enough room above
+        if (rect.top - popH - 10 < 8) {
+          top = rect.bottom + 10;
+        }
+
+        pop.style.left       = `${Math.round(left)}px`;
+        pop.style.top        = `${Math.round(top)}px`;
+        pop.style.visibility = '';
+      });
+    });
+
   } else {
-    // Mobile: CSS centers it via translate(-50%, -50%)
-    pop.style.left = '50%';
-    pop.style.top  = '50%';
+    // Mobile — center on screen
+    pop.style.left      = '50%';
+    pop.style.top       = '50%';
+    pop.style.transform = 'translate(-50%, -50%)';
+    pop.style.visibility = '';
+    pop.classList.add('visible');
   }
-
-  // Now reveal it in the correct position
-  pop.style.visibility = '';
 }
+
 function hidePopover() {
   if (_popover) _popover.classList.remove('visible');
   _activeToken = null;
