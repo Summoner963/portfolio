@@ -211,6 +211,8 @@
   padding: 2rem 4rem 5rem;
 }
 
+
+
 /* ═══════════════════════════════════════════════════════════
    2. FEATURED CHORD STRIP
    ═══════════════════════════════════════════════════════════ */
@@ -630,6 +632,29 @@
   color: var(--text);
   min-width: max-content; /* prevents wrapping; container scrolls */
   transition: font-size .15s;
+}
+
+/* Section labels inside tab — Verse 1, Chorus, Bridge etc */
+.tab-section-label {
+  font-family: var(--serif);
+  font-size: .95rem;
+  font-weight: 500;
+  color: var(--accent2);
+  margin: 1.4rem 0 .4rem;
+  letter-spacing: .02em;
+  white-space: normal;
+}
+
+/* Empty line gap between sections */
+.tab-line-gap {
+  height: .7rem;
+}
+
+/* Individual tab line */
+.tab-line {
+  white-space: pre;
+  line-height: 2;
+  min-height: 1.4em;
 }
 
 /* Chord token — the clickable/hoverable chord name above lyrics */

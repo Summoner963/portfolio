@@ -326,21 +326,39 @@ function buildDiagramSVG(chordName, shape) {
 function renderTab(raw, semitones = 0) {
   if (!raw) return '<span style="color:var(--muted-light)">No tab content available.</span>';
 
-  const lines = raw.split('\n');
+  const CHORD_RE = /^[A-G][#b]?(maj7|m7|7|sus2|sus4|add9|m|5)?$/;
+
+  const lines = raw.split('|');
   const htmlLines = lines.map(line => {
-    // Split on [ChordName] tokens
+    const trimmed = line.trim();
+
+    // Empty line — gap between sections
+    if (!trimmed) {
+      return '<div class="tab-line tab-line-gap"></div>';
+    }
+
+    // Section label — [Verse 1], [Chorus], [Bridge] etc
+    // A section label is wrapped in [] but does NOT match a chord pattern
+    const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
+    if (sectionMatch && !CHORD_RE.test(sectionMatch[1])) {
+      return `<div class="tab-line tab-section-label">${esc(sectionMatch[1])}</div>`;
+    }
+
+    // Normal line — may contain [Chord] tokens inline with lyrics
     const parts = line.split(/(\[[^\]]+\])/);
     const spans = parts.map(part => {
       const m = part.match(/^\[([^\]]+)\]$/);
-      if (m) {
+      if (m && CHORD_RE.test(m[1])) {
+        // It is a chord token
         const original   = m[1];
         const transposed = transposeChord(original, semitones);
         return `<button class="chord-token" data-chord="${esc(transposed)}" ` +
                `aria-label="${esc(transposed)} chord" type="button">${esc(transposed)}</button>`;
       }
-      // Plain text — escape but preserve spaces exactly
+      // Plain text — escape but preserve spaces
       return esc(part);
     });
+
     return `<div class="tab-line">${spans.join('')}</div>`;
   });
 
