@@ -716,6 +716,7 @@
     transform: translate(-50%, -50%);
   }
 }
+
 /* Popover chord name label */
 .chord-popover-name {
   font-family: var(--mono);
