@@ -16,9 +16,10 @@
  * 10.  Tab renderer
  * 11.  Chord token + popover + SVG
  * 12.  Related songs
- * 13.  Mobile overrides
- * 14.  Print styles
- * 15.  Reduced-motion overrides
+ * 13.  Recent songs panel
+ * 14.  Mobile overrides
+ * 15.  Print styles
+ * 16.  Reduced-motion overrides
  */
 
 /* ═══════════════════════════════════════════════════════════
@@ -510,8 +511,6 @@
 
 /* ═══════════════════════════════════════════════════════════
    6. DETAIL PAGE — HEADER CARD
-   The entire song header is one bordered card.
-   Children stack vertically inside it.
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-wrap {
@@ -552,12 +551,26 @@
 /* Cover image — full width, no border-radius (card clips it) */
 .chord-detail-cover {
   width: 100%;
-  height: 160px;
+  height: 200px;
   object-fit: cover;
   display: block;
   border-radius: 0;
   border: none;
   margin: 0;
+}
+
+/* When no cover image, a placeholder gradient banner */
+.chord-detail-cover-placeholder {
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(135deg, var(--accent-bg) 0%, rgba(45,106,79,.08) 100%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--accent);
+  opacity: .5;
 }
 
 /* Title + artist block */
@@ -586,7 +599,6 @@
 
 /* ═══════════════════════════════════════════════════════════
    7. DETAIL PAGE — META STRIP
-   Horizontal scrollable row of stat cells inside the card
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-meta {
@@ -596,7 +608,6 @@
   scrollbar-width: none;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  /* reset any inherited spacing */
   margin: 0;
   padding: 0;
   gap: 0;
@@ -610,11 +621,11 @@
 .chord-detail-meta > span {
   flex: 1 0 auto;
   min-width: 72px;
-  padding: .5rem .9rem;
+  padding: .6rem 1rem;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: .1rem;
+  gap: .15rem;
   font-family: var(--mono);
   color: var(--muted-light);
   letter-spacing: .04em;
@@ -622,7 +633,6 @@
 
 .chord-detail-meta > span:last-child { border-right: none; }
 
-/* Label above the value — uses data-label attr if present, else faux label */
 .chord-detail-meta > span::before {
   content: attr(data-label);
   font-size: .5rem;
@@ -634,35 +644,33 @@
 
 .chord-detail-meta strong {
   font-family: var(--mono);
-  font-size: .8rem;
-  font-weight: 500;
+  font-size: .82rem;
+  font-weight: 600;
   color: var(--accent2);
   line-height: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════
    8. DETAIL PAGE — BADGES / CHORDS-USED / INTRO / CAPO
-   All live inside .chord-detail-header card as stacked rows
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-badges {
   display: flex;
   flex-wrap: wrap;
   gap: .35rem;
-  padding: .6rem 1.1rem;
+  padding: .7rem 1.2rem;
   margin: 0;
   background: var(--card);
   border-bottom: 1px solid var(--border);
 }
 
-/* Hides the row entirely if empty */
 .chord-detail-badges:empty { display: none; }
 
 .chord-detail-intro {
   font-size: .86rem;
   color: var(--muted);
   line-height: 1.7;
-  padding: .7rem 1.1rem;
+  padding: .7rem 1.2rem;
   margin: 0;
   border-bottom: 1px solid var(--border);
   background: var(--card);
@@ -673,7 +681,7 @@
   flex-wrap: wrap;
   gap: .35rem;
   align-items: center;
-  padding: .6rem 1.1rem;
+  padding: .7rem 1.2rem;
   margin: 0;
   background: var(--card);
   border-bottom: 1px solid var(--border);
@@ -692,8 +700,8 @@
 
 .chord-used-pill {
   font-family: var(--mono);
-  font-size: .7rem;
-  padding: .22rem .62rem;
+  font-size: .72rem;
+  padding: .28rem .7rem;
   border-radius: 1rem;
   background: var(--accent-bg);
   border: 1.5px solid rgba(45,106,79,.25);
@@ -710,41 +718,40 @@
   color: #fff;
 }
 
-/* Capo suggestion — last row in header card */
+/* Capo suggestion */
 .chord-capo-suggestion {
   display: flex;
   align-items: center;
   gap: .5rem;
   font-family: var(--mono);
-  font-size: .7rem;
+  font-size: .72rem;
   color: var(--accent2);
-  background: var(--accent-bg);
-  padding: .5rem 1.1rem;
+  background: linear-gradient(90deg, rgba(45,106,79,.07) 0%, rgba(45,106,79,.03) 100%);
+  padding: .6rem 1.2rem;
   margin: 0;
   letter-spacing: .04em;
   border-top: 1px solid rgba(45,106,79,.12);
   width: 100%;
   border-radius: 0;
   border: none;
-  border-top: 1px solid rgba(45,106,79,.12);
+  border-top: 1px solid rgba(45,106,79,.15);
 }
 
 .chord-capo-suggestion[hidden] { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
    9. CONTROLS BAR
-   Desktop: inline above tab. Mobile: fixed bottom.
    ═══════════════════════════════════════════════════════════ */
 
 .chord-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .7rem 1.6rem;
+  gap: .7rem 1.4rem;
   background: var(--card);
   border: 1.5px solid var(--border);
-  border-radius: .7rem;
-  padding: .85rem 1.2rem;
+  border-radius: .8rem;
+  padding: .85rem 1.3rem;
   margin-bottom: 1.4rem;
   box-shadow: var(--shadow-sm);
 }
@@ -802,7 +809,7 @@
 .ctrl-transpose-display {
   font-family: var(--mono);
   font-size: .82rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--accent2);
   min-width: 44px;
   text-align: center;
@@ -915,13 +922,14 @@
 
 /* ═══════════════════════════════════════════════════════════
    10. TAB RENDERER
+   The key fix: chords render on their own line ABOVE lyrics.
+   Tab lines are grouped into .tab-pair blocks (chord-line + lyric-line).
    ═══════════════════════════════════════════════════════════ */
 
 .tab-container {
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: .8rem;
-  padding: 1.6rem 1.8rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -934,32 +942,98 @@
   border-radius: 2px;
 }
 
+/* Tab header strip */
+.tab-header-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .65rem 1.4rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.tab-header-label {
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: var(--muted);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.tab-key-display {
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--accent);
+  letter-spacing: .06em;
+  font-weight: 500;
+}
+
+/* Tab body wrapper — has padding */
 .tab-body {
   font-family: var(--mono);
   font-size: var(--tab-font-size, .88rem);
-  line-height: 2;
-  white-space: pre;
+  line-height: 1.6;
   color: var(--text);
-  min-width: max-content;
+  padding: 1.6rem 1.8rem 2rem;
+  min-width: 0;
   transition: font-size .15s;
 }
 
+/* ── Section label e.g. [Verse 1], [Chorus] ── */
+.tab-section {
+  margin-top: 1.8rem;
+  margin-bottom: .8rem;
+}
+
+.tab-section:first-child { margin-top: 0; }
+
 .tab-section-label {
   font-family: var(--serif);
-  font-size: .9rem;
+  font-size: .95rem;
   font-weight: 500;
   color: var(--accent2);
-  margin: 1.2rem 0 .3rem;
   letter-spacing: .02em;
-  white-space: normal;
+  display: block;
+  padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: .6rem;
+}
+
+/* ── Chord+lyric pair block ── */
+.tab-pair {
+  display: block;
+  margin-bottom: .1rem;
+}
+
+/* Chord line — sits above the lyric */
+.tab-chord-line {
+  display: block;
+  white-space: pre;
+  line-height: 1.4;
+  min-height: 1.3em;
+  margin-bottom: .05em;
+}
+
+/* Lyric line — below the chord line */
+.tab-lyric-line {
+  display: block;
+  white-space: pre;
+  line-height: 1.8;
+  min-height: 1.4em;
+  color: var(--text);
+}
+
+/* Empty spacer between pairs */
+.tab-line-gap {
+  height: .7rem;
   display: block;
 }
 
-.tab-line-gap { height: .6rem; display: block; }
-
+/* Legacy plain line — for lines that are just text with no chords */
 .tab-line {
   white-space: pre;
-  line-height: 2;
+  line-height: 1.8;
   min-height: 1.4em;
   display: block;
 }
@@ -971,23 +1045,28 @@
 .chord-token {
   font-family: var(--mono);
   font-size: inherit;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--accent);
   cursor: pointer;
   position: relative;
   display: inline-block;
-  padding: 0 .08em;
-  border-radius: .2em;
-  transition: background-color .15s, color .15s;
-  min-width: 28px;
+  padding: .05em .3em;
+  border-radius: .25em;
+  border: 1px solid rgba(45,106,79,.25);
+  background: var(--accent-bg);
+  transition: background-color .12s, color .12s, border-color .12s;
+  min-width: 2em;
   text-align: center;
+  line-height: 1.2;
+  vertical-align: middle;
 }
 
 .chord-token:hover,
 .chord-token.active {
   background: var(--accent);
   color: #fff;
-  border-radius: .25em;
+  border-color: var(--accent);
+  border-radius: .3em;
 }
 
 .chord-popover {
@@ -1132,7 +1211,149 @@
 .chord-related-badges { display: flex; gap: .3rem; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════
-   13. MOBILE OVERRIDES
+   13. RECENTLY PLAYED PANEL
+   Shown on the list page above the chord grid.
+   Stored in localStorage as an array of {slug,title,artist,key,diff}
+   Max 10 entries, most-recently-played first.
+   ═══════════════════════════════════════════════════════════ */
+
+.chords-recent {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chords-recent[hidden] { display: none; }
+
+.chords-recent-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .6rem;
+}
+
+.chords-recent-heading-label {
+  font-family: var(--mono);
+  font-size: .62rem;
+  color: var(--muted);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.chords-recent-clear {
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: var(--muted-light);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: .2rem .5rem;
+  border-radius: .3rem;
+  letter-spacing: .04em;
+  transition: color .15s, background-color .15s;
+}
+
+.chords-recent-clear:hover {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* Horizontal scrolling row of cards */
+.chords-recent-row {
+  display: flex;
+  gap: .7rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px; /* prevent border clip */
+}
+
+.chords-recent-row::-webkit-scrollbar { display: none; }
+
+/* Individual recent card — compact vertical layout */
+.chord-recent-card {
+  flex: 0 0 auto;
+  width: 140px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .6rem;
+  padding: .75rem .85rem;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, transform .15s;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.chord-recent-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2.5px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity .15s;
+}
+
+.chord-recent-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  transform: translateY(-1px);
+}
+
+.chord-recent-card:hover::before {
+  opacity: 1;
+}
+
+.chord-recent-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chord-recent-title {
+  font-family: var(--serif);
+  font-size: .85rem;
+  color: var(--accent2);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chord-recent-artist {
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: var(--muted);
+  letter-spacing: .03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chord-recent-meta {
+  display: flex;
+  gap: .3rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: .1rem;
+}
+
+.chord-recent-key-badge {
+  font-family: var(--mono);
+  font-size: .55rem;
+  padding: .1rem .4rem;
+  border-radius: .8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   14. MOBILE OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
@@ -1154,12 +1375,19 @@
   .chord-card         { padding: .6rem .85rem; gap: .7rem; }
   .chord-feat-card    { padding: .6rem .85rem; }
 
+  /* Recent panel on mobile */
+  .chord-recent-card { width: 120px; }
+
   /* Detail page */
   .chord-detail-wrap  { padding: 2rem 1.2rem 10rem; }
+  .chord-detail-cover { height: 140px; }
+  .chord-detail-meta > span { min-width: 60px; padding: .5rem .7rem; }
 
-  .chord-detail-cover { height: 120px; }
-
-  .chord-detail-meta > span { min-width: 60px; padding: .45rem .7rem; }
+  /* Tab body — allow horizontal scroll */
+  .tab-body {
+    padding: 1.2rem 1rem 1.6rem;
+    min-width: max-content;
+  }
 
   /* Controls: fixed bottom bar */
   .chord-controls {
@@ -1186,8 +1414,6 @@
   .ctrl-label   { font-size: .58rem; }
   .ctrl-speed   { width: 60px; }
   .ctrl-actions { margin-left: 0; }
-
-  .tab-container { padding: 1rem .9rem; border-radius: .6rem; }
 }
 
 @media (max-width: 480px) {
@@ -1196,7 +1422,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   14. PRINT STYLES
+   15. PRINT STYLES
    ═══════════════════════════════════════════════════════════ */
 
 @media print {
@@ -1205,6 +1431,7 @@
   .chord-capo-suggestion,
   .chord-popover,
   .chord-related,
+  .chords-recent,
   nav, footer { display: none !important; }
 
   .chord-detail-wrap  { padding: 1rem; max-width: 100%; }
@@ -1215,20 +1442,24 @@
     border: 1px solid #ccc;
     border-radius: 0;
     overflow: visible;
-    padding: 1rem;
   }
 
   .tab-body {
     font-size: .76rem;
     line-height: 1.8;
-    white-space: pre-wrap;
-    word-break: break-all;
+    padding: 1rem;
+    min-width: 0;
   }
+
+  .tab-chord-line,
+  .tab-lyric-line,
+  .tab-line { white-space: pre-wrap; word-break: break-all; }
 
   .chord-token {
     color: #000;
     font-weight: 700;
     background: none !important;
+    border: none !important;
   }
 
   .chord-detail-title { font-size: 1.4rem; color: #000; }
@@ -1238,12 +1469,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   15. REDUCED-MOTION OVERRIDES
+   16. REDUCED-MOTION OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
   .chord-card,
   .chord-feat-card,
+  .chord-recent-card,
   .chord-popover,
   .chord-token,
   .chord-card-thumb img {

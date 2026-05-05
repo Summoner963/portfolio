@@ -13,7 +13,6 @@
  *   - BreadcrumbList schema
  *   - Person schema
  *   - Tab content rendered as readable pre-formatted text via renderTabSSR()
- *     (renderTabSSR is already implemented in worker/utils.js — not redefined here)
  *   - True HTTP 404 + noindex,nofollow for missing slugs
  *   - Hydration script redirects real users back to the SPA
  *   - Security headers applied via SECURITY_HEADERS from worker/ssr/meta.js
@@ -44,9 +43,6 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────
 //  CHORD-SPECIFIC PRERENDER CSS
-//  Minimal styles for the static chord page — just enough so bots and
-//  users-before-hydration see readable, styled content.
-//  All tokens come from PRERENDER_CSS which is already included.
 // ─────────────────────────────────────────────────────────────────────────
 const CHORD_PRERENDER_CSS = `
 /* ── Chord detail page — SSR styles ── */
@@ -111,21 +107,43 @@ const CHORD_PRERENDER_CSS = `
   padding:.18rem .55rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.04em;
 }
 .pre-tab-container{
-  margin-top:2rem;padding:1.6rem 1.4rem;
+  margin-top:2rem;
   background:var(--surface);border:1.5px solid var(--border);
   border-radius:.8rem;overflow-x:auto;
 }
 .pre-tab-heading{
   font-family:var(--mono);font-size:.68rem;color:var(--muted);
-  letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;
-  font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  font-weight:500;padding:.65rem 1.4rem;
+  border-bottom:1px solid var(--border);
+  background:var(--card);
+  display:flex;align-items:center;justify-content:space-between;
 }
+.pre-tab-key{font-family:var(--mono);font-size:.68rem;color:var(--accent);letter-spacing:.06em}
 .pre-tab-body{
   font-family:var(--mono);font-size:.85rem;line-height:1.9;
-  white-space:pre;overflow-x:auto;color:var(--text);
+  padding:1.6rem 1.8rem 2rem;
+  color:var(--text);
+}
+/* Chord+lyric pair in SSR */
+.pre-tab-pair{display:block;margin-bottom:.1rem}
+.pre-tab-chord-line{
+  display:block;white-space:pre;line-height:1.4;
+  min-height:1.3em;margin-bottom:.05em;
+}
+.pre-tab-lyric-line{display:block;white-space:pre;line-height:1.8;min-height:1.4em}
+.pre-tab-gap{height:.7rem;display:block}
+.pre-tab-section{margin-top:1.8rem;margin-bottom:.8rem}
+.pre-tab-section:first-child{margin-top:0}
+.pre-tab-section-label{
+  font-family:var(--serif);font-size:.95rem;font-weight:500;color:var(--accent2);
+  letter-spacing:.02em;display:block;
+  padding-bottom:.3rem;border-bottom:1px solid var(--border);margin-bottom:.6rem;
 }
 .pre-tab-body .chord-name{
   color:var(--accent);font-weight:600;font-size:.82rem;
+  background:var(--accent-bg);border:1px solid rgba(45,106,79,.25);
+  padding:.05em .3em;border-radius:.25em;
 }
 .pre-chord-notice{
   margin-top:2rem;padding:1rem 1.2rem;
@@ -135,6 +153,7 @@ const CHORD_PRERENDER_CSS = `
 }
 @media(max-width:768px){
   .pre-chord-wrap{padding:3.5rem 1.5rem}
+  .pre-tab-body{padding:1.2rem 1rem 1.6rem;min-width:max-content}
 }
 @media(max-width:480px){
   .pre-chord-wrap{padding:2.5rem 1.2rem}
@@ -155,7 +174,7 @@ function diffBadgeClass(diff) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  404 HTML — returned for missing chord slugs
+//  404 HTML
 // ─────────────────────────────────────────────────────────────────────────
 function build404HTML(slug) {
   return `<!DOCTYPE html>
@@ -194,15 +213,6 @@ function build404HTML(slug) {
 //  MAIN EXPORT — prerenderChord
 // ─────────────────────────────────────────────────────────────────────────
 
-/**
- * Prerender a chord detail page as full static HTML for bots/crawlers.
- *
- * @param {string}   slug           - URL slug of the chord sheet
- * @param {object}   env            - Cloudflare env bindings
- * @param {Request}  request        - incoming Request object
- * @param {Function} fetchSheetData - async (sheetName, env) => row[] — passed in from index.js
- * @returns {Response}
- */
 export async function prerenderChord(slug, env, request, fetchSheetData) {
   // ── Fetch chord rows ───────────────────────────────────────────────────
   let rows;
@@ -223,40 +233,40 @@ export async function prerenderChord(slug, env, request, fetchSheetData) {
   }
 
   // ── Data extraction ────────────────────────────────────────────────────
-  const title         = (post.Title         || '').trim();
-  const artist        = (post.Artist        || '').trim();
-  const album         = (post.Album         || '').trim();
-  const year          = (post.Year          || '').trim();
-  const key           = (post.Key           || '').trim();
-  const capo          = (post.Capo          || '').trim();
-  const bpm           = (post.BPM           || '').trim();
-  const timeSig       = (post.Time_Signature|| '').trim();
-  const tuning        = (post.Tuning        || '').trim();
-  const difficulty    = (post.Difficulty    || '').trim();
-  const category      = (post.Category     || '').trim();
-  const tags          = (post.Tags          || '').split(',').map(t => t.trim()).filter(Boolean);
-  const introText     = (post.Intro_Text    || '').trim();
-  const chordsUsed    = (post.Chords_Used   || '').split(',').map(c => c.trim()).filter(Boolean);
-  const tabContent    = (post.Tab_Content   || '').trim();
-  const dateAdded     = (post.Date_Added    || '').trim();
-  const excerpt       = (post.Excerpt       || '').trim();
+  const title         = (post.Title          || '').trim();
+  const artist        = (post.Artist         || '').trim();
+  const album         = (post.Album          || '').trim();
+  const year          = (post.Year           || '').trim();
+  const key           = (post.Key            || '').trim();
+  const capo          = (post.Capo           || '').trim();
+  const bpm           = (post.BPM            || '').trim();
+  const timeSig       = (post.Time_Signature || '').trim();
+  const tuning        = (post.Tuning         || '').trim();
+  const difficulty    = (post.Difficulty     || '').trim();
+  const category      = (post.Category       || '').trim();
+  const tags          = (post.Tags           || '').split(',').map(t => t.trim()).filter(Boolean);
+  const introText     = (post.Intro_Text     || '').trim();
+  const chordsUsed    = (post.Chords_Used    || '').split(',').map(c => c.trim()).filter(Boolean);
+  const tabContent    = (post.Tab_Content    || '').trim();
+  const dateAdded     = (post.Date_Added     || '').trim();
+  const excerpt       = (post.Excerpt        || '').trim();
   const imageUrl      = fixImgUrl(post.Image_URL || '');
-  const imageAlt      = (post.Image_Alt     || `${title} chord sheet`).trim();
+  const imageAlt      = (post.Image_Alt      || `${title} chord sheet`).trim();
 
-  const pageUrl       = `${SITE_URL}/chords/${escHtml(slug)}`;
-  const pageTitle     = `${title} — ${artist} Chords`;
-  const metaDesc      = excerpt || `Guitar chords for ${title} by ${artist}.${key ? ` Key of ${key}.` : ''}${capo && capo !== '0' ? ` Capo ${capo}.` : ''}`;
+  const pageUrl   = `${SITE_URL}/chords/${escHtml(slug)}`;
+  const pageTitle = `${title} — ${artist} Chords`;
+  const metaDesc  = excerpt || `Guitar chords for ${title} by ${artist}.${key ? ` Key of ${key}.` : ''}${capo && capo !== '0' ? ` Capo ${capo}.` : ''}`;
 
   // ── MusicComposition structured data ──────────────────────────────────
   const musicSchema = {
-    '@context':     'https://schema.org',
-    '@type':        'MusicComposition',
-    name:            title,
-    description:     metaDesc,
-    url:             pageUrl,
-    inLanguage:      'en',
-    ...(artist   ? { composer: { '@type': 'Person', name: artist } } : {}),
-    ...(album    ? { includedInMusicPlaylist: { '@type': 'MusicPlaylist', name: album } } : {}),
+    '@context':  'https://schema.org',
+    '@type':     'MusicComposition',
+    name:         title,
+    description:  metaDesc,
+    url:          pageUrl,
+    inLanguage:   'en',
+    ...(artist    ? { composer: { '@type': 'Person', name: artist } } : {}),
+    ...(album     ? { includedInMusicPlaylist: { '@type': 'MusicPlaylist', name: album } } : {}),
     ...(dateAdded ? { datePublished: dateAdded } : {}),
     ...(imageUrl  ? { image: { '@type': 'ImageObject', url: imageUrl } } : {}),
     ...(tags.length ? { keywords: tags.join(', ') } : {}),
@@ -268,9 +278,9 @@ export async function prerenderChord(slug, env, request, fetchSheetData) {
     '@context':    'https://schema.org',
     '@type':       'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home',         item: `${SITE_URL}/`        },
-      { '@type': 'ListItem', position: 2, name: 'Chord Sheets', item: `${SITE_URL}/chords`  },
-      { '@type': 'ListItem', position: 3, name: pageTitle,      item: pageUrl               },
+      { '@type': 'ListItem', position: 1, name: 'Home',         item: `${SITE_URL}/`       },
+      { '@type': 'ListItem', position: 2, name: 'Chord Sheets', item: `${SITE_URL}/chords` },
+      { '@type': 'ListItem', position: 3, name: pageTitle,      item: pageUrl              },
     ],
   };
 
@@ -287,8 +297,6 @@ export async function prerenderChord(slug, env, request, fetchSheetData) {
   };
 
   // ── Render tab content via the already-built renderTabSSR() ───────────
-  // renderTabSSR converts [G]-notation → <span class="chord-name">G</span>
-  // for crawler readability. It lives in worker/utils.js.
   const renderedTab = renderTabSSR(tabContent);
 
   // ── Badge HTML helpers ─────────────────────────────────────────────────
@@ -300,17 +308,17 @@ export async function prerenderChord(slug, env, request, fetchSheetData) {
     `<span class="pre-chord-badge pre-chord-badge-key">${escHtml(t)}</span>`
   ).join('');
 
-  // ── Meta row items ─────────────────────────────────────────────────────
+  // ── Meta row items (with data-label for ::before pseudo-element) ───────
   const metaItems = [
-    key                              ? `<span>Key <strong>${escHtml(key)}</strong></span>`              : '',
-    capo && capo !== '0'             ? `<span>Capo <strong>${escHtml(capo)}</strong></span>`            : '',
-    bpm                              ? `<span>BPM <strong>${escHtml(bpm)}</strong></span>`              : '',
-    timeSig                          ? `<span>Time <strong>${escHtml(timeSig)}</strong></span>`         : '',
-    tuning                           ? `<span>Tuning <strong>${escHtml(tuning)}</strong></span>`        : '',
-    dateAdded                        ? `<span>Added <strong>${escHtml(dateAdded)}</strong></span>`      : '',
+    key                  ? `<span data-label="Key"><strong>${escHtml(key)}</strong></span>`             : '',
+    capo && capo !== '0' ? `<span data-label="Capo"><strong>${escHtml(capo)}</strong></span>`          : '',
+    bpm                  ? `<span data-label="BPM"><strong>${escHtml(bpm)}</strong></span>`             : '',
+    timeSig              ? `<span data-label="Time"><strong>${escHtml(timeSig)}</strong></span>`        : '',
+    tuning               ? `<span data-label="Tuning"><strong>${escHtml(tuning)}</strong></span>`      : '',
+    dateAdded            ? `<span data-label="Added"><strong>${escHtml(dateAdded)}</strong></span>`    : '',
   ].filter(Boolean).join('\n          ');
 
-  // ── Cover image ────────────────────────────────────────────────────────
+  // ── Cover image or placeholder ─────────────────────────────────────────
   const coverHTML = imageUrl
     ? `<img class="pre-chord-cover"
          src="${escHtml(imageUrl)}"
@@ -416,8 +424,8 @@ export async function prerenderChord(slug, env, request, fetchSheetData) {
 
     <meta itemprop="name"        content="${escHtml(title)}">
     <meta itemprop="description" content="${escHtml(metaDesc)}">
-    ${artist ? `<meta itemprop="composer"    content="${escHtml(artist)}">` : ''}
-    ${key    ? `<meta itemprop="musicalKey"  content="${escHtml(key)}">` : ''}
+    ${artist ? `<meta itemprop="composer"   content="${escHtml(artist)}">` : ''}
+    ${key    ? `<meta itemprop="musicalKey" content="${escHtml(key)}">` : ''}
 
     <!-- Breadcrumb -->
     <div class="pre-chord-breadcrumb" aria-label="Breadcrumb">
@@ -460,7 +468,10 @@ export async function prerenderChord(slug, env, request, fetchSheetData) {
     <!-- Tab content -->
     ${tabContent
       ? `<div class="pre-tab-container" role="region" aria-label="Chord sheet tab">
-          <div class="pre-tab-heading">Tab / Lyrics</div>
+          <div class="pre-tab-heading">
+            <span>Tab / Lyrics</span>
+            ${key ? `<span class="pre-tab-key">Key of ${escHtml(key)}</span>` : ''}
+          </div>
           <div class="pre-tab-body" itemprop="text">${renderedTab}</div>
         </div>` : ''
     }

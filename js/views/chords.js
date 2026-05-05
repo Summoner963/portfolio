@@ -4,7 +4,7 @@
  * Renders the Chords section: list page (/chords) and detail page (/chords/:slug).
  *
  * Exports:
- *   renderChords()       — list page, called by router for /chords
+ *   renderChords()          — list page, called by router for /chords
  *   renderChordDetail(slug) — detail page, called by router for /chords/:slug
  *
  * Features:
@@ -12,9 +12,11 @@
  *   - Sort: newest, A–Z, by artist
  *   - Pagination (CFG.chordsPerPage per page)
  *   - Featured strip (Featured === 'true' rows)
+ *   - Recently Played strip (last 10 songs, localStorage-persisted)
  *   - Transpose ±6 semitones with enharmonic-aware chord name rewriting
  *   - Capo suggestion when transposed key has a simpler open-position equivalent
  *   - SVG chord diagram generated inline for every chord token
+ *   - Chord-above-lyric layout: chords rendered on their own line above lyrics
  *   - Popover on hover (desktop) / tap (mobile) — no hover-only interactions
  *   - Font-size A−/A+ with localStorage persistence
  *   - Auto-scroll toggle with speed slider (localStorage persistence)
@@ -25,7 +27,7 @@
  * Dependencies (all already built):
  *   js/api.js        → fetchSheet, CFG
  *   js/seo.js        → updateSEO, removeSchemas
- *   js/utils.js      → esc, fixImgUrl, loadCSS, watchReveals, showToast, pStart, pEnd
+ *   js/utils.js      → esc, fixImgUrl, loadCSS, watchReveals, showToast
  *   js/data/chord-shapes.js → CHORD_SHAPES (default export)
  */
 
@@ -45,37 +47,72 @@ async function ensureCSS() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+//  RECENTLY PLAYED — localStorage persistence, max 10 entries
+// ─────────────────────────────────────────────────────────────────────────
+
+const LS_RECENT_KEY = 'sd5_chords_recent';
+const RECENT_MAX    = 10;
+
+/**
+ * @typedef {Object} RecentEntry
+ * @property {string} slug
+ * @property {string} title
+ * @property {string} artist
+ * @property {string} key
+ * @property {string} difficulty
+ * @property {number} ts  — timestamp ms
+ */
+
+/** Read recent list from localStorage (returns RecentEntry[]). */
+function recentGet() {
+  try {
+    const raw = localStorage.getItem(LS_RECENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Push a song to the recent list.
+ * Moves it to front if already present.
+ * Trims to RECENT_MAX.
+ */
+function recentPush(entry) {
+  try {
+    let list = recentGet().filter(e => e.slug !== entry.slug);
+    list.unshift({ ...entry, ts: Date.now() });
+    if (list.length > RECENT_MAX) list = list.slice(0, RECENT_MAX);
+    localStorage.setItem(LS_RECENT_KEY, JSON.stringify(list));
+  } catch {}
+}
+
+/** Clear all recent entries. */
+function recentClear() {
+  try { localStorage.removeItem(LS_RECENT_KEY); } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  CHROMATIC / TRANSPOSE ENGINE
 // ─────────────────────────────────────────────────────────────────────────
 
-/** Chromatic scale using sharps (default) */
-const SHARPS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-/** Keys that prefer flat spellings for display */
+const SHARPS    = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb']);
-/** Sharp → flat enharmonic map */
 const TO_FLAT   = { 'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb' };
-/** Flat → sharp (for lookup) */
 const TO_SHARP  = { 'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#' };
 
-/**
- * Normalise a root string to its sharp equivalent for array indexing.
- * e.g. 'Db' → 'C#', 'Bb' → 'A#', 'C' → 'C'
- */
 function toSharp(root) {
   return TO_SHARP[root] || root;
 }
 
-/**
- * Transpose a root note by `semitones` (±6).
- * Returns display name using flats if the resulting key is a flat key.
- */
 function transposeRoot(root, semitones) {
   if (!semitones) return root;
   const sharp = toSharp(root);
   const idx   = SHARPS.indexOf(sharp);
-  if (idx === -1) return root; // unknown root, pass through
+  if (idx === -1) return root;
   const newSharp = SHARPS[(idx + semitones + 12) % 12];
-  // Use flat spelling if the new key prefers flats
   if (FLAT_KEYS.has(newSharp) || TO_FLAT[newSharp]) {
     const flat = TO_FLAT[newSharp];
     if (flat && FLAT_KEYS.has(flat)) return flat;
@@ -83,21 +120,12 @@ function transposeRoot(root, semitones) {
   return newSharp;
 }
 
-/**
- * Parse a chord name into { root, suffix }.
- * Handles: C, C#, Db, Cm, C#m7, Cmaj7, Dsus4, Cadd9, A5, etc.
- */
 function parseChord(name) {
-  // Root: letter + optional # or b
   const m = name.match(/^([A-G][#b]?)(.*)/);
   if (!m) return null;
   return { root: m[1], suffix: m[2] };
 }
 
-/**
- * Transpose a full chord name string by `semitones`.
- * Returns the transposed chord name, or the original if it can't be parsed.
- */
 function transposeChord(name, semitones) {
   if (!semitones) return name;
   const parsed = parseChord(name);
@@ -106,30 +134,18 @@ function transposeChord(name, semitones) {
   return newRoot + parsed.suffix;
 }
 
-/**
- * Given an original key string and a semitone offset, return the new key.
- */
 function transposeKey(keyStr, semitones) {
   if (!keyStr || !semitones) return keyStr;
-  // Key may be like "G", "Am", "C#m" — transpose just the root
   const parsed = parseChord(keyStr);
   if (!parsed) return keyStr;
   return transposeRoot(parsed.root, semitones) + parsed.suffix;
 }
 
-/**
- * Capo suggestion: given original key, capo, and semitone offset,
- * suggest a capo position that lets the player use open-chord shapes.
- *
- * Logic: if transposing UP, a capo can substitute. e.g. if song is in C
- * and user transposes +2 to D, they could play C shapes with capo 2.
- * Only suggest when offset is positive 1–5 (practical capo range).
- */
 function capoSuggestion(originalKey, originalCapo, semitones) {
   if (!semitones || semitones < 0 || semitones > 5) return null;
   const origCapoNum = parseInt(originalCapo) || 0;
   const newCapo     = origCapoNum + semitones;
-  if (newCapo > 7) return null; // impractical
+  if (newCapo > 7) return null;
   return {
     playKey:  originalKey,
     capoFret: newCapo,
@@ -140,26 +156,6 @@ function capoSuggestion(originalKey, originalCapo, semitones) {
 // ─────────────────────────────────────────────────────────────────────────
 //  SVG CHORD DIAGRAM GENERATOR
 // ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Generate an inline SVG chord diagram from a CHORD_SHAPES entry.
- *
- * Layout:
- *   - 80px wide × 100px tall
- *   - 6 strings (vertical lines), 5 frets (horizontal lines)
- *   - String 0 (high-e) = rightmost, string 5 (low-E) = leftmost
- *   - baseFret === 1: draw nut (thick top line)
- *   - baseFret > 1: show fret number at top-left
- *   - Muted (-1): × above nut
- *   - Open (0): small circle above nut
- *   - Finger: filled circle at (string, fret), number inside
- *   - Barre: filled rounded rect spanning strings
- *
- * @param {string} chordName - for aria-label
- * @param {object} shape     - from CHORD_SHAPES
- * @returns {string}         - SVG markup string
- */
-
 
 function buildDiagramSVG(chordName, shape) {
   if (!shape) {
@@ -260,7 +256,7 @@ function buildDiagramSVG(chordName, shape) {
 
   // Finger dots
   for (let s = 0; s < STRINGS; s++) {
-    const fretNum  = frets[s];
+    const fretNum   = frets[s];
     const fingerNum = fingers[s];
     if (fretNum <= 0) continue;
 
@@ -300,80 +296,264 @@ function buildDiagramSVG(chordName, shape) {
     `</svg>`
   );
 }
+
 // ─────────────────────────────────────────────────────────────────────────
-//  TAB RENDERER — [G] notation → HTML with clickable chord tokens
+//  TAB RENDERER — [G] notation → HTML with chord-above-lyric layout
+//
+//  The pipe `|` separator splits lines. Within a line, [ChordName] tokens
+//  are detected. We classify each line:
+//
+//    "chord-only" — the ENTIRE line (after stripping brackets) is made up
+//                   of chord tokens and whitespace with no lyric text.
+//    "mixed"      — the line has both chord tokens and lyric words
+//                   interleaved (like "Amazing [G]grace how [Em]sweet")
+//    "lyric-only" — plain text, no chord tokens
+//    "section"    — [Verse 1], [Chorus] etc that don't match chord regex
+//    "gap"        — empty line
+//
+//  For "mixed" lines we split into a chord row + a lyric row, using
+//  character-position alignment so chords sit above their syllables.
+//
+//  For "chord-only" lines followed by a "lyric-only" line, we pair them
+//  naturally into a .tab-pair block.
 // ─────────────────────────────────────────────────────────────────────────
+
+/** Regex: a valid chord token name (no surrounding brackets) */
+const CHORD_NAME_RE = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
+
+/**
+ * Test whether a string is a valid chord name.
+ */
+function isChordName(s) {
+  return CHORD_NAME_RE.test(s);
+}
+
+/**
+ * Given a raw line string (may contain [Chord] tokens), split it into
+ * an array of segments: { type: 'chord'|'text', value: string }.
+ * Returns null if there are no chord tokens in the line.
+ */
+function parseLineSegments(line) {
+  const TOKEN_RE = /(\[[^\]]+\])/g;
+  const parts    = line.split(TOKEN_RE);
+  if (parts.length === 1) return null; // no brackets at all
+
+  let hasChord = false;
+  const segs = parts.map(part => {
+    const m = part.match(/^\[([^\]]+)\]$/);
+    if (m && isChordName(m[1])) {
+      hasChord = true;
+      return { type: 'chord', value: m[1] };
+    }
+    return { type: 'text', value: part };
+  });
+
+  return hasChord ? segs : null;
+}
+
+/**
+ * Build the HTML for a chord token button.
+ */
+function chordTokenHTML(chordName, semitones) {
+  const transposed = transposeChord(chordName, semitones);
+  return (
+    `<button class="chord-token" data-chord="${esc(transposed)}" ` +
+    `aria-label="${esc(transposed)} chord" type="button">${esc(transposed)}</button>`
+  );
+}
 
 /**
  * Convert raw tab content using [Chord] notation into HTML.
  *
- * Input lines:  "Amazing [G]grace how [Em]sweet the [C]sound [G]"
- * Output: chord names rendered as <button class="chord-token"> elements
- * appearing inline, colored --accent. The text following each chord
- * is rendered as a plain text node so whitespace is preserved perfectly.
+ * Layout produced:
  *
- * We render each "line" of the tab as a <div class="tab-line"> containing
- * interleaved chord tokens and lyric text.
+ *   <div class="tab-section">
+ *     <span class="tab-section-label">Verse 1</span>
+ *     <div class="tab-pair">
+ *       <span class="tab-chord-line">…chord tokens…</span>
+ *       <span class="tab-lyric-line">…lyric text…</span>
+ *     </div>
+ *     …
+ *   </div>
  *
- * @param {string} raw      - raw Tab_Content string from sheet
+ * For "mixed" lines (chord + lyric interleaved), we extract the chord
+ * positions and lyrics separately, outputting them as two sibling spans.
+ *
+ * @param {string} raw       - raw Tab_Content string from sheet
  * @param {number} semitones - current transpose offset
  * @returns {string}         - HTML string for .tab-body innerHTML
  */
 function renderTab(raw, semitones = 0) {
-  if (!raw) return '<span style="color:var(--muted-light)">No tab content available.</span>';
-
-  const CHORD_RE = /^[A-G][#b]?(maj7|m7|7|sus2|sus4|add9|m|5)?$/;
+  if (!raw) {
+    return '<span style="color:var(--muted-light);font-family:var(--mono);font-size:.85rem">No tab content available.</span>';
+  }
 
   const lines = raw.split('|');
-  const htmlLines = lines.map(line => {
-    const trimmed = line.trim();
 
-    // Empty line — gap between sections
-    if (!trimmed) {
-      return '<div class="tab-line tab-line-gap"></div>';
+  // Pre-parse all lines into typed objects
+  const parsed = lines.map(rawLine => {
+    const trimmed = rawLine.trim();
+
+    // Empty — gap
+    if (!trimmed) return { kind: 'gap' };
+
+    // Section label check: e.g. [Verse 1], [Chorus]
+    const bracketMatch = trimmed.match(/^\[([^\]]+)\]$/);
+    if (bracketMatch && !isChordName(bracketMatch[1])) {
+      return { kind: 'section', label: bracketMatch[1] };
     }
 
-    // Section label — [Verse 1], [Chorus], [Bridge] etc
-    // A section label is wrapped in [] but does NOT match a chord pattern
-    const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
-    if (sectionMatch && !CHORD_RE.test(sectionMatch[1])) {
-      return `<div class="tab-line tab-section-label">${esc(sectionMatch[1])}</div>`;
+    // Try to parse chord tokens from the line
+    const segs = parseLineSegments(rawLine);
+
+    if (!segs) {
+      // Pure lyric / plain text line
+      return { kind: 'lyric', text: rawLine };
     }
 
-    // Normal line — may contain [Chord] tokens inline with lyrics
-    const parts = line.split(/(\[[^\]]+\])/);
-    const spans = parts.map(part => {
-      const m = part.match(/^\[([^\]]+)\]$/);
-      if (m && CHORD_RE.test(m[1])) {
-        // It is a chord token
-        const original   = m[1];
-        const transposed = transposeChord(original, semitones);
-        return `<button class="chord-token" data-chord="${esc(transposed)}" ` +
-               `aria-label="${esc(transposed)} chord" type="button">${esc(transposed)}</button>`;
-      }
-      // Plain text — escape but preserve spaces
-      return esc(part);
-    });
+    // Check if the line is chord-only (all non-empty text segments are whitespace)
+    const textContent = segs
+      .filter(s => s.type === 'text')
+      .map(s => s.value)
+      .join('');
+    const isChordOnly = textContent.trim() === '';
 
-    return `<div class="tab-line">${spans.join('')}</div>`;
+    if (isChordOnly) {
+      return { kind: 'chord-only', segs };
+    }
+
+    // Mixed: chords interspersed with lyrics
+    return { kind: 'mixed', segs, rawLine };
   });
 
-  return htmlLines.join('');
+  // Now group into sections and pairs
+  const output = [];
+  let i = 0;
+  let inSection = false;
+
+  function openSection() {
+    if (!inSection) {
+      output.push('<div class="tab-section">');
+      inSection = true;
+    }
+  }
+
+  function closeSection() {
+    if (inSection) {
+      output.push('</div>');
+      inSection = false;
+    }
+  }
+
+  while (i < parsed.length) {
+    const item = parsed[i];
+
+    if (item.kind === 'gap') {
+      if (inSection) output.push('<span class="tab-line-gap"></span>');
+      i++;
+      continue;
+    }
+
+    if (item.kind === 'section') {
+      closeSection();
+      output.push('<div class="tab-section">');
+      output.push(`<span class="tab-section-label">${esc(item.label)}</span>`);
+      inSection = true;
+      i++;
+      continue;
+    }
+
+    // chord-only line: peek ahead for a lyric line to pair with
+    if (item.kind === 'chord-only') {
+      openSection();
+
+      // Build chord line HTML
+      const chordLineHTML = item.segs.map(seg => {
+        if (seg.type === 'chord') return chordTokenHTML(seg.value, semitones);
+        // preserve whitespace as-is
+        return esc(seg.value);
+      }).join('');
+
+      // Peek: is the next non-gap line a lyric?
+      let j = i + 1;
+      while (j < parsed.length && parsed[j].kind === 'gap') j++;
+
+      if (j < parsed.length && parsed[j].kind === 'lyric') {
+        // Paired: chord line + lyric line
+        output.push('<div class="tab-pair">');
+        output.push(`<span class="tab-chord-line">${chordLineHTML}</span>`);
+        output.push(`<span class="tab-lyric-line">${esc(parsed[j].text)}</span>`);
+        output.push('</div>');
+        i = j + 1;
+      } else {
+        // Chord line with no paired lyric
+        output.push('<div class="tab-pair">');
+        output.push(`<span class="tab-chord-line">${chordLineHTML}</span>`);
+        output.push('</div>');
+        i++;
+      }
+      continue;
+    }
+
+    // mixed line: split into chord line + lyric line
+    if (item.kind === 'mixed') {
+      openSection();
+
+      // Build chord line: replace chord tokens, replace text with spaces of same width
+      let chordLine = '';
+      let lyricLine = '';
+
+      item.segs.forEach(seg => {
+        if (seg.type === 'chord') {
+          const transposed = transposeChord(seg.value, semitones);
+          // Chord token goes on chord line; equivalent space on lyric line
+          chordLine += `<button class="chord-token" data-chord="${esc(transposed)}" aria-label="${esc(transposed)} chord" type="button">${esc(transposed)}</button>`;
+          // Add non-breaking spaces on lyric line to keep alignment
+          // We use a span with the same min-width as the token
+          lyricLine += `<span style="display:inline-block;min-width:${Math.max(transposed.length, 2)}ch"> </span>`;
+        } else {
+          // Text segment: goes on lyric line; equivalent spaces on chord line
+          chordLine += `<span style="display:inline-block;min-width:${seg.value.length}ch"> </span>`;
+          lyricLine += esc(seg.value);
+        }
+      });
+
+      output.push('<div class="tab-pair">');
+      output.push(`<span class="tab-chord-line">${chordLine}</span>`);
+      output.push(`<span class="tab-lyric-line">${lyricLine}</span>`);
+      output.push('</div>');
+      i++;
+      continue;
+    }
+
+    // pure lyric line
+    if (item.kind === 'lyric') {
+      openSection();
+      output.push(`<div class="tab-pair"><span class="tab-lyric-line">${esc(item.text)}</span></div>`);
+      i++;
+      continue;
+    }
+
+    i++;
+  }
+
+  closeSection();
+  return output.join('\n');
 }
 
-/// ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
 //  POPOVER MANAGER
 // ─────────────────────────────────────────────────────────────────────────
 
-let _popover = null;
+let _popover        = null;
 let _popoverTimeout = null;
-let _activeToken = null;
+let _activeToken    = null;
 
 function ensurePopover() {
   if (_popover) return _popover;
   _popover = document.createElement('div');
-  _popover.className  = 'chord-popover';
-  _popover.id         = 'chordPopover';
+  _popover.className = 'chord-popover';
+  _popover.id        = 'chordPopover';
   _popover.setAttribute('role', 'tooltip');
   _popover.setAttribute('aria-live', 'polite');
   document.body.appendChild(_popover);
@@ -381,7 +561,7 @@ function ensurePopover() {
 }
 
 function showPopover(chordName, anchorEl) {
-  const pop = ensurePopover();
+  const pop        = ensurePopover();
   const shape      = CHORD_SHAPES[chordName];
   const diagramSVG = buildDiagramSVG(chordName, shape);
 
@@ -394,44 +574,35 @@ function showPopover(chordName, anchorEl) {
   const isMobile = window.matchMedia('(hover: none)').matches;
 
   if (!isMobile && anchorEl) {
-    // Position off-screen first, make visible, then measure and reposition
     pop.style.left       = '-9999px';
     pop.style.top        = '-9999px';
     pop.style.transform  = 'none';
     pop.style.visibility = 'hidden';
     pop.classList.add('visible');
 
-    // Use rAF to ensure browser has painted and dimensions are real
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const popW  = pop.offsetWidth  || 130;
-        const popH  = pop.offsetHeight || 140;
-        const rect  = anchorEl.getBoundingClientRect();
+        const popW = pop.offsetWidth  || 130;
+        const popH = pop.offsetHeight || 140;
+        const rect = anchorEl.getBoundingClientRect();
 
-        // position: fixed — viewport coordinates only, no scrollY
         let left = rect.left + rect.width / 2 - popW / 2;
         let top  = rect.top - popH - 10;
 
-        // Clamp to viewport
         left = Math.max(8, Math.min(left, window.innerWidth  - popW - 8));
         top  = Math.max(8, Math.min(top,  window.innerHeight - popH - 8));
 
-        // Flip below if not enough room above
-        if (rect.top - popH - 10 < 8) {
-          top = rect.bottom + 10;
-        }
+        if (rect.top - popH - 10 < 8) top = rect.bottom + 10;
 
         pop.style.left       = `${Math.round(left)}px`;
         pop.style.top        = `${Math.round(top)}px`;
         pop.style.visibility = '';
       });
     });
-
   } else {
-    // Mobile — center on screen
-    pop.style.left      = '50%';
-    pop.style.top       = '50%';
-    pop.style.transform = 'translate(-50%, -50%)';
+    pop.style.left       = '50%';
+    pop.style.top        = '50%';
+    pop.style.transform  = 'translate(-50%, -50%)';
     pop.style.visibility = '';
     pop.classList.add('visible');
   }
@@ -509,9 +680,9 @@ document.addEventListener('click', e => {
 //  FONT SIZE CONTROL
 // ─────────────────────────────────────────────────────────────────────────
 
-const FONT_SIZES  = ['.70rem','.76rem','.82rem','.88rem','.94rem','1.0rem','1.06rem','1.12rem','1.2rem'];
+const FONT_SIZES       = ['.70rem','.76rem','.82rem','.88rem','.94rem','1.0rem','1.06rem','1.12rem','1.2rem'];
 const FONT_DEFAULT_IDX = 3; // '.88rem'
-const LS_FONT_KEY = 'sd5_tab_font_size';
+const LS_FONT_KEY      = 'sd5_tab_font_size';
 
 function getFontIdx() {
   try {
@@ -536,7 +707,7 @@ function setFontIdx(tabBody, idx, display) {
 //  AUTO-SCROLL
 // ─────────────────────────────────────────────────────────────────────────
 
-const LS_SPEED_KEY = 'sd5_scroll_speed';
+const LS_SPEED_KEY  = 'sd5_scroll_speed';
 let _scrollInterval = null;
 
 function getScrollSpeed() {
@@ -547,14 +718,16 @@ function getScrollSpeed() {
   return 3;
 }
 
-/** Speed 1–10 → interval ms (10 = fastest = 16ms, 1 = slowest = 80ms) */
 function speedToInterval(speed) {
   return Math.round(80 - (speed - 1) * (80 - 16) / 9);
 }
 
 function startScroll(speed) {
   stopScroll();
-  _scrollInterval = setInterval(() => window.scrollBy({ top: 1, behavior: 'instant' }), speedToInterval(speed));
+  _scrollInterval = setInterval(
+    () => window.scrollBy({ top: 1, behavior: 'instant' }),
+    speedToInterval(speed)
+  );
 }
 
 function stopScroll() {
@@ -574,7 +747,7 @@ const chordsState = {
   page:       1,
 };
 
-let _chordsRows = null; // cached sheet rows
+let _chordsRows = null;
 
 function parseDateMs(s) {
   if (!s) return 0;
@@ -607,10 +780,10 @@ function applyChordFilters(rows) {
 
   result.sort((a, b) => {
     switch (chordsState.sort) {
-      case 'newest':   return parseDateMs(b.Date_Added) - parseDateMs(a.Date_Added);
-      case 'az':       return (a.Title  || '').localeCompare(b.Title  || '');
-      case 'artist':   return (a.Artist || '').localeCompare(b.Artist || '');
-      default:         return 0;
+      case 'newest': return parseDateMs(b.Date_Added) - parseDateMs(a.Date_Added);
+      case 'az':     return (a.Title  || '').localeCompare(b.Title  || '');
+      case 'artist': return (a.Artist || '').localeCompare(b.Artist || '');
+      default:       return 0;
     }
   });
 
@@ -618,7 +791,7 @@ function applyChordFilters(rows) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  CHORD CARD BUILDER
+//  BADGE HELPERS
 // ─────────────────────────────────────────────────────────────────────────
 
 function diffBadgeClass(diff) {
@@ -630,6 +803,10 @@ function diffBadgeClass(diff) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+//  CHORD CARD BUILDER
+// ─────────────────────────────────────────────────────────────────────────
+
 function buildChordCard(row) {
   const card = document.createElement('article');
   card.className = 'chord-card reveal';
@@ -639,7 +816,6 @@ function buildChordCard(row) {
 
   const imgUrl = fixImgUrl(row.Image_URL || '');
 
-  // Small square thumbnail
   const thumb = document.createElement('div');
   thumb.className = 'chord-card-thumb';
   if (imgUrl) {
@@ -657,11 +833,9 @@ function buildChordCard(row) {
   }
   card.appendChild(thumb);
 
-  // Main text
   const body = document.createElement('div');
   body.className = 'chord-card-body';
 
-  // Artist line — include album/year if present
   const artistParts = [row.Artist];
   if (row.Album) artistParts.push(row.Album);
   const artistLine = artistParts.filter(Boolean).map(p => esc(p)).join(' · ');
@@ -669,14 +843,13 @@ function buildChordCard(row) {
   body.innerHTML =
     `<div class="chord-card-title">${esc(row.Title || '')}</div>` +
     `<div class="chord-card-artist">
-  <button class="chord-artist-link" data-artist="${esc(row.Artist || '')}" 
-    type="button" aria-label="Filter by ${esc(row.Artist || '')}">
-    ${artistLine}
-  </button>
-</div>`;
+      <button class="chord-artist-link" data-artist="${esc(row.Artist || '')}"
+        type="button" aria-label="Filter by ${esc(row.Artist || '')}">
+        ${artistLine}
+      </button>
+    </div>`;
   card.appendChild(body);
 
-  // Badges — key + capo combined, difficulty, category
   const badges = document.createElement('div');
   badges.className = 'chord-card-badges';
 
@@ -699,11 +872,10 @@ function buildChordCard(row) {
   }
   card.appendChild(badges);
 
-  // Navigation
   const slug = (row.Slug || '').trim();
-  const go = () => import('../router.js').then(({ navigate }) => navigate(`/chords/${slug}`));
+  const go   = () => import('../router.js').then(({ navigate }) => navigate(`/chords/${slug}`));
   card.addEventListener('click', e => {
-    if (e.target.closest('.chord-artist-link')) return; // let artist handler take it
+    if (e.target.closest('.chord-artist-link')) return;
     go();
   });
   card.addEventListener('keydown', e => {
@@ -712,8 +884,83 @@ function buildChordCard(row) {
 
   return card;
 }
+
 // ─────────────────────────────────────────────────────────────────────────
-//  FILTER CHIP BUILDER (category + difficulty + key)
+//  RECENTLY PLAYED STRIP BUILDER
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Build and insert the recently-played horizontal strip above `targetEl`.
+ * `targetEl` is the featured section or the grid container.
+ */
+function buildRecentStrip(container) {
+  const recent = recentGet();
+
+  // Remove existing panel if present
+  const existing = container.querySelector('.chords-recent');
+  if (existing) existing.remove();
+
+  if (!recent.length) return;
+
+  const section = document.createElement('div');
+  section.className = 'chords-recent';
+  section.setAttribute('aria-label', 'Recently played chord sheets');
+
+  const heading = document.createElement('div');
+  heading.className = 'chords-recent-heading';
+  heading.innerHTML =
+    `<span class="chords-recent-heading-label">🕐 Recently Played</span>` +
+    `<button class="chords-recent-clear" type="button" aria-label="Clear recently played">Clear</button>`;
+  section.appendChild(heading);
+
+  const row = document.createElement('div');
+  row.className = 'chords-recent-row';
+  row.setAttribute('role', 'list');
+
+  recent.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'chord-recent-card';
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'listitem');
+    card.setAttribute('aria-label', `${entry.title} by ${entry.artist}`);
+
+    let meta = '';
+    if (entry.key) {
+      meta += `<span class="chord-recent-key-badge">Key ${esc(entry.key)}</span>`;
+    }
+    if (entry.difficulty) {
+      meta += `<span class="chord-recent-key-badge">${esc(entry.difficulty)}</span>`;
+    }
+
+    card.innerHTML =
+      `<div class="chord-recent-title">${esc(entry.title || '')}</div>` +
+      `<div class="chord-recent-artist">${esc(entry.artist || '')}</div>` +
+      (meta ? `<div class="chord-recent-meta">${meta}</div>` : '');
+
+    const go = () =>
+      import('../router.js').then(({ navigate }) => navigate(`/chords/${entry.slug}`));
+    card.addEventListener('click', go);
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+    });
+
+    row.appendChild(card);
+  });
+
+  section.appendChild(row);
+
+  // Clear button
+  heading.querySelector('.chords-recent-clear').addEventListener('click', () => {
+    recentClear();
+    section.remove();
+  });
+
+  // Insert before the first child of container (before featured or grid)
+  container.insertBefore(section, container.firstChild);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  FILTER CHIP BUILDER
 // ─────────────────────────────────────────────────────────────────────────
 
 function buildFilterGroup(container, label, items, stateKey, onChange) {
@@ -772,9 +1019,12 @@ function renderFilteredChords(grid, paginationEl, countEl) {
   const slice    = filtered.slice((page - 1) * perPage, page * perPage);
 
   if (countEl) {
-    countEl.textContent = (chordsState.query || chordsState.category !== 'all' ||
-      chordsState.difficulty !== 'all' || chordsState.key !== 'all')
-      ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}` : '';
+    countEl.textContent = (
+      chordsState.query ||
+      chordsState.category !== 'all' ||
+      chordsState.difficulty !== 'all' ||
+      chordsState.key !== 'all'
+    ) ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}` : '';
   }
 
   grid.innerHTML = '';
@@ -794,10 +1044,10 @@ function renderFilteredChords(grid, paginationEl, countEl) {
     paginationEl.innerHTML = '';
     if (total > 1) {
       const prev = document.createElement('button');
-      prev.className = 'btn btn-ghost';
+      prev.className   = 'btn btn-ghost';
       prev.textContent = '← Prev';
       prev.setAttribute('aria-label', 'Previous page');
-      prev.disabled = page <= 1;
+      prev.disabled    = page <= 1;
 
       const info = document.createElement('span');
       info.setAttribute('aria-live', 'polite');
@@ -805,10 +1055,10 @@ function renderFilteredChords(grid, paginationEl, countEl) {
       info.textContent = `Page ${page} of ${total}`;
 
       const next = document.createElement('button');
-      next.className = 'btn btn-ghost';
+      next.className   = 'btn btn-ghost';
       next.textContent = 'Next →';
       next.setAttribute('aria-label', 'Next page');
-      next.disabled = page >= total;
+      next.disabled    = page >= total;
 
       prev.addEventListener('click', () => {
         chordsState.page = page - 1;
@@ -821,7 +1071,7 @@ function renderFilteredChords(grid, paginationEl, countEl) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
-      if (page > 1)    paginationEl.appendChild(prev);
+      if (page > 1)     paginationEl.appendChild(prev);
       paginationEl.appendChild(info);
       if (page < total) paginationEl.appendChild(next);
     }
@@ -847,7 +1097,7 @@ export async function renderChords() {
   const view = document.getElementById('view-chords');
   if (!view) return;
 
-  // Show skeleton while loading
+  // Skeleton while loading
   view.innerHTML =
     `<div class="chords-hero">
       <div class="chords-hero-inner">
@@ -869,7 +1119,6 @@ export async function renderChords() {
       </div>
     </div>`;
 
-  // Fetch
   const rows = await fetchSheet(CFG.api.chords, 'chords', fresh => {
     _chordsRows = fresh;
     rebuildList();
@@ -898,14 +1147,12 @@ export async function renderChords() {
 }
 
 function buildListUI(view, rows) {
-  // Collect unique values for filters
   const categories   = [...new Set(rows.map(r => r.Category).filter(Boolean))].sort();
   const difficulties = ['beginner', 'intermediate', 'advanced'].filter(d =>
     rows.some(r => (r.Difficulty || '').toLowerCase() === d)
   );
-  const keys = [...new Set(rows.map(r => r.Key).filter(Boolean))].sort();
+  const keys         = [...new Set(rows.map(r => r.Key).filter(Boolean))].sort();
 
-  // Featured rows
   const featured = rows.filter(r => (r.Featured || '').toLowerCase() === 'true');
 
   const featuredHTML = featured.length
@@ -939,30 +1186,30 @@ function buildListUI(view, rows) {
       <div class="chords-sort-wrap">
         <label for="chordsSort" class="sr-only">Sort chord sheets</label>
         <select id="chordsSort" aria-label="Sort chord sheets">
-          <option value="newest"${chordsState.sort==='newest'?' selected':''}>Newest first</option>
-          <option value="az"${chordsState.sort==='az'?' selected':''}>Title A → Z</option>
-          <option value="artist"${chordsState.sort==='artist'?' selected':''}>By artist</option>
+          <option value="newest"${chordsState.sort === 'newest' ? ' selected' : ''}>Newest first</option>
+          <option value="az"${chordsState.sort === 'az' ? ' selected' : ''}>Title A → Z</option>
+          <option value="artist"${chordsState.sort === 'artist' ? ' selected' : ''}>By artist</option>
         </select>
       </div>
       <span class="chords-results-count" id="chordsCount" aria-live="polite"></span>
     </div>
-    <div class="chords-section">
+    <div class="chords-section" id="chordsSection">
       ${featuredHTML}
       <div class="chords-grid" id="chordsGrid" role="list" aria-live="polite" aria-label="Chord sheet list"></div>
       <div class="chords-pagination" id="chordsPagination" aria-label="Chord sheet pagination"></div>
     </div>`;
 
   const filterArea = document.getElementById('chordsFilterArea');
+  const section    = document.getElementById('chordsSection');
   const grid       = document.getElementById('chordsGrid');
   const pagination = document.getElementById('chordsPagination');
   const countEl    = document.getElementById('chordsCount');
 
   const refresh = () => renderFilteredChords(grid, pagination, countEl);
 
-  // Build filter groups
-  if (categories.length)   buildFilterGroup(filterArea, 'Category:',   categories,   'category',   refresh);
-  if (difficulties.length) buildFilterGroup(filterArea, 'Difficulty:',  difficulties, 'difficulty', refresh);
-  if (keys.length)         buildFilterGroup(filterArea, 'Key:',         keys,         'key',        refresh);
+  if (categories.length)   buildFilterGroup(filterArea, 'Category:',  categories,   'category',   refresh);
+  if (difficulties.length) buildFilterGroup(filterArea, 'Difficulty:', difficulties, 'difficulty', refresh);
+  if (keys.length)         buildFilterGroup(filterArea, 'Key:',        keys,         'key',        refresh);
 
   // Search
   let searchDebounce;
@@ -979,16 +1226,17 @@ function buildListUI(view, rows) {
   }
 
   // Artist click — filter by that artist
-    view.addEventListener('click', e => {
-      const btn = e.target.closest('.chord-artist-link');
-      if (!btn) return;
-      e.stopPropagation();
-      chordsState.query = btn.dataset.artist;
-      chordsState.page  = 1;
-      const searchEl = document.getElementById('chordsSearch');
-      if (searchEl) searchEl.value = btn.dataset.artist;
-      refresh();
-    });
+  view.addEventListener('click', e => {
+    const btn = e.target.closest('.chord-artist-link');
+    if (!btn) return;
+    e.stopPropagation();
+    chordsState.query = btn.dataset.artist;
+    chordsState.page  = 1;
+    const sEl = document.getElementById('chordsSearch');
+    if (sEl) sEl.value = btn.dataset.artist;
+    refresh();
+  });
+
   // Sort
   const sortEl = document.getElementById('chordsSort');
   if (sortEl) {
@@ -1008,9 +1256,9 @@ function buildListUI(view, rows) {
       card.className = 'chord-feat-card reveal';
       card.setAttribute('tabindex', '0');
       card.setAttribute('aria-label', `${row.Title} by ${row.Artist}`);
-      const diffBadge  = row.Difficulty
+      const diffBadge = row.Difficulty
         ? `<span class="chord-badge ${diffBadgeClass(row.Difficulty)}">${esc(row.Difficulty)}</span>` : '';
-      const keyBadge   = row.Key
+      const keyBadge  = row.Key
         ? `<span class="chord-badge chord-badge-key">Key of ${esc(row.Key)}</span>` : '';
       card.innerHTML =
         `<div class="chord-feat-title">${esc(row.Title || '')}</div>` +
@@ -1026,6 +1274,9 @@ function buildListUI(view, rows) {
     });
     featGrid.appendChild(frag);
   }
+
+  // Build recently played strip in the section area
+  buildRecentStrip(section);
 
   // Initial render
   refresh();
@@ -1053,7 +1304,6 @@ export async function renderChordDetail(slug) {
       ${'<div class="skel skel-line"></div>'.repeat(5)}
     </div>`;
 
-  // Fetch — use cached rows if available, otherwise fetch
   const rows = _chordsRows ||
     await fetchSheet(CFG.api.chords, 'chords', fresh => { _chordsRows = fresh; });
   if (!_chordsRows && rows) _chordsRows = rows;
@@ -1076,6 +1326,15 @@ export async function renderChordDetail(slug) {
     updateSEO({ title: 'Not Found', desc: 'Chord sheet not found.', path: `/chords/${slug}` });
     return;
   }
+
+  // ── Record this visit in recently played ─────────────────────────────
+  recentPush({
+    slug:       (post.Slug       || '').trim(),
+    title:      (post.Title      || '').trim(),
+    artist:     (post.Artist     || '').trim(),
+    key:        (post.Key        || '').trim(),
+    difficulty: (post.Difficulty || '').trim(),
+  });
 
   // ── State for this detail page ───────────────────────────────────────
   let semitones   = 0;
@@ -1103,7 +1362,7 @@ export async function renderChordDetail(slug) {
     },
   });
 
-  // ── Compute chords used (for the pill row + hover diagrams) ───────────
+  // ── Chords used ───────────────────────────────────────────────────────
   const chordsUsed = (post.Chords_Used || '')
     .split(',').map(c => c.trim()).filter(Boolean);
 
@@ -1113,13 +1372,13 @@ export async function renderChordDetail(slug) {
         alt="${esc(post.Image_Alt || post.Title + ' chord sheet cover')}"
         loading="eager" decoding="async" fetchpriority="high"
         width="1200" height="450">`
-    : '';
+    : `<div class="chord-detail-cover-placeholder" aria-hidden="true">🎸</div>`;
 
-  const diffBadge  = post.Difficulty
+  const diffBadge = post.Difficulty
     ? `<span class="chord-badge ${diffBadgeClass(post.Difficulty)}">${esc(post.Difficulty)}</span>` : '';
-  const catBadge   = post.Category
+  const catBadge  = post.Category
     ? `<span class="chord-badge chord-badge-cat">${esc(post.Category)}</span>` : '';
-  const tagBadges  = tagList.map(t =>
+  const tagBadges = tagList.map(t =>
     `<span class="chord-badge chord-badge-key">${esc(t)}</span>`).join('');
 
   const chordsUsedHTML = chordsUsed.length
@@ -1134,6 +1393,16 @@ export async function renderChordDetail(slug) {
   const introHTML = post.Intro_Text
     ? `<p class="chord-detail-intro">${esc(post.Intro_Text)}</p>` : '';
 
+  // Build meta cells with data-label for the ::before pseudo
+  const metaCells = [
+    post.Key            ? `<span data-label="Key"><strong id="currentKeyDisplay">${esc(post.Key)}</strong></span>` : '',
+    post.Capo && post.Capo !== '0' ? `<span data-label="Capo"><strong>${esc(post.Capo)}</strong></span>` : '',
+    post.BPM            ? `<span data-label="BPM"><strong>${esc(post.BPM)}</strong></span>` : '',
+    post.Time_Signature ? `<span data-label="Time"><strong>${esc(post.Time_Signature)}</strong></span>` : '',
+    post.Tuning         ? `<span data-label="Tuning"><strong>${esc(post.Tuning)}</strong></span>` : '',
+    post.Date_Added     ? `<span data-label="Added"><strong>${esc(post.Date_Added)}</strong></span>` : '',
+  ].filter(Boolean).join('');
+
   view.innerHTML =
     `<div class="chord-detail-wrap" id="chordDetailWrap">
       <button class="chord-detail-back" id="chordBack" aria-label="Back to chord sheets">
@@ -1142,21 +1411,15 @@ export async function renderChordDetail(slug) {
 
       <div class="chord-detail-header">
         ${coverHTML}
+
         <div class="chord-detail-title-wrap">
           <h2 class="chord-detail-title" id="chordDetailTitle">${esc(post.Title || '')}</h2>
-          <div class="chord-detail-artist">${esc(post.Artist || '')}
-            ${post.Album ? `· <em>${esc(post.Album)}</em>` : ''}
-            ${post.Year  ? `· ${esc(post.Year)}` : ''}
+          <div class="chord-detail-artist">
+            ${esc(post.Artist || '')}${post.Album ? ` · <em>${esc(post.Album)}</em>` : ''}${post.Year ? ` · ${esc(post.Year)}` : ''}
           </div>
         </div>
 
-        <div class="chord-detail-meta">
-          ${post.Key           ? `<span>Key <strong id="currentKeyDisplay">${esc(post.Key)}</strong></span>` : ''}
-          ${post.Capo && post.Capo !== '0' ? `<span>Capo <strong>${esc(post.Capo)}</strong></span>` : ''}
-          ${post.BPM           ? `<span>BPM <strong>${esc(post.BPM)}</strong></span>` : ''}
-          ${post.Time_Signature ? `<span>Time <strong>${esc(post.Time_Signature)}</strong></span>` : ''}
-          ${post.Tuning        ? `<span>Tuning <strong>${esc(post.Tuning)}</strong></span>` : ''}
-        </div>
+        ${metaCells ? `<div class="chord-detail-meta">${metaCells}</div>` : ''}
 
         <div class="chord-detail-badges">${catBadge}${diffBadge}${tagBadges}</div>
 
@@ -1172,11 +1435,9 @@ export async function renderChordDetail(slug) {
         <!-- Transpose -->
         <div class="ctrl-group" role="group" aria-label="Transpose">
           <span class="ctrl-label">Transpose</span>
-          <button class="ctrl-btn" id="transposeDown" aria-label="Transpose down one semitone"
-            title="Transpose down">−</button>
+          <button class="ctrl-btn" id="transposeDown" aria-label="Transpose down one semitone" title="Transpose down">−</button>
           <span class="ctrl-transpose-display" id="transposeDisplay" aria-live="polite">0</span>
-          <button class="ctrl-btn" id="transposeUp"   aria-label="Transpose up one semitone"
-            title="Transpose up">+</button>
+          <button class="ctrl-btn" id="transposeUp"   aria-label="Transpose up one semitone"   title="Transpose up">+</button>
         </div>
 
         <!-- Font size -->
@@ -1202,49 +1463,51 @@ export async function renderChordDetail(slug) {
 
         <!-- Actions -->
         <div class="ctrl-actions">
-          <button class="ctrl-action-btn" id="printBtn" aria-label="Print chord sheet">
-            🖨 Print
-          </button>
-          <button class="ctrl-action-btn" id="shareBtn" aria-label="Copy link to clipboard">
-            🔗 Share
-          </button>
+          <button class="ctrl-action-btn" id="printBtn" aria-label="Print chord sheet">🖨 Print</button>
+          <button class="ctrl-action-btn" id="shareBtn" aria-label="Copy link to clipboard">🔗 Share</button>
         </div>
       </div>
 
       <!-- Tab content -->
       <div class="tab-container" id="tabContainer" role="region" aria-label="Tab content">
+        <div class="tab-header-strip">
+          <span class="tab-header-label">Tab / Lyrics</span>
+          <span class="tab-key-display" id="tabKeyDisplay">${post.Key ? `Key of ${esc(post.Key)}` : ''}</span>
+        </div>
         <div class="tab-body" id="tabBody"></div>
       </div>
     </div>`;
 
-  // ── Grab all interactive elements ─────────────────────────────────────
-  const tabBody         = document.getElementById('tabBody');
-  const transposeDisp   = document.getElementById('transposeDisplay');
-  const keyDisp         = document.getElementById('currentKeyDisplay');
-  const capoSug         = document.getElementById('capoSuggestion');
-  const transposeDown   = document.getElementById('transposeDown');
-  const transposeUp     = document.getElementById('transposeUp');
-  const fontDown        = document.getElementById('fontDown');
-  const fontUp          = document.getElementById('fontUp');
-  const fontDisp        = document.getElementById('fontDisplay');
-  const scrollToggle    = document.getElementById('scrollToggle');
-  const scrollSpeedEl   = document.getElementById('scrollSpeed');
-  const printBtn        = document.getElementById('printBtn');
-  const shareBtn        = document.getElementById('shareBtn');
-  const chordBack       = document.getElementById('chordBack');
-  const tabContainer    = document.getElementById('tabContainer');
+  // ── Grab interactive elements ─────────────────────────────────────────
+  const tabBody       = document.getElementById('tabBody');
+  const transposeDisp = document.getElementById('transposeDisplay');
+  const keyDisp       = document.getElementById('currentKeyDisplay');
+  const tabKeyDisp    = document.getElementById('tabKeyDisplay');
+  const capoSug       = document.getElementById('capoSuggestion');
+  const transposeDown = document.getElementById('transposeDown');
+  const transposeUp   = document.getElementById('transposeUp');
+  const fontDown      = document.getElementById('fontDown');
+  const fontUp        = document.getElementById('fontUp');
+  const fontDisp      = document.getElementById('fontDisplay');
+  const scrollToggle  = document.getElementById('scrollToggle');
+  const scrollSpeedEl = document.getElementById('scrollSpeed');
+  const printBtn      = document.getElementById('printBtn');
+  const shareBtn      = document.getElementById('shareBtn');
+  const chordBack     = document.getElementById('chordBack');
+  const tabContainer  = document.getElementById('tabContainer');
 
-  // ── Initial render of tab ─────────────────────────────────────────────
+  // ── Tab refresh function ──────────────────────────────────────────────
   function refreshTab() {
     if (!tabBody) return;
     tabBody.innerHTML = renderTab(post.Tab_Content || '', semitones);
 
-    // Update key display
-    if (keyDisp) {
-      keyDisp.textContent = semitones
-        ? transposeKey(post.Key || '', semitones)
-        : (post.Key || '');
-    }
+    const displayKey = semitones
+      ? transposeKey(post.Key || '', semitones)
+      : (post.Key || '');
+
+    // Update key displays
+    if (keyDisp)    keyDisp.textContent    = displayKey;
+    if (tabKeyDisp) tabKeyDisp.textContent = displayKey ? `Key of ${displayKey}` : '';
 
     // Transpose offset display
     if (transposeDisp) {
@@ -1252,7 +1515,7 @@ export async function renderChordDetail(slug) {
       transposeDisp.textContent = semitones ? `${sign}${semitones}` : '0';
     }
 
-    // Disable +/− at limits
+    // Disable buttons at limits
     if (transposeDown) transposeDown.disabled = semitones <= -6;
     if (transposeUp)   transposeUp.disabled   = semitones >= 6;
 
@@ -1263,8 +1526,7 @@ export async function renderChordDetail(slug) {
         capoSug.removeAttribute('hidden');
         capoSug.innerHTML =
           `🎸 Play <strong>${esc(sug.playKey)}</strong> shapes with capo on fret ` +
-          `<strong>${sug.capoFret}</strong> → sounds in ` +
-          `<strong>${esc(sug.soundsIn)}</strong>`;
+          `<strong>${sug.capoFret}</strong> → sounds in <strong>${esc(sug.soundsIn)}</strong>`;
       } else {
         capoSug.setAttribute('hidden', '');
         capoSug.innerHTML = '';
@@ -1281,7 +1543,7 @@ export async function renderChordDetail(slug) {
   // Initial tab render
   refreshTab();
 
-  // Attach popover to chord-used pills too
+  // Attach popover to chord-used pills
   const wrap = document.getElementById('chordDetailWrap');
   if (wrap) attachPopoverEvents(wrap);
 
@@ -1290,7 +1552,7 @@ export async function renderChordDetail(slug) {
     if (semitones > -6) { semitones--; refreshTab(); }
   });
   transposeUp?.addEventListener('click', () => {
-    if (semitones < 6) { semitones++; refreshTab(); }
+    if (semitones < 6)  { semitones++; refreshTab(); }
   });
 
   // ── Font-size buttons ─────────────────────────────────────────────────
@@ -1317,10 +1579,9 @@ export async function renderChordDetail(slug) {
   scrollSpeedEl?.addEventListener('input', e => {
     scrollSpeed = parseInt(e.target.value) || 3;
     try { localStorage.setItem(LS_SPEED_KEY, String(scrollSpeed)); } catch {}
-    if (isScrolling) startScroll(scrollSpeed); // restart with new speed
+    if (isScrolling) startScroll(scrollSpeed);
   });
 
-  // Stop scroll when leaving the page
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && isScrolling) stopScroll();
   }, { once: false });
@@ -1328,14 +1589,13 @@ export async function renderChordDetail(slug) {
   // ── Print ─────────────────────────────────────────────────────────────
   printBtn?.addEventListener('click', () => window.print());
 
-  // ── Share (copy URL to clipboard) ─────────────────────────────────────
+  // ── Share ─────────────────────────────────────────────────────────────
   shareBtn?.addEventListener('click', async () => {
     const url = `${window.location.origin}/chords/${slug}`;
     try {
       await navigator.clipboard.writeText(url);
       showToast('Link copied to clipboard!');
     } catch {
-      // Fallback: select a temp input
       const tmp = document.createElement('input');
       tmp.value = url;
       document.body.appendChild(tmp);
@@ -1352,7 +1612,6 @@ export async function renderChordDetail(slug) {
     import('../router.js').then(({ navigate }) => navigate('/chords'));
   });
 
-  // Stop scroll on any internal navigation
   window.addEventListener('popstate', stopScroll, { once: true });
 
   watchReveals();
