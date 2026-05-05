@@ -1,24 +1,28 @@
 /**
  * css/chords.css
- * Lazy-loaded by js/views/chords.js
- * All tokens come from base.css — never redefine :root here
+ * Lazy-loaded by js/views/chords.js — never blocks other views.
+ * All tokens come from base.css — never redefine :root here.
  *
  * Structure:
- *  1. Chord List page hero + toolbar
- *  2. Featured strip (list style)
- *  3. Chord list rows (compact)
- *  4. Shared badge styles
- *  5. Chord Detail page
- *  6. Tab renderer
- *  7. Chord token + popover + SVG diagram
- *  8. Controls bar
- *  9. Mobile overrides
- * 10. Print styles
- * 11. Reduced-motion overrides
+ *  1.  List page — hero
+ *  2.  List page — toolbar
+ *  3.  Featured strip
+ *  4.  Chord list rows
+ *  5.  Shared badge styles
+ *  6.  Detail page — header card
+ *  7.  Detail page — meta strip
+ *  8.  Detail page — badges / chords-used / capo
+ *  9.  Controls bar
+ * 10.  Tab renderer
+ * 11.  Chord token + popover + SVG
+ * 12.  Related songs
+ * 13.  Mobile overrides
+ * 14.  Print styles
+ * 15.  Reduced-motion overrides
  */
 
 /* ═══════════════════════════════════════════════════════════
-   1. CHORD LIST PAGE HERO + TOOLBAR
+   1. LIST PAGE — HERO
    ═══════════════════════════════════════════════════════════ */
 
 .chords-hero {
@@ -72,20 +76,23 @@
   line-height: 1.65;
 }
 
-/* ── Toolbar ── */
+/* ═══════════════════════════════════════════════════════════
+   2. LIST PAGE — TOOLBAR
+   ═══════════════════════════════════════════════════════════ */
+
 .chords-toolbar {
   max-width: var(--max);
   margin: 0 auto;
   padding: 1.4rem 4rem 0;
   display: flex;
   flex-wrap: wrap;
-  gap: .9rem;
-  align-items: center;
+  gap: .7rem;
+  align-items: flex-start;
 }
 
 .chords-search-wrap {
-  flex: 1;
-  min-width: 200px;
+  width: 260px;
+  flex-shrink: 0;
   position: relative;
   display: flex;
   align-items: center;
@@ -94,8 +101,8 @@
 .chords-search-wrap svg {
   position: absolute;
   left: .75rem;
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   stroke: var(--muted);
   fill: none;
   pointer-events: none;
@@ -103,14 +110,14 @@
 
 #chordsSearch {
   width: 100%;
-  height: 38px;
-  padding: 0 .75rem 0 2.4rem;
+  height: 36px;
+  padding: 0 .75rem 0 2.2rem;
   border: 1.5px solid var(--border);
   border-radius: .4rem;
   background: var(--card);
   color: var(--text);
   font-family: var(--sans);
-  font-size: .85rem;
+  font-size: .82rem;
   outline: none;
   transition: border-color .2s;
 }
@@ -118,26 +125,35 @@
 #chordsSearch::placeholder { color: var(--muted-light); }
 #chordsSearch:focus { border-color: var(--accent); }
 
+/* Filter area — each group on its own row */
+#chordsFilterArea {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  flex: 1;
+}
+
 .chords-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: .5rem;
+  gap: .4rem;
   align-items: center;
 }
 
 .chords-filter-label {
   font-family: var(--mono);
-  font-size: .65rem;
+  font-size: .62rem;
   color: var(--muted);
   letter-spacing: .08em;
   text-transform: uppercase;
   font-weight: 500;
+  min-width: 72px;
 }
 
 .chord-chip {
   font-family: var(--mono);
-  font-size: .7rem;
-  padding: .32rem .8rem;
+  font-size: .68rem;
+  padding: .28rem .75rem;
   border-radius: 2rem;
   border: 1.5px solid var(--border);
   background: var(--card);
@@ -145,7 +161,7 @@
   cursor: pointer;
   transition: border-color .18s, color .18s, background-color .18s;
   letter-spacing: .04em;
-  min-height: 36px;
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
 }
@@ -167,17 +183,19 @@
   align-items: center;
   gap: .5rem;
   margin-left: auto;
+  align-self: flex-start;
+  padding-top: 0;
 }
 
 #chordsSort {
-  height: 38px;
+  height: 36px;
   padding: 0 2rem 0 .75rem;
   border: 1.5px solid var(--border);
   border-radius: .4rem;
   background: var(--card);
   color: var(--text);
   font-family: var(--mono);
-  font-size: .75rem;
+  font-size: .72rem;
   outline: none;
   cursor: pointer;
   appearance: none;
@@ -192,9 +210,10 @@
 
 .chords-results-count {
   font-family: var(--mono);
-  font-size: .7rem;
+  font-size: .68rem;
   color: var(--muted-light);
   white-space: nowrap;
+  align-self: center;
 }
 
 .chords-section {
@@ -204,18 +223,18 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   2. FEATURED STRIP — list style
+   3. FEATURED STRIP
    ═══════════════════════════════════════════════════════════ */
 
 .chords-featured {
-  margin-bottom: 1.8rem;
-  padding-bottom: 1.8rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
   border-bottom: 1px solid var(--border);
 }
 
 .chords-featured-heading {
   font-family: var(--mono);
-  font-size: .65rem;
+  font-size: .62rem;
   color: var(--accent);
   letter-spacing: .16em;
   text-transform: uppercase;
@@ -236,28 +255,26 @@
   border: none;
   border-bottom: 1px solid rgba(45,106,79,.15);
   border-radius: 0;
-  padding: .7rem 1rem;
+  padding: .65rem 1rem;
   cursor: pointer;
   transition: background-color .15s var(--ease);
   display: flex;
   align-items: center;
-  gap: .9rem;
+  gap: .8rem;
+  transform: none;
+  box-shadow: none;
 }
 
 .chord-feat-card:last-child { border-bottom: none; }
 
 .chord-feat-card::before {
   content: '★';
-  font-size: .75rem;
+  font-size: .7rem;
   color: var(--accent);
   flex-shrink: 0;
 }
 
-.chord-feat-card:hover {
-  background: rgba(45,106,79,.1);
-  transform: none;
-  box-shadow: none;
-}
+.chord-feat-card:hover { background: rgba(45,106,79,.12); }
 
 .chord-feat-card:focus-visible {
   outline: 2px solid var(--accent);
@@ -266,7 +283,7 @@
 
 .chord-feat-title {
   font-family: var(--serif);
-  font-size: .95rem;
+  font-size: .92rem;
   color: var(--accent2);
   line-height: 1.2;
   flex: 1;
@@ -278,7 +295,7 @@
 
 .chord-feat-artist {
   font-family: var(--mono);
-  font-size: .65rem;
+  font-size: .63rem;
   color: var(--muted);
   letter-spacing: .03em;
   white-space: nowrap;
@@ -293,7 +310,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   3. CHORD LIST ROWS — compact
+   4. CHORD LIST ROWS
    ═══════════════════════════════════════════════════════════ */
 
 .chords-grid {
@@ -308,19 +325,19 @@
 .chord-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: .75rem 1rem;
+  gap: .9rem;
+  padding: .7rem 1rem;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
   cursor: pointer;
   transition: background-color .15s var(--ease);
   background: var(--card);
   box-shadow: none;
+  transform: none;
   contain: layout style;
 }
 
 .chord-card:last-child { border-bottom: none; }
-
 .chord-card:hover { background: var(--accent-bg); }
 
 .chord-card:focus-visible {
@@ -328,21 +345,21 @@
   outline-offset: -2px;
 }
 
-/* Chevron at far right */
+/* Chevron */
 .chord-card::after {
   content: '›';
   font-size: 1.1rem;
   color: var(--muted-light);
   flex-shrink: 0;
-  margin-left: .25rem;
+  margin-left: .2rem;
   line-height: 1;
 }
 
-/* Small square thumbnail */
+/* Square thumbnail */
 .chord-card-thumb {
-  width: 42px;
-  height: 42px;
-  border-radius: .45rem;
+  width: 40px;
+  height: 40px;
+  border-radius: .4rem;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -350,7 +367,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--muted-light);
 }
 
@@ -361,21 +378,20 @@
   display: block;
 }
 
-/* Main text */
 .chord-card-body {
   flex: 1;
   min-width: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: .18rem;
+  gap: .15rem;
 }
 
 .chord-card-meta { display: none; }
 
 .chord-card-title {
   font-family: var(--serif);
-  font-size: 1rem;
+  font-size: .97rem;
   color: var(--accent2);
   line-height: 1.25;
   margin: 0;
@@ -385,16 +401,13 @@
 }
 
 .chord-card-artist {
-  font-family: var(--mono);
   font-size: .68rem;
   color: var(--muted);
-  letter-spacing: .03em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Artist name — clickable to filter */
 .chord-artist-link {
   background: none;
   border: none;
@@ -413,7 +426,6 @@
   text-decoration: underline;
 }
 
-/* Badges — right-aligned */
 .chord-card-badges {
   display: flex;
   align-items: center;
@@ -421,25 +433,22 @@
   flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
-  max-width: 260px;
+  max-width: 280px;
 }
 
-/* Section label between groups */
 .chords-list-section-label {
   font-family: var(--mono);
-  font-size: .65rem;
+  font-size: .62rem;
   color: var(--muted-light);
   letter-spacing: .1em;
   text-transform: uppercase;
-  padding: .9rem 0 .5rem;
+  padding: .8rem 0 .45rem;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* Pagination */
 .chords-pagination {
   display: flex;
   justify-content: center;
@@ -447,24 +456,26 @@
   gap: 1.5rem;
   margin-top: 2rem;
   font-family: var(--mono);
-  font-size: .85rem;
+  font-size: .82rem;
   color: var(--muted);
   min-height: 44px;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   4. SHARED BADGE STYLES
-   (used by both list cards AND detail page)
+   5. SHARED BADGE STYLES
+   Used by list rows, featured strip, AND detail page
    ═══════════════════════════════════════════════════════════ */
 
 .chord-badge {
   font-family: var(--mono);
-  font-size: .63rem;
-  padding: .18rem .55rem;
+  font-size: .62rem;
+  padding: .16rem .52rem;
   border-radius: 1rem;
   letter-spacing: .04em;
   font-weight: 500;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
 .chord-badge-cat {
@@ -498,268 +509,198 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   5. CHORD DETAIL PAGE — /chords/:slug
+   6. DETAIL PAGE — HEADER CARD
+   The entire song header is one bordered card.
+   Children stack vertically inside it.
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-wrap {
   max-width: var(--max);
   margin: 0 auto;
-  padding: 3.5rem 4rem 8rem;
+  padding: 3rem 4rem 8rem;
 }
 
 .chord-detail-back {
   display: inline-flex;
   align-items: center;
-  gap: .5rem;
+  gap: .45rem;
   font-family: var(--mono);
-  font-size: .72rem;
+  font-size: .7rem;
   color: var(--muted);
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  margin-bottom: 2rem;
-  transition: color .2s;
+  margin-bottom: 1.6rem;
+  transition: color .18s;
   letter-spacing: .05em;
   min-height: 44px;
 }
 
 .chord-detail-back:hover { color: var(--accent); }
 
-/* ── Song header ── */
+/* The outer card */
 .chord-detail-header {
-  margin-bottom: 1.8rem;
   border: 1.5px solid var(--border);
-  border-radius: .8rem;
+  border-radius: .9rem;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  margin-bottom: 1.4rem;
+  background: var(--card);
+}
+
+/* Cover image — full width, no border-radius (card clips it) */
+.chord-detail-cover {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+  border: none;
+  margin: 0;
+}
+
+/* Title + artist block */
+.chord-detail-title-wrap {
+  padding: 1.1rem 1.3rem .9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
 }
 
 .chord-detail-title {
   font-family: var(--serif);
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-size: clamp(1.5rem, 3.5vw, 2.2rem);
   line-height: 1.1;
-  color: #fff;
-  margin-bottom: .3rem;
+  color: var(--accent2);
+  margin: 0 0 .25rem;
 }
 
 .chord-detail-artist {
   font-family: var(--mono);
   font-size: .75rem;
-  color: rgba(255,255,255,.8);
+  color: var(--muted);
   letter-spacing: .04em;
-  margin-bottom: 0;
+  margin: 0;
+  line-height: 1.4;
 }
 
-/* Cover image becomes the header bg — title overlaid */
-.chord-detail-cover {
-  width: 100%;
-  max-height: 180px;
-  min-height: 140px;
-  object-fit: cover;
-  display: block;
-  aspect-ratio: 16 / 5;
-  border-radius: 0;
-  border: none;
-  margin-bottom: 0;
-}
+/* ═══════════════════════════════════════════════════════════
+   7. DETAIL PAGE — META STRIP
+   Horizontal scrollable row of stat cells inside the card
+   ═══════════════════════════════════════════════════════════ */
 
-/* When no cover: gradient header */
-.chord-detail-header:not(:has(.chord-detail-cover)) {
-  background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 60%, var(--accent-light) 100%);
-}
-
-/* Title + artist sit at bottom of cover area */
-.chord-detail-title-wrap {
-  padding: 1rem 1.2rem 1rem;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-}
-
-/* Meta strip — horizontal row of key/capo/bpm items */
 .chord-detail-meta {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
-  font-family: var(--mono);
-  font-size: .7rem;
-  color: var(--muted-light);
-  letter-spacing: .05em;
-  margin-bottom: 0;
-  padding: 0;
-  background: var(--card);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
-  align-items: stretch;
+  /* reset any inherited spacing */
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  letter-spacing: normal;
+  border-radius: 0;
 }
 
 .chord-detail-meta::-webkit-scrollbar { display: none; }
 
-/* Each meta item is a column cell */
+/* Each cell */
 .chord-detail-meta > span {
   flex: 1 0 auto;
-  min-width: 64px;
-  padding: .55rem .85rem;
+  min-width: 72px;
+  padding: .5rem .9rem;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: .12rem;
+  gap: .1rem;
+  font-family: var(--mono);
+  color: var(--muted-light);
+  letter-spacing: .04em;
 }
 
 .chord-detail-meta > span:last-child { border-right: none; }
 
+/* Label above the value — uses data-label attr if present, else faux label */
 .chord-detail-meta > span::before {
   content: attr(data-label);
-  font-size: .52rem;
-  color: var(--muted-light);
-  letter-spacing: .1em;
+  font-size: .5rem;
+  letter-spacing: .12em;
   text-transform: uppercase;
-}
-
-.chord-detail-meta strong {
-  color: var(--accent2);
-  font-weight: 500;
-  font-size: .78rem;
-}
-
-/* Badges row */
-.chord-detail-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .35rem;
-  padding: .65rem 1rem;
-  margin-bottom: 0;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-}
-
-/* Chords used row */
-.chord-used-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .35rem;
-  align-items: center;
-  margin-top: 0;
-  padding: .6rem 1rem;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-}
-
-.chord-used-row:last-child { border-bottom: none; }
-
-/* Capo suggestion — inside header now */
-.chord-capo-suggestion {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  font-family: var(--mono);
-  font-size: .7rem;
-  color: var(--accent2);
-  background: var(--accent-bg);
-  border-top: 1px solid rgba(45,106,79,.15);
-  border-radius: 0;
-  padding: .55rem 1rem;
-  margin-top: 0;
-  width: 100%;
-  letter-spacing: .04em;
-}
-
-.chord-capo-suggestion[hidden] { display: none; }
-
-.chord-detail-title {
-  font-family: var(--serif);
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  line-height: 1.1;
-  color: var(--accent2);
-  margin-bottom: .4rem;
-}
-
-.chord-detail-artist {
-  font-family: var(--mono);
-  font-size: .82rem;
-  color: var(--muted);
-  letter-spacing: .05em;
-  margin-bottom: 1.2rem;
-}
-
-.chord-detail-cover {
-  width: 100%;
-  max-height: 340px;
-  object-fit: cover;
-  border-radius: .7rem;
-  border: 1.5px solid var(--border);
-  margin-bottom: 1.6rem;
-  display: block;
-  aspect-ratio: 16 / 6;
-}
-
-/* Meta row */
-.chord-detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .6rem 1.4rem;
-  font-family: var(--mono);
-  font-size: .72rem;
   color: var(--muted-light);
-  letter-spacing: .05em;
-  margin-bottom: 1rem;
-  padding: .8rem 1rem;
-  background: var(--accent-bg);
-  border: 1.5px solid rgba(45,106,79,.15);
-  border-radius: .5rem;
-  align-items: center;
+  line-height: 1;
 }
 
 .chord-detail-meta strong {
-  color: var(--text);
+  font-family: var(--mono);
+  font-size: .8rem;
   font-weight: 500;
+  color: var(--accent2);
+  line-height: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   8. DETAIL PAGE — BADGES / CHORDS-USED / INTRO / CAPO
+   All live inside .chord-detail-header card as stacked rows
+   ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: .4rem;
-  margin-bottom: 1rem;
+  gap: .35rem;
+  padding: .6rem 1.1rem;
+  margin: 0;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
 }
+
+/* Hides the row entirely if empty */
+.chord-detail-badges:empty { display: none; }
 
 .chord-detail-intro {
-  font-size: .88rem;
+  font-size: .86rem;
   color: var(--muted);
-  line-height: 1.75;
-  max-width: 680px;
-  margin-bottom: 1.2rem;
+  line-height: 1.7;
+  padding: .7rem 1.1rem;
+  margin: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
 }
 
-/* Chords-used row */
 .chord-used-row {
   display: flex;
   flex-wrap: wrap;
-  gap: .4rem;
+  gap: .35rem;
   align-items: center;
-  margin-top: .6rem;
+  padding: .6rem 1.1rem;
+  margin: 0;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
 }
 
 .chord-used-label {
   font-family: var(--mono);
-  font-size: .65rem;
+  font-size: .6rem;
   color: var(--muted);
-  letter-spacing: .08em;
+  letter-spacing: .1em;
   text-transform: uppercase;
   font-weight: 500;
-  margin-right: .2rem;
+  margin-right: .15rem;
+  white-space: nowrap;
 }
 
 .chord-used-pill {
   font-family: var(--mono);
-  font-size: .72rem;
-  padding: .28rem .7rem;
+  font-size: .7rem;
+  padding: .22rem .62rem;
   border-radius: 1rem;
   background: var(--accent-bg);
   border: 1.5px solid rgba(45,106,79,.25);
   color: var(--accent);
   cursor: pointer;
-  transition: background-color .18s, border-color .18s, transform .18s;
-  min-height: 36px;
+  transition: background-color .15s, color .15s;
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
 }
@@ -767,36 +708,220 @@
 .chord-used-pill:hover {
   background: var(--accent);
   color: #fff;
-  transform: translateY(-1px);
 }
 
-/* Capo suggestion */
+/* Capo suggestion — last row in header card */
 .chord-capo-suggestion {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: .5rem;
   font-family: var(--mono);
-  font-size: .72rem;
+  font-size: .7rem;
   color: var(--accent2);
   background: var(--accent-bg);
-  border: 1.5px solid rgba(45,106,79,.22);
-  border-radius: .45rem;
-  padding: .55rem 1rem;
-  margin-top: .8rem;
+  padding: .5rem 1.1rem;
+  margin: 0;
   letter-spacing: .04em;
+  border-top: 1px solid rgba(45,106,79,.12);
+  width: 100%;
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid rgba(45,106,79,.12);
 }
 
 .chord-capo-suggestion[hidden] { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
-   6. TAB RENDERER
+   9. CONTROLS BAR
+   Desktop: inline above tab. Mobile: fixed bottom.
+   ═══════════════════════════════════════════════════════════ */
+
+.chord-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .7rem 1.6rem;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .7rem;
+  padding: .85rem 1.2rem;
+  margin-bottom: 1.4rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.ctrl-label {
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: var(--muted);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: .35rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: .9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, color .15s, transform .12s;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.ctrl-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.ctrl-btn:active { transform: scale(.93); }
+.ctrl-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.ctrl-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.ctrl-transpose-display {
+  font-family: var(--mono);
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--accent2);
+  min-width: 44px;
+  text-align: center;
+  letter-spacing: .04em;
+}
+
+.ctrl-fontsize-display {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--muted);
+  min-width: 28px;
+  text-align: center;
+}
+
+.ctrl-scroll-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .4rem .9rem;
+  border-radius: .35rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: .7rem;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, color .15s;
+  min-height: 44px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.ctrl-scroll-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.ctrl-scroll-toggle.scrolling {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.ctrl-speed-wrap {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.ctrl-speed {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.ctrl-speed::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.ctrl-speed::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+.ctrl-actions {
+  display: flex;
+  gap: .45rem;
+  margin-left: auto;
+}
+
+.ctrl-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .4rem .85rem;
+  border-radius: .35rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: .68rem;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, color .15s;
+  min-height: 44px;
+  letter-spacing: .04em;
+}
+
+.ctrl-action-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   10. TAB RENDERER
    ═══════════════════════════════════════════════════════════ */
 
 .tab-container {
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: .8rem;
-  padding: 2rem;
+  padding: 1.6rem 1.8rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -807,37 +932,6 @@
 .tab-container::-webkit-scrollbar-thumb {
   background: var(--accent);
   border-radius: 2px;
-}
-
-/* Tab section header bar */
-.tab-container-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: .55rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
-  border-radius: .8rem .8rem 0 0;
-  margin-bottom: -1px;
-}
-
-.tab-container-header + .tab-container {
-  border-radius: 0 0 .8rem .8rem;
-}
-
-.tab-container-label {
-  font-family: var(--mono);
-  font-size: .58rem;
-  color: var(--muted-light);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-.tab-container-key {
-  font-family: var(--mono);
-  font-size: .68rem;
-  color: var(--accent);
-  font-weight: 500;
 }
 
 .tab-body {
@@ -852,24 +946,26 @@
 
 .tab-section-label {
   font-family: var(--serif);
-  font-size: .95rem;
+  font-size: .9rem;
   font-weight: 500;
   color: var(--accent2);
-  margin: 1.4rem 0 .4rem;
+  margin: 1.2rem 0 .3rem;
   letter-spacing: .02em;
   white-space: normal;
+  display: block;
 }
 
-.tab-line-gap { height: .7rem; }
+.tab-line-gap { height: .6rem; display: block; }
 
 .tab-line {
   white-space: pre;
   line-height: 2;
   min-height: 1.4em;
+  display: block;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   7. CHORD TOKEN + POPOVER + SVG DIAGRAM
+   11. CHORD TOKEN + POPOVER + SVG DIAGRAM
    ═══════════════════════════════════════════════════════════ */
 
 .chord-token {
@@ -950,193 +1046,11 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   8. CONTROLS BAR
-   ═══════════════════════════════════════════════════════════ */
-
-.chord-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem 2rem;
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: .7rem;
-  padding: 1rem 1.4rem;
-  margin-bottom: 1.8rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.ctrl-group {
-  display: flex;
-  align-items: center;
-  gap: .55rem;
-}
-
-.ctrl-label {
-  font-family: var(--mono);
-  font-size: .65rem;
-  color: var(--muted);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.ctrl-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: .35rem;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color .18s, background-color .18s, color .18s, transform .15s;
-  min-width: 44px;
-  min-height: 44px;
-}
-
-.ctrl-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-bg);
-}
-
-.ctrl-btn:active { transform: scale(.93); }
-.ctrl-btn:disabled { opacity: .4; cursor: not-allowed; }
-
-/* Active state — for Beginner Mode toggle (Phase 1 upcoming) */
-.ctrl-btn.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-.ctrl-transpose-display {
-  font-family: var(--mono);
-  font-size: .82rem;
-  font-weight: 500;
-  color: var(--accent2);
-  min-width: 52px;
-  text-align: center;
-  letter-spacing: .04em;
-}
-
-.ctrl-fontsize-display {
-  font-family: var(--mono);
-  font-size: .75rem;
-  color: var(--muted);
-  min-width: 28px;
-  text-align: center;
-}
-
-.ctrl-scroll-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .45rem 1rem;
-  border-radius: .35rem;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: .72rem;
-  cursor: pointer;
-  transition: border-color .18s, background-color .18s, color .18s;
-  min-height: 44px;
-  font-weight: 500;
-  letter-spacing: .04em;
-}
-
-.ctrl-scroll-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-bg);
-}
-
-.ctrl-scroll-toggle.scrolling {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-.ctrl-speed-wrap {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-}
-
-.ctrl-speed {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 90px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-  outline: none;
-  cursor: pointer;
-}
-
-.ctrl-speed::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px var(--accent);
-}
-
-.ctrl-speed::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  border: 2px solid #fff;
-}
-
-.ctrl-actions {
-  display: flex;
-  gap: .55rem;
-  margin-left: auto;
-}
-
-.ctrl-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  padding: .45rem .9rem;
-  border-radius: .35rem;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: .7rem;
-  cursor: pointer;
-  transition: border-color .18s, background-color .18s, color .18s;
-  min-height: 44px;
-  letter-spacing: .04em;
-}
-
-.ctrl-action-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-bg);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   RELATED SONGS — shown below tab container
+   12. RELATED SONGS
    ═══════════════════════════════════════════════════════════ */
 
 .chord-related {
-  margin-top: 2.5rem;
+  margin-top: 2.2rem;
   border: 1.5px solid var(--border);
   border-radius: .8rem;
   overflow: hidden;
@@ -1145,44 +1059,47 @@
 
 .chord-related-heading {
   font-family: var(--mono);
-  font-size: .62rem;
+  font-size: .6rem;
   color: var(--muted-light);
   letter-spacing: .12em;
   text-transform: uppercase;
-  padding: .65rem 1rem;
+  padding: .6rem 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
-.chord-related-list {
-  display: flex;
-  flex-direction: column;
-}
+.chord-related-list { display: flex; flex-direction: column; }
 
 .chord-related-row {
   display: flex;
   align-items: center;
-  gap: .8rem;
-  padding: .65rem 1rem;
+  gap: .75rem;
+  padding: .6rem 1rem;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background-color .15s var(--ease);
 }
 
 .chord-related-row:last-child { border-bottom: none; }
-
 .chord-related-row:hover { background: var(--accent-bg); }
+
+.chord-related-row::after {
+  content: '›';
+  font-size: 1rem;
+  color: var(--muted-light);
+  flex-shrink: 0;
+}
 
 .chord-related-icon {
   width: 34px;
   height: 34px;
-  border-radius: .4rem;
+  border-radius: .35rem;
   background: var(--surface);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: .95rem;
   flex-shrink: 0;
 }
 
@@ -1190,17 +1107,14 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: .35rem;
+  border-radius: .3rem;
 }
 
-.chord-related-main {
-  flex: 1;
-  min-width: 0;
-}
+.chord-related-main { flex: 1; min-width: 0; }
 
 .chord-related-title {
   font-family: var(--serif);
-  font-size: .9rem;
+  font-size: .88rem;
   color: var(--accent2);
   white-space: nowrap;
   overflow: hidden;
@@ -1215,43 +1129,39 @@
   letter-spacing: .03em;
 }
 
-.chord-related-badges {
-  display: flex;
-  gap: .3rem;
-  flex-shrink: 0;
-}
-
-.chord-related-row::after {
-  content: '›';
-  font-size: 1rem;
-  color: var(--muted-light);
-  flex-shrink: 0;
-}
+.chord-related-badges { display: flex; gap: .3rem; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════
-   9. MOBILE OVERRIDES
+   13. MOBILE OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
 
-  .chords-hero    { padding: 3rem 1.5rem; }
-  .chords-toolbar { padding: 1rem 1.5rem 0; flex-direction: column; align-items: stretch; }
-  .chords-section { padding: 1.8rem 1.5rem 10rem; }
+  /* List page */
+  .chords-hero    { padding: 2.5rem 1.4rem; }
+  .chords-toolbar {
+    padding: 1rem 1.4rem 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .6rem;
+  }
+  .chords-search-wrap { width: 100%; }
+  .chords-sort-wrap   { margin-left: 0; align-self: flex-start; }
+  .chords-section     { padding: 1.6rem 1.4rem 10rem; }
 
-  .chords-sort-wrap { margin-left: 0; }
-
-  .chord-feat-card  { padding: .6rem .85rem; }
-  .chord-feat-badges { display: none; }
-
-  .chord-card       { padding: .65rem .85rem; gap: .75rem; }
-  .chord-card-badges { display: none; }
+  .chord-feat-badges  { display: none; }
+  .chord-card-badges  { display: none; }
+  .chord-card         { padding: .6rem .85rem; gap: .7rem; }
+  .chord-feat-card    { padding: .6rem .85rem; }
 
   /* Detail page */
-  .chord-detail-wrap {
-    padding: 2.5rem 1.5rem 10rem;
-  }
+  .chord-detail-wrap  { padding: 2rem 1.2rem 10rem; }
 
-  /* Controls: fixed bottom bar on mobile */
+  .chord-detail-cover { height: 120px; }
+
+  .chord-detail-meta > span { min-width: 60px; padding: .45rem .7rem; }
+
+  /* Controls: fixed bottom bar */
   .chord-controls {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -1260,9 +1170,9 @@
     border-left: none; border-right: none; border-bottom: none;
     border-top: 1.5px solid var(--border);
     margin-bottom: 0;
-    padding: .75rem 1rem;
-    padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
-    gap: .6rem 1rem;
+    padding: .65rem 1rem;
+    padding-bottom: calc(.65rem + env(safe-area-inset-bottom));
+    gap: .5rem .9rem;
     overflow-x: auto;
     scrollbar-width: none;
     flex-wrap: nowrap;
@@ -1273,32 +1183,33 @@
   }
 
   .chord-controls::-webkit-scrollbar { display: none; }
-
-  .ctrl-label  { font-size: .6rem; }
-  .ctrl-speed  { width: 64px; }
+  .ctrl-label   { font-size: .58rem; }
+  .ctrl-speed   { width: 60px; }
   .ctrl-actions { margin-left: 0; }
 
-  .tab-container { padding: 1.2rem 1rem; border-radius: .6rem; }
+  .tab-container { padding: 1rem .9rem; border-radius: .6rem; }
 }
 
 @media (max-width: 480px) {
-  .chord-detail-title { font-size: clamp(1.5rem, 7vw, 2rem); }
-  .chord-detail-meta  { font-size: .68rem; }
+  .chord-detail-title { font-size: clamp(1.3rem, 6vw, 1.8rem); }
+  .chord-detail-meta  { font-size: .65rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   10. PRINT STYLES
+   14. PRINT STYLES
    ═══════════════════════════════════════════════════════════ */
 
 @media print {
   .chord-controls,
   .chord-detail-back,
-  .chord-used-row,
   .chord-capo-suggestion,
   .chord-popover,
+  .chord-related,
   nav, footer { display: none !important; }
 
-  .chord-detail-wrap { padding: 1rem; max-width: 100%; }
+  .chord-detail-wrap  { padding: 1rem; max-width: 100%; }
+  .chord-detail-header { border: 1px solid #ccc; box-shadow: none; border-radius: 0; }
+  .chord-detail-cover { height: 80px; }
 
   .tab-container {
     border: 1px solid #ccc;
@@ -1308,7 +1219,7 @@
   }
 
   .tab-body {
-    font-size: .78rem;
+    font-size: .76rem;
     line-height: 1.8;
     white-space: pre-wrap;
     word-break: break-all;
@@ -1320,13 +1231,14 @@
     background: none !important;
   }
 
-  .chord-detail-title { font-size: 1.6rem; }
+  .chord-detail-title { font-size: 1.4rem; color: #000; }
   .chord-detail-meta,
-  .chord-detail-badges { display: flex; }
+  .chord-detail-badges,
+  .chord-used-row { display: flex; }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   11. REDUCED-MOTION OVERRIDES
+   15. REDUCED-MOTION OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
