@@ -1,0 +1,827 @@
+'ll create a comprehensive master prompt v3.0 with all the new features planned in hierarchy order. Let me build this properly.Viewed a file, created a file, read a fileViewed a file, created a file, read a fileHere's your master prompt v3.0. Here's exactly how to use it to maximize free Claude credits:
+
+How to use this across sessions
+Start every new chat with:
+
+"Here is my master prompt. Read it fully. I want to work on [FEATURE NAME from Section 8 TODO list]."
+
+Then paste the entire file. Claude reads Section 8 to know what's done, reads Section 9 for the full spec, and codes exactly what's needed without you re-explaining anything.
+End every session by asking:
+
+"What do I add to Section 8 of my master prompt?"
+
+Claude will give you the exact text to paste in — date, files changed, what works, next step.
+
+The hierarchy Claude will follow
+Phase 1 (chords.js only, no new files):
+  → Related Songs panel     ← START HERE next session
+  → Progression Analysis
+  → Beginner Mode
+  → Song Request button
+
+Phase 2 (new tool files, high SEO):
+  → GPA Calculator          ← biggest Nepal search volume
+  → Capo Finder
+  → BPM Calculator
+  → NRB Rate Calculator
+  → Redirect Generator
+
+Phase 3 (community features):
+  → Setlist Builder
+  → Chord Flashcards
+  → Chord Compatibility tool
+
+
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SUMAN DANGAL PORTFOLIO — COMPLETE MASTER PROMPT v3.0
+Use this document in EVERY new Claude conversation to resume work instantly.
+This document contains: architecture + current state + feature roadmap + 
+progression tracking. Every Claude session must READ THIS FULLY before coding.
+═══════════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1 — PROJECT IDENTITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Site:       https://suman-dangal.com.np
+Dev URL:    dev.suman-dangal.pages.dev
+Repo:       https://github.com/Summoner963/portfolio
+Branches:   main = live / dev = testing (git push origin dev)
+Owner:      Suman Dangal, Final-year BCA student, Bhaktapur Nepal
+Email:      sumandangal888@gmail.com
+
+Stack:
+  Frontend:   Vanilla JS ES modules, CSS custom properties
+  Backend:    Cloudflare Pages + Workers (free tier)
+  CMS:        Google Sheets (published CSV, no API key needed)
+  Domains:    .com.np via GoDaddy (Cloudflare nameservers)
+  Build:      wrangler.toml, no build step, direct deploy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2 — HOW TO USE THIS PROMPT (READ FIRST)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EVERY Claude session must:
+1. Read Section 3 (file structure) to know what exists
+2. Read Section 8 (progression log) to know what is DONE vs TODO
+3. Read Section 9 (feature roadmap) to know priority order
+4. Ask Suman which feature to work on if not specified
+5. After completing work, tell Suman EXACTLY what to add to Section 8
+
+NEVER:
+- Assume a feature is built unless it is in Section 8 DONE list
+- Add new files without listing them in Section 3
+- Break existing working features (check Section 8 WORKING list)
+- Use localStorage prefix other than 'sd5_'
+- Add external libraries or npm packages
+- Add inline CSS or inline JS to index.html
+
+ALWAYS:
+- Call esc() on ALL sheet data before innerHTML
+- Add .reveal class to all new cards/items
+- Add skeleton loading to all new views
+- Add fallback content (FB object) if fetch fails
+- Add empty state (.empty-state) if fetch returns 0 rows
+- lazy-load CSS with loadCSS() in the view file
+- Register new routes in js/main.js only
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3 — COMPLETE FILE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+portfolio/ (root)
+│
+├── index.html (~170 lines)
+│   Purpose: Single-page app shell
+│   Contains:
+│     • All <meta> tags
+│     • <link> to css/base.css ONLY in <head>
+│     • <nav> with data-link on all anchors
+│     • #app div containing ALL view divs (listed below)
+│     • <script type="module" src="js/main.js">
+│     • NO inline CSS, NO inline JS
+│   View divs that MUST exist:
+│     #view-home, #view-skills, #view-projects
+│     #view-blog, #view-article
+│     #view-experience, #view-about, #view-contact
+│     #view-chords, #view-chord-detail
+│     [PHASE 2] #view-tools-gpa
+│     [PHASE 2] #view-tools-capo
+│     [PHASE 2] #view-tools-bpm
+│     [PHASE 2] #view-tools-nrb
+│     [PHASE 2] #view-tools-redirect
+│     [PHASE 3] #view-setlist
+│
+├── _worker.js
+│   Purpose: Thin shim only
+│   Contains: export { default } from "./worker/index.js";
+│
+├── wrangler.toml
+│   name = "suman-dangal"
+│   compatibility_date = "2024-09-23"
+│   pages_build_output_dir = "."
+│   [vars]
+│     SHEET_BASE = "https://docs.google.com/spreadsheets/d/e"
+│     BLOG_GID = "1132024800"
+│     SKILLS_GID = "302402061"
+│     PROJECTS_GID = "0"
+│     EXP_GID = "245982630"
+│     ABOUT_GID = "1066410604"
+│     FAQ_GID = "303688554"
+│     IMAGES_GID = "1267436347"
+│     FEATURED_GID = "980532084"
+│     CHORDS_GID = "687736904"
+│     [PHASE 2] TOOLS_GID = "your_tools_gid"
+│   SECRET: SHEET_ID (Cloudflare Dashboard only)
+│
+├── .dev.vars (gitignored)
+│   SHEET_ID=2PACX-1v...actual_id...
+│
+├── js/main.js (~110 lines)
+│   Purpose: App entry point and route registry
+│   Current routes registered:
+│     registerRoute('/', renderHome)
+│     registerRoute('/skills', renderSkills)
+│     registerRoute('/projects', renderProjects)
+│     registerRoute('/blog', renderBlogList)
+│     registerRoute('/experience', renderExperience)
+│     registerRoute('/about', renderAbout)
+│     registerRoute('/contact', renderContact)
+│     registerRoute('/chords', renderChords)
+│     registerPrefix('/blog/', renderArticle)
+│     registerPrefix('/chords/', renderChordDetail)
+│   [PHASE 2] will add:
+│     registerRoute('/tools/gpa-calculator', renderGPACalc)
+│     registerRoute('/tools/capo-finder', renderCapoFinder)
+│     registerRoute('/tools/bpm-delay', renderBPMCalc)
+│     registerRoute('/tools/nrb-calculator', renderNRBCalc)
+│     registerRoute('/tools/redirect-generator', renderRedirectGen)
+│   [PHASE 3] will add:
+│     registerRoute('/setlist', renderSetlist)
+│   Rule: ONLY this file knows all route names
+│
+├── js/router.js (~280 lines)
+│   Purpose: SPA navigation engine
+│   Exports: registerRoute, registerPrefix, navigate, boot, showView
+│   Does NOT know any view names or render functions
+│
+├── js/api.js (~350 lines)
+│   Purpose: Data fetching + CSV parsing + local caching
+│   Exports: fetchSheet, parseCSV, cGet, cSet, cDel, CFG, buildImgMap, buildFAQ
+│   CFG object:
+│     siteUrl: "https://suman-dangal.com.np"
+│     cacheMins: 10
+│     postsPerPage: 6
+│     chordsPerPage: 12
+│     api: {
+│       blog, skills, projects, exp, about,
+│       faq, images, featured, chords
+│       [PHASE 2] tools: '/api/data?sheet=tools'
+│     }
+│   Cache prefix: 'sd5_'   TTL: 10 minutes
+│
+├── js/seo.js (~400 lines)
+│   Purpose: All SEO and structured data
+│   Exports: updateSEO, buildBreadcrumb, buildBlogPosting,
+│            buildMusicComposition, buildHomeSchemas,
+│            injectSchema, removeSchema, removeSchemas
+│
+├── js/utils.js (~600 lines)
+│   Purpose: Shared browser utilities
+│   Exports: esc, fixImgUrl, sanitizeHTML, md,
+│            watchReveals, pStart, pEnd, loadCSS, showToast
+│   Key rules:
+│     esc() MUST be called on all sheet data before innerHTML
+│     loadCSS() lazy-loads section CSS, guards double-injection
+│     watchReveals() is a module singleton (one observer)
+│
+├── js/views/
+│   ├── home.js          — renderHome()
+│   ├── blog.js          — renderBlogList(), renderArticle(), setBlogRows()
+│   ├── skills.js        — renderSkills()
+│   ├── projects.js      — renderProjects()
+│   ├── about.js         — renderAbout()
+│   ├── experience.js    — renderExperience()
+│   ├── contact.js       — renderContact()
+│   └── chords.js (~800 lines) — renderChords(), renderChordDetail(slug)
+│       Internal functions (do NOT re-export):
+│         transposeChord(), transposeKey(), capoSuggestion()
+│         buildDiagramSVG(), renderTab()
+│         showPopover(), hidePopover(), attachPopoverEvents()
+│         buildChordCard(), buildFilterGroup()
+│         renderFilteredChords(), buildListUI()
+│       Module state:
+│         chordsState: { query, category, difficulty, key, sort, page }
+│         _chordsRows: cached sheet rows
+│       [PHASE 1 CHORDS REDESIGN — DONE]:
+│         buildChordCard() → list-row layout (not grid cards)
+│         chord-artist-link clickable → sets chordsState.query
+│         .chord-artist-link CSS added to chords.css
+│
+│   [PHASE 2 — NEW FILES]:
+│   ├── js/views/tools/
+│   │   ├── gpa-calc.js      — renderGPACalc()
+│   │   ├── capo-finder.js   — renderCapoFinder()
+│   │   ├── bpm-calc.js      — renderBPMCalc()
+│   │   ├── nrb-calc.js      — renderNRBCalc()
+│   │   └── redirect-gen.js  — renderRedirectGen()
+│
+│   [PHASE 3 — NEW FILES]:
+│   └── js/views/setlist.js  — renderSetlist()
+│
+│   [PHASE 1 CHORDS FEATURES — IN chords.js]:
+│   └── js/views/chords-features/
+│       These are NOT separate files — all inside chords.js:
+│         renderRelatedSongs(post, allRows)  — below chord detail
+│         renderProgressionPanel(post)       — chord analysis
+│         renderBeginnerMode(tabBody)        — simplify toggle
+│         renderSongRequestBtn()             — Google Form link
+│
+├── js/data/
+│   └── chord-shapes.js (~1000 lines)
+│       Exports: CHORD_SHAPES (default)
+│       All 12 roots × major/m/7/maj7/m7/sus2/sus4/add9/5
+│       Enharmonic aliases (Db=C#, Eb=D#, etc.)
+│
+├── css/
+│   ├── base.css (~450 lines)    — always loaded, never lazy
+│   ├── featured.css (~200 lines) — lazy, loaded by home.js
+│   ├── blog.css (~400 lines)    — lazy, loaded by blog.js
+│   ├── skills.css (~150 lines)  — lazy, loaded by skills.js
+│   ├── projects.css (~180 lines) — lazy, loaded by projects.js
+│   ├── about.css (~350 lines)   — lazy, loaded by about/exp/contact
+│   ├── chords.css (~650 lines)  — lazy, loaded by chords.js
+│   │   [PHASE 1 CHORDS REDESIGN — DONE]:
+│   │     Section 3 replaced: .chords-grid → flex column list
+│   │     .chord-card → list row (not grid card)
+│   │     .chord-card-thumb → 42×42px square
+│   │     .chord-artist-link → clickable, underline on hover
+│   │     Mobile: .chord-card-badges hidden on <768px
+│   [PHASE 2]:
+│   └── css/tools.css            — lazy, loaded by all tool views
+│   [PHASE 3]:
+│   └── css/setlist.css          — lazy, loaded by setlist.js
+│
+└── worker/
+    ├── index.js (~350 lines)
+    │   Routes:
+    │     GET /api/data?sheet=<name> → handleDataEndpoint()
+    │     GET /blog/:slug            → prerenderBlogPost()
+    │     GET /chords/:slug          → prerenderChord()
+    │     GET /sitemap.xml           → generateSitemap()
+    │     GET /robots.txt            → generated
+    │     GET /llms.txt              → generated
+    │     GET * (everything else)    → serveIndex/serveIndexWithMeta
+    │   [PHASE 2]:
+    │     GET /tools/:slug           → serveIndexWithMeta (static tools)
+    │   Security: 120 req/min rate limit, SLUG_REDIRECTS map
+    │
+    ├── sheets.js (~120 lines)
+    │   Exports: getSheetGids, getAllowedSheetNames, handleDataEndpoint
+    │   ONLY place GIDs are referenced
+    │
+    ├── utils.js (~400 lines) [SERVER-SIDE, no DOM]
+    │   Exports: escHtml, escJson, parseCSV, fixImgUrl,
+    │            renderMarkdown, formatDate, sanitizeHTML, renderTabSSR
+    │
+    └── ssr/
+        ├── meta.js (~300 lines)
+        │   Exports: SITE_URL, ROUTE_META, PRERENDER_CSS,
+        │            SECURITY_HEADERS, applySecurityHeaders,
+        │            htmlCacheHeaders, buildSSRHead,
+        │            preNavHTML, preFooterHTML, hydrationScript,
+        │            serveIndex, serveIndexWithMeta, generateSitemap
+        │   [PHASE 2]: ROUTE_META entries for /tools/* routes
+        │   [PHASE 3]: ROUTE_META entry for /setlist
+        ├── blog.js (~200 lines)
+        │   Exports: prerenderBlogPost(slug, env, request, fetchSheetData)
+        └── chords.js (~200 lines)
+            Exports: prerenderChord(slug, env, request, fetchSheetData)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 4 — DATA LAYER (GOOGLE SHEETS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EXISTING SHEETS AND COLUMNS:
+
+blog:     Title, Slug, Date, Category, Excerpt, Tags, Image_URL, Image_Alt,
+          Content, Table_HTML, Img1_URL, Img1_Alt, Img2_URL, Img2_Alt...
+
+skills:   title, icon, tags, color (c-green|c-blue|c-amber)
+
+projects: title, desc, stack, link, featured, wide, bullets, visual
+
+exp:      role, org, date, datetime, type, bullets
+
+about:    bio1, bio2, bio3, bio4
+
+faq:      Blog_Slug, FAQ_Number, FAQ_Question, FAQ_Answer
+
+images:   Blog_Slug, Img_Number, Img_URL, Img_Alt
+
+featured: Slug
+
+chords:   Slug, Title, Artist, Key, Capo, Difficulty, Category,
+          Chords_Used, Tab_Content, Featured, Excerpt,
+          Date_Added, Image_URL, Image_Alt
+          [PHASE 1 OPTIONAL COLUMNS]:
+            Album, Year, BPM, Time_Signature, Tuning, Intro_Text, Tags
+
+[PHASE 2 NEW SHEET]:
+tools:    tool_slug, label, value, updated_date, notes
+          Used by nrb-calc.js for fallback rate data if API fails
+
+[PHASE 3 NO NEW SHEET]:
+setlist:  Uses localStorage only — key 'sd5_setlist'
+          Format: JSON array of slug strings
+
+TAB_CONTENT FORMAT:
+  |  = line break
+  || = empty gap between sections
+  [Verse 1] = section label (not a chord pattern)
+  [G] [Em7] = chord markers
+  Chord pattern: /^[A-G][#b]?(maj7|m7|7|sus2|sus4|add9|m|5)?$/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 5 — DESIGN SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CSS CUSTOM PROPERTIES (all defined in css/base.css):
+
+  --bg: #ffffff              --surface: #f7f8f6
+  --card: #ffffff            --border: #e2e6df
+  --border-dark: #c8d0c4     --accent: #2d6a4f
+  --accent-light: #52b788    --accent-bg: #edf5f0
+  --accent2: #1b4332         --accent3: #b7791f
+  --text: #1a1e1a            --muted: #5a6659
+  --muted-light: #8a9688     --nav-h: 62px
+  --max: 1080px
+  --serif: 'DM Serif Display', Georgia, serif
+  --mono: 'DM Mono', 'Courier New', monospace
+  --sans: 'DM Sans', system-ui, sans-serif
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.09)
+  --shadow-md: 0 4px 18px rgba(0,0,0,.1)
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.12)
+  --ease: cubic-bezier(.4,0,.2,1)
+
+FONTS: DM Serif Display + DM Mono + DM Sans (Google Fonts, swap)
+
+EVERY VIEW MUST HAVE:
+  ✓ Skeleton (.skel, .skel-card, .skel-line) while loading
+  ✓ Fallback (FB object) if fetch fails
+  ✓ Empty state (.empty-state) if 0 rows returned
+  ✓ .reveal on all cards/items for IntersectionObserver
+  ✓ Error handling — never blank screen, never throw
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 6 — SECURITY RULES (NEVER BREAK)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ SHEET_ID → Cloudflare Dashboard secret ONLY (.dev.vars locally)
+  ✓ GIDs → wrangler.toml [vars] only
+  ✓ Sheet whitelist → unknown names = 404
+  ✓ Rate limit → 120 req/min per IP
+  ✓ esc() → ALL sheet data before innerHTML, NO EXCEPTIONS
+  ✓ sanitizeHTML() → Table_HTML content only
+  ✓ CORS → same-origin only
+  ✓ CSP → connect-src 'self' (NRB API needs exception — see Phase 2 notes)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 7 — SEO RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Every route must update: title, description, canonical,
+    og:title/description/url/image/type, twitter:card/title/description/image
+  Home:         Person + Organization + WebSite schema
+  Blog article: BlogPosting + BreadcrumbList + FAQPage schema
+  Chord detail: MusicComposition + BreadcrumbList schema
+  [PHASE 2] Tools: SoftwareApplication schema per tool
+  Sitemap:      all static + blog slugs + chord slugs
+                [PHASE 2] + tool slugs
+  SSR:          bots get full static HTML, users get SPA
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 8 — PROGRESSION LOG (UPDATE THIS AFTER EVERY SESSION)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FORMAT: [DATE] [WHAT WAS DONE] [FILES CHANGED]
+
+── FULLY WORKING (do not re-implement, do not break) ──────────────────────
+
+✓ SPA routing (8 static + 2 prefix routes)
+✓ Blog list + article (search, filter, sort, pagination, FAQ, SEO)
+✓ Skills grid
+✓ Projects grid (featured wide cards)
+✓ Experience timeline
+✓ About page
+✓ Contact page
+✓ Featured posts on home
+✓ SEO meta + schemas on all routes
+✓ SSR prerender for /blog/:slug
+✓ SSR prerender for /chords/:slug
+✓ Chord list page (search, filter by cat/diff/key, sort, pagination)
+✓ Chord detail (transpose, popover diagrams, font-size, autoscroll, print, share)
+✓ MusicComposition schema on chord pages
+✓ Rate limiting + security headers
+✓ Offline banner, progress bar, reveal animations
+✓ Mobile responsive
+
+── COMPLETED THIS SESSION (May 2026) ──────────────────────────────────────
+
+[May 2026] CHORDS LIST REDESIGN — Phase 1 complete
+  WHAT CHANGED:
+    css/chords.css  → Section 3 (card grid) replaced with list-row layout:
+                      .chords-grid now flex column, not CSS grid
+                      .chord-card now a horizontal list row
+                      .chord-card-thumb now 42×42px square (not 16:9)
+                      .chord-card-badges right-aligned, hidden on mobile
+                      .chord-artist-link new class — clickable artist name
+                      .chords-featured-grid now flex column list
+                      .chord-feat-card now list row with ★ before
+    js/views/chords.js → buildChordCard() rewritten:
+                      list-row layout: thumb + title/artist + badges + chevron
+                      Key+Capo merged into one badge "Key G · Capo 2"
+                      Artist rendered as .chord-artist-link button
+                      click on artist → sets chordsState.query + refreshes
+                      artist-click handler added in buildListUI()
+
+── TODO — PHASE 1 REMAINING (chords.js features, no new files needed) ─────
+
+[ ] FEATURE: Related Songs panel
+    WHERE: renderChordDetail() in js/views/chords.js
+    WHAT: After tab container, add section showing 3-4 songs
+          Same key OR same difficulty OR same category
+          Exclude current slug, pick closest matches
+          Renders as mini list rows (reuse .chord-card style)
+    SEO: Keeps users on site, internal linking
+    FILES: js/views/chords.js (add renderRelatedSongs fn)
+           css/chords.css (add .related-songs section styles)
+
+[ ] FEATURE: Chord Progression Analysis panel
+    WHERE: renderChordDetail() in js/views/chords.js
+    WHAT: Reads Chords_Used column, identifies I-IV-V-vi pattern,
+          shows Roman numeral analysis + "emotional feel" per chord
+          Pure JS math using existing SHARPS array + music theory map
+          Toggle show/hide panel
+    SEO: "G Em C D chord progression" type searches
+    FILES: js/views/chords.js (add renderProgressionPanel fn)
+           css/chords.css (add .chord-progression-panel styles)
+    DATA NEEDED: hardcoded CHORD_ROLES map inside chords.js
+
+[ ] FEATURE: Beginner Simplification Mode
+    WHERE: renderChordDetail() in js/views/chords.js
+    WHAT: Toggle button in .chord-controls bar
+          When ON: replaces hard chords in tab display with simpler versions
+          Cmaj7→C, Dsus4→D, Fmaj7→F, Am7→Am, G7→G etc
+          Uses existing renderTab() — just pass simplified chord names
+          Persists in localStorage key 'sd5_beginner_mode'
+    SEO: "easy version [song] chords" long-tail
+    FILES: js/views/chords.js (add SIMPLIFY_MAP constant + toggle logic)
+           css/chords.css (add .ctrl-btn.active style for toggle)
+
+[ ] FEATURE: Song Request button
+    WHERE: renderChords() list page in js/views/chords.js
+    WHAT: Button linking to Google Form (pre-filled with site name)
+          Shows count of pending requests from tools sheet (optional)
+          Just an <a> tag with target="_blank" — no backend needed
+    FILES: js/views/chords.js (add button to hero section)
+           css/chords.css (add .chords-request-btn style)
+    REQUIRES: Suman to create Google Form + get form URL
+
+── TODO — PHASE 2 (SEO tools, new files) ──────────────────────────────────
+
+PRIORITY ORDER for Phase 2 (build in this order):
+
+[ ] P2-A: TU/NEB GPA Calculator
+    WHY FIRST: Zero external API, pure JS, massive Nepal search volume
+    NEW FILES:
+      js/views/tools/gpa-calc.js
+      css/tools.css (created with this, shared by all tools)
+    CHANGES:
+      index.html     → add #view-tools-gpa
+      js/main.js     → registerRoute('/tools/gpa-calculator', renderGPACalc)
+      worker/ssr/meta.js → add ROUTE_META entry
+      worker/index.js → add /tools/* route to serveIndexWithMeta
+    DATA: Hardcoded NEB + TU grading tables inside gpa-calc.js
+    SCHEMA: SoftwareApplication
+    URL: /tools/gpa-calculator
+
+[ ] P2-B: Capo Finder Tool
+    WHY SECOND: Reuses existing transpose engine from chords.js
+    NEW FILES: js/views/tools/capo-finder.js
+    CHANGES: index.html, js/main.js, worker/ssr/meta.js
+    DATA: Pure JS math (copy transposeRoot from chords.js — do NOT import)
+    URL: /tools/capo-finder
+
+[ ] P2-C: BPM to Delay/Reverb Calculator
+    NEW FILES: js/views/tools/bpm-calc.js
+    CHANGES: index.html, js/main.js, worker/ssr/meta.js
+    DATA: Pure math formulas hardcoded in file
+    URL: /tools/bpm-delay
+
+[ ] P2-D: NRB Exchange Rate Calculator
+    NEW FILES: js/views/tools/nrb-calc.js
+    CHANGES: index.html, js/main.js, worker/ssr/meta.js
+              worker/ssr/meta.js CSP update (add nrb.org.np to connect-src)
+    DATA: fetch('https://www.nrb.org.np/api/forex/v1/app-rate')
+          Fallback: hardcoded rates from tools sheet
+    IMPORTANT: CSP must allow nrb.org.np or use a proxy worker route
+    URL: /tools/nrb-calculator
+
+[ ] P2-E: .htaccess / nginx Redirect Generator
+    NEW FILES: js/views/tools/redirect-gen.js
+    CHANGES: index.html, js/main.js, worker/ssr/meta.js
+    DATA: Pure JS string generation
+    URL: /tools/redirect-generator
+
+── TODO — PHASE 3 (community + long-term) ─────────────────────────────────
+
+[ ] P3-A: Setlist Builder
+    NEW FILES: js/views/setlist.js, css/setlist.css
+    CHANGES: index.html, js/main.js, worker/ssr/meta.js
+    DATA: localStorage 'sd5_setlist' = JSON array of slugs
+    FEATURES:
+      Save to setlist button on each chord-card + chord-detail
+      /setlist page shows saved songs in order
+      Drag to reorder (using HTML5 drag events, no library)
+      Remove individual songs
+      Print full setlist (one song per page)
+      Share setlist as URL with encoded slugs
+    URL: /setlist
+
+[ ] P3-B: Chord Flashcard Practice Mode
+    WHERE: New route /chords/practice or modal inside chords.js
+    DATA: Uses existing CHORD_SHAPES
+    FEATURES:
+      Show one chord diagram at a time
+      User taps "Know it" or "Practice more"
+      Tracks session score in memory (not persisted)
+    NEW FILES: Could be inside chords.js or separate practice.js
+
+[ ] P3-C: Chord Compatibility / "What chords go with X"
+    WHERE: New route /tools/chord-finder
+    DATA: Hardcoded diatonic chord maps for all 12 keys
+    FEATURES:
+      Pick a key → see I ii iii IV V vi vii° chords
+      Roman numerals + emotional description per chord
+      Shows chord diagrams inline using CHORD_SHAPES
+    NEW FILES: js/views/tools/chord-finder.js
+
+[ ] P3-D: "I Can Play This" Counter
+    WHERE: chord-card + chord-detail
+    DATA: Cloudflare KV (free tier: 100k reads/day)
+    REQUIRES: Add KV binding to wrangler.toml
+              Add /api/played endpoint in worker/index.js
+    NOTE: Build after KV is set up in Cloudflare dashboard
+
+── TODO — PHASE 4 (future, low priority) ──────────────────────────────────
+
+[ ] P4-A: Alternate tuning support (Tuning column in chords sheet)
+[ ] P4-B: Print-optimized setlist (extend setlist.js)
+[ ] P4-C: Song version support (Acoustic, Live, Original tabs)
+[ ] P4-D: Chord chart image generation (canvas-based, no library)
+[ ] P4-E: Dark mode toggle (CSS custom properties swap)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 9 — FEATURE IMPLEMENTATION SPECS
+(Complete specs for each TODO item — Claude reads this before coding)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── SPEC: Related Songs Panel ──────────────────────────────────────────────
+
+Function signature: renderRelatedSongs(currentPost, allRows, container)
+  - currentPost: the current chord row object
+  - allRows: all _chordsRows
+  - container: the chord-detail-wrap DOM element
+
+Matching algorithm (priority order):
+  1. Same Key AND same Difficulty (best match)
+  2. Same Key only
+  3. Same Category only
+  Exclude: current slug, limit to 4 results max
+
+HTML output:
+  <section class="chord-related">
+    <div class="chord-related-heading">You might also like</div>
+    <div class="chord-related-list">
+      [mini chord-card rows — same .chord-card class, no thumb]
+    </div>
+  </section>
+
+Placement: After .tab-container, before author line
+CSS: Add .chord-related, .chord-related-heading, .chord-related-list
+     to css/chords.css
+
+── SPEC: Chord Progression Analysis ──────────────────────────────────────
+
+Data needed (hardcode in chords.js):
+  DIATONIC_CHORDS = {
+    'C':  ['C','Dm','Em','F','G','Am','Bdim'],
+    'G':  ['G','Am','Bm','C','D','Em','F#dim'],
+    ... all 12 major keys
+  }
+  ROMAN_NUMERALS = ['I','ii','iii','IV','V','vi','vii°']
+  CHORD_FEEL = {
+    'I':   'Home — stable, resolved',
+    'ii':  'Gentle tension',
+    'iii': 'Dreamlike, uncertain',
+    'IV':  'Lift, movement',
+    'V':   'Strong tension, wants to resolve',
+    'vi':  'Melancholic, emotional',
+    'vii°':'Unstable, dramatic',
+  }
+
+Algorithm:
+  1. Get Chords_Used list
+  2. Detect key from post.Key (strip minor 'm' if present)
+  3. For each chord in Chords_Used, find its position in diatonic scale
+  4. Assign Roman numeral
+  5. Identify common patterns: I-V-vi-IV, I-IV-V, ii-V-I, etc.
+
+HTML output (collapsible panel, default closed):
+  <div class="chord-progression-panel">
+    <button class="chord-prog-toggle">
+      ♩ Chord Analysis <span>▸</span>
+    </button>
+    <div class="chord-prog-body" hidden>
+      <div class="chord-prog-key">Key of G major</div>
+      <div class="chord-prog-table">
+        [G → I — Home], [Em → vi — Melancholic], etc.
+      </div>
+      <div class="chord-prog-pattern">
+        Common pattern: I–vi–IV–V (50s progression)
+      </div>
+    </div>
+  </div>
+
+Placement: Between .chord-detail-header and .chord-controls
+CSS: Add .chord-progression-panel, .chord-prog-* to css/chords.css
+
+── SPEC: Beginner Simplification Mode ────────────────────────────────────
+
+Constant (hardcode in chords.js):
+  const SIMPLIFY_MAP = {
+    'Cmaj7':'C', 'Dmaj7':'D', 'Emaj7':'Em', 'Fmaj7':'F',
+    'Gmaj7':'G', 'Amaj7':'A', 'Bmaj7':'B',
+    'Dm7':'Dm', 'Em7':'Em', 'Am7':'Am', 'Bm7':'Bm',
+    'Dsus2':'D', 'Dsus4':'D', 'Asus2':'A', 'Asus4':'A',
+    'Gsus2':'G', 'Gsus4':'G', 'Csus2':'C', 'Csus4':'C',
+    'Cadd9':'C', 'Gadd9':'G', 'Dadd9':'D',
+    'C7':'C', 'D7':'D', 'G7':'G', 'A7':'A', 'E7':'E',
+    'F':'Fmaj7',    ← F is hard, offer Fmaj7 (easier shape)
+    'Bm':'D',       ← Bm barre is hard, offer D as substitute
+    'B':'Bm',       ← B barre is hard, offer Bm
+    'F#m':'Am',     ← F#m barre, offer Am as rough sub
+  }
+
+Logic:
+  - Add button to .chord-controls bar: "Simplify ✓"
+  - When toggled ON: re-render tab passing simplified chord names
+    function simplifyChord(name) { return SIMPLIFY_MAP[name] || name; }
+    Pass through renderTab() with a simplify flag
+  - When toggled OFF: re-render with original chord names
+  - Show badge "Beginner Mode" next to song title when active
+  - Persist in localStorage 'sd5_beginner_mode' (boolean)
+
+── SPEC: TU/NEB GPA Calculator (P2-A) ────────────────────────────────────
+
+File: js/views/tools/gpa-calc.js
+CSS:  css/tools.css (create this file for ALL tools)
+
+NEB grading (10+2 / Class 11-12):
+  Marks 90-100: A+, GPA 4.0
+  Marks 80-89:  A,  GPA 3.6
+  Marks 70-79:  B+, GPA 3.2
+  Marks 60-69:  B,  GPA 2.8
+  Marks 50-59:  C+, GPA 2.4
+  Marks 40-49:  C,  GPA 2.0
+  Marks 35-39:  D,  GPA 1.6
+  Below 35:     NG, GPA 0.0
+
+TU grading (Bachelor's):
+  Marks 80+:  Distinction
+  Marks 60-79: First Division
+  Marks 45-59: Second Division
+  Marks 32-44: Pass
+  Below 32:   Fail
+
+CGPA formula: Sum(credits × grade_point) / Sum(credits)
+
+UI: Two tabs — NEB Calculator + TU CGPA Calculator
+    NEB: Add subjects, marks input per subject, shows grade+GPA
+    TU: Add subjects with credit hours, marks per subject, shows CGPA
+    Results: animated display, share result as text
+
+Schema: SoftwareApplication
+  name: "Nepal GPA Calculator — NEB & TU"
+  applicationCategory: "EducationalApplication"
+
+── SPEC: Capo Finder Tool (P2-B) ─────────────────────────────────────────
+
+File: js/views/tools/capo-finder.js
+
+UI:
+  Dropdown 1: "I want to play in key..." (all 12 keys)
+  Dropdown 2: "Using open chord shapes for key..." (all 12 keys)
+  Output: "Place capo on fret X"
+  Secondary: "Or play these barre chords: ..."
+
+Logic: Copy transposeRoot() from chords.js (do NOT import — duplicate is fine)
+  capoFret = (targetKey_index - openKey_index + 12) % 12
+
+── SPEC: BPM to Delay Calculator (P2-C) ─────────────────────────────────
+
+File: js/views/tools/bpm-calc.js
+
+Formulas (all in milliseconds):
+  Whole note:    60000 / BPM * 4
+  Half note:     60000 / BPM * 2
+  Quarter note:  60000 / BPM
+  8th note:      60000 / BPM / 2
+  16th note:     60000 / BPM / 4
+  Dotted quarter: 60000 / BPM * 1.5
+  Triplet:       60000 / BPM / 3
+  Room reverb (small):  150ms
+  Room reverb (large):  300-500ms recommendation based on BPM
+
+UI: BPM input (tap tempo button + manual), shows table of all values
+    Tap tempo: click button 4 times, calculates average BPM
+    Copy individual values to clipboard
+
+── SPEC: NRB Calculator (P2-D) ───────────────────────────────────────────
+
+File: js/views/tools/nrb-calc.js
+
+API: https://www.nrb.org.np/api/forex/v1/app-rate (free, no key)
+IMPORTANT: This is an external API call from the browser.
+  CSP in worker/ssr/meta.js MUST be updated:
+  connect-src 'self' https://www.nrb.org.np
+
+Fallback: If API fails, show last known rates (hardcode 5-6 common currencies)
+
+UI: 
+  Amount input, From currency dropdown, To currency dropdown
+  Show: converted amount, buy rate, sell rate, mid rate, date
+  Quick buttons: USD, INR, GBP, EUR, AUD, SAR (remittance countries)
+  Remittance tip: "After eSewa/Khalti fees (~1.5%), you receive: X NPR"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 10 — HOW TO DEBUG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHEN REPORTING AN ERROR, ALWAYS PROVIDE:
+  1. Page URL where error happens
+  2. Browser console (F12 → Console) — full error text
+  3. Network tab — any failed requests
+  4. What you expected vs what happened
+  5. Full content of the relevant file
+
+DEBUGGING CHECKLIST:
+  ✓ esc() called on all sheet data before innerHTML?
+  ✓ View div exists in index.html?
+  ✓ Route registered in main.js?
+  ✓ .reveal class on cards? (watchReveals won't animate otherwise)
+  ✓ loadCSS() called before rendering?
+  ✓ localStorage prefix 'sd5_' used?
+  ✓ Cache TTL: 10 minutes (CFG.cacheMins = 10)
+  ✓ Rate limit: 120 req/min per IP
+  ✓ Sheet name in whitelist (getSheetGids in worker/sheets.js)?
+
+WHEN CLAUDE FINISHES A CODING SESSION:
+  Tell Suman to update Section 8 with:
+  [DATE] [FEATURE NAME] — [DONE/PARTIAL]
+    WHAT CHANGED: list each file + what changed
+    WHAT STILL WORKS: confirm no regressions
+    NEXT STEP: what to do in next session
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 11 — CURRENT ERROR (fill this when reporting bugs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Page URL:
+[PASTE URL]
+
+Console errors (F12 → Console):
+[PASTE ERRORS]
+
+Network errors (F12 → Network):
+[PASTE ERRORS]
+
+Expected:
+[DESCRIBE]
+
+Actual:
+[DESCRIBE]
+
+Relevant file(s) — PASTE FULL CONTENT:
+[PASTE HERE]
+
+═══════════════════════════════════════════════════════════════════════════════
+TOTAL FILES: 31 current + 8 planned Phase 2 + 2 planned Phase 3
+LAST UPDATED: May 2026 — by Claude (Suman Dangal portfolio session)
+NEXT PRIORITY: Phase 1 remaining → Related Songs panel in chords.js
+═══════════════════════════════════════════════════════════════════════════════  

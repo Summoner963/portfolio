@@ -1,442 +1,971 @@
-You are a senior full-stack engineer acting as my sole technical collaborator.
-I am building a personal website called Suman Dangal (https://suman-dangal.com.np).
-Read every word of this prompt before writing a single line of code.
+═══════════════════════════════════════════════════════════════════════════════
+SUMAN DANGAL PORTFOLIO — COMPLETE MASTER PROMPT v2.0
+Use this document in every new Claude conversation to resume work instantly.
+═══════════════════════════════════════════════════════════════════════════════
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 1 — WHO I AM AND WHAT EXISTS TODAY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1 — PROJECT IDENTITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-I am a final-year BCA student at Tribhuvan University, Bhaktapur, Nepal.
-My site is a personal portfolio + blog, currently built as a single-page
-application (SPA) with:
+Site:       https://suman-dangal.com.np
+Dev URL:    dev.suman-dangal.pages.dev (via Cloudflare Pages Functions)
+Repo:       https://github.com/Summoner963/portfolio
+Branches:   main = live / dev = testing (git push origin dev)
+Owner:      Suman Dangal, Final-year BCA student, Bhaktapur Nepal
+Email:      sumandangal888@gmail.com
 
-  - index.html (~1800 lines): all CSS inline in <style>, all JS inline
-    in one <script>, 8 view <div>s for home/skills/projects/blog/
-    experience/about/contact, a client-side router (navigate()),
-    Google Sheets as the database fetched via /api/data?sheet=<name>.
+Stack:      
+  Frontend:   Vanilla JS ES modules, CSS custom properties
+  Backend:    Cloudflare Pages + Workers (free tier)
+  CMS:        Google Sheets (published CSV, no API key needed)
+  Domains:    .com.np via GoDaddy (Cloudflare nameservers)
+  Build:      wrangler.toml, no build step, direct deploy
 
-  - worker.js (~600 lines): a Cloudflare Worker handling routing,
-    rate limiting, security headers, /api/data endpoint (proxies
-    named Google Sheets to browser without exposing sheet IDs),
-    blog post SSR prerendering for SEO, sitemap.xml, robots.txt,
-    llms.txt.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2 — COMPLETE FILE STRUCTURE & WHAT EACH FILE DOES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  - Hosted on Cloudflare Pages + Workers (free tier). Custom domain.
-    wrangler.toml holds all sheet GIDs as env vars.
-
-  - Design system: CSS custom properties (--accent #2d6a4f green,
-    --accent2 #1b4332 dark green, --bg #ffffff, --surface #f7f8f6),
-    DM Serif Display + DM Mono + DM Sans fonts, card-based UI,
-    reveal-on-scroll animations, mobile-first responsive.
-
-  - All data comes from Google Sheets published as CSV. Each sheet tab
-    has a GID stored in wrangler.toml. The Worker proxies these —
-    sheet URLs and IDs NEVER reach the browser.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 2 — THE ARCHITECTURE I AM MIGRATING TO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-CORE PRINCIPLE: Open/Closed. Every module is open for extension,
-closed for modification. Adding a new section (like Chords) means
-creating new files only — zero changes to existing files except
-two lines in main.js, one line in worker/sheets.js,
-two lines in worker/index.js, one var in wrangler.toml.
-
-TARGET FILE STRUCTURE:
-
-project/
-├── index.html                 ← shell only: nav HTML, #app div,
-│                                <link> CSS files, <script type=module
-│                                src=js/main.js>. Under 100 lines.
+portfolio/ (root)
 │
-├── js/
-│   ├── main.js                ← ONLY file listing all routes.
-│   │                            import + registerRoute() per section.
-│   ├── router.js              ← navigate(), registerRoute(),
-│   │                            registerPrefix(), popstate handler,
-│   │                            data-link click, progress bar, 404.
-│   │                            Knows ZERO view names.
-│   ├── api.js                 ← fetchSheet(endpoint, key, onRevalidate),
-│   │                            parseCSV, cGet/cSet (localStorage cache),
-│   │                            CFG object with all api endpoints.
-│   ├── seo.js                 ← updateSEO({title,desc,path,ogImage,
-│   │                            articleMeta}), buildFAQ, buildImgMap,
-│   │                            injectSchema helpers.
-│   ├── utils.js               ← esc, md (markdown renderer), fixImgUrl,
-│   │                            sanitizeHTML, watchReveals,
-│   │                            IntersectionObserver setup, pStart/pEnd.
-│   └── views/
-│       ├── home.js            ← renderHome(), renderFeaturedPosts()
-│       ├── blog.js            ← renderBlogList(), renderArticle(slug),
-│       │                        blogState, initBlogToolbar,
-│       │                        renderFilteredBlog, buildCategoryChips
-│       ├── skills.js          ← renderSkills()
-│       ├── projects.js        ← renderProjects()
-│       ├── about.js           ← renderAbout()
-│       ├── experience.js      ← renderExperience()
-│       ├── contact.js         ← renderContact()
-│       └── chords.js          ← NEW: renderChords(slug) — see Section 4
+├── index.html (~150 lines)
+│   Purpose: Single-page app shell, never changes after deploy
+│   Contains:
+│     • All <meta> tags (title, description, og:*, twitter:*)
+│     • Canonical link (dynamic)
+│     • <link> to css/base.css ONLY (in <head>)
+│     • <nav> with data-link on all anchors
+│     • #app div containing 10 view divs:
+│         - #view-home
+│         - #view-skills
+│         - #view-projects
+│         - #view-blog
+│         - #view-article (dynamic blog posts)
+│         - #view-experience
+│         - #view-about
+│         - #view-contact
+│         - #view-chords
+│         - #view-chord-detail (dynamic chord sheets)
+│     • <script type="module" src="js/main.js">
+│     • NO inline CSS, NO inline JS, NO style tags
 │
-├── css/
-│   ├── base.css               ← :root tokens, *, body, nav, buttons,
-│   │                            hero, footer, .reveal, .skel, .sr-only,
-│   │                            #nprogress, offline-banner, 404 styles.
-│   ├── blog.css               ← .blog-card, .blog-toolbar, .article-body,
-│   │                            .article-cover, .faq-*, pagination,
-│   │                            .blog-inline-img, .blog-figure.
-│   ├── skills.css             ← .skills-grid, .skill-card, .tag-row, .tag.
-│   ├── projects.css           ← .projects-grid, .proj-card, .proj-*.
-│   ├── about.css              ← .timeline, .about-grid, .edu-card,
-│   │                            .info-row, .contact-grid, .contact-tile.
-│   ├── featured.css           ← .featured-section, .fp-card, .fp-thumb,
-│   │                            .fp-skel-*, .fp-body, .fp-arrow.
-│   └── chords.css             ← NEW: all chord page styles isolated.
+├── _worker.js (Cloudflare Pages entry point, ~10 lines only)
+│   Purpose: Thin shim, delegates to worker/index.js
+│   Contains: export { default } from "./worker/index.js";
 │
+├── wrangler.toml
+│   name = "suman-dangal"
+│   compatibility_date = "2024-09-23"
+│   pages_build_output_dir = "."
+│   [vars]
+│     SHEET_BASE = "https://docs.google.com/spreadsheets/d/e"
+│     BLOG_GID = "1132024800"
+│     SKILLS_GID = "302402061"
+│     PROJECTS_GID = "0"
+│     EXP_GID = "245982630"
+│     ABOUT_GID = "1066410604"
+│     FAQ_GID = "303688554"
+│     IMAGES_GID = "1267436347"
+│     FEATURED_GID = "980532084"
+│     CHORDS_GID = "687736904"    ← chord sheets tab
+│   SECRET: SHEET_ID (set via `wrangler pages secret put SHEET_ID`)
+│
+├── .dev.vars (gitignored, never committed)
+│   SHEET_ID=2PACX-1v...actual_sheet_id...
+│
+├── js/main.js (~90 lines)
+│   Purpose: Application entry point and route registry
+│   Exports: nothing (side effects only)
+│   Does:
+│     • Static imports: registerRoute, registerPrefix, boot from router.js
+│     • Static imports: fetchSheet, CFG from api.js
+│     • Static imports: updateSEO from seo.js
+│     • Static imports: watchReveals from utils.js
+│     • Registers EXACT routes first:
+│         registerRoute('/', async () => { renderHome })
+│         registerRoute('/skills', async () => { renderSkills })
+│         registerRoute('/projects', async () => { renderProjects })
+│         registerRoute('/blog', async () => { renderBlogList })
+│         registerRoute('/experience', async () => { renderExperience })
+│         registerRoute('/about', async () => { renderAbout })
+│         registerRoute('/contact', async () => { renderContact })
+│         registerRoute('/chords', async () => { renderChords })
+│     • Registers PREFIX routes (checked after exact):
+│         registerPrefix('/blog/', async ({ slug }) => { renderArticle(slug) })
+│         registerPrefix('/chords/', async ({ slug }) => { renderChordDetail(slug) })
+│     • Calls boot() after all registrations
+│     • Wires offline banner event listeners
+│     • Wires mobile burger menu open/close
+│   Rule: This is the ONLY file that knows all route names
+│
+├── js/router.js (~280 lines)
+│   Purpose: SPA navigation engine
+│   Exports: registerRoute(path, handler), registerPrefix(prefix, handler),
+│            navigate(rawPath, push=true), boot(), showView(viewId)
+│   Does:
+│     • Maintains _exactRoutes Map and _prefixRoutes Array
+│     • navigate(rawPath, push=true):
+│         - Parses URL + query params
+│         - Normalises path (removes /portfolio-upload, strips index.html)
+│         - Checks cache to avoid double-render
+│         - Calls pStart() for progress bar
+│         - Hides all .view elements (removes .active class)
+│         - Updates nav aria-current="page" on matching link
+│         - Pushes to history if push=true
+│         - Scrolls to top (behavior:'instant')
+│         - Decomposes path into parts[] and slug
+│         - Dispatches to exact route handler first
+│         - Falls back to prefix routes (first match wins)
+│         - 404: shows overlay if no handler found
+│         - Calls showView() to activate the right DOM element
+│         - Calls pEnd() when done
+│     • Global [data-link] click handler:
+│         - Intercepts all <a data-link> clicks
+│         - Prevents default for internal links only
+│         - Calls navigate(href)
+│     • Popstate handler: navigate(location.pathname + location.search, false)
+│     • Mobile burger menu: toggles nav-links visibility on click
+│   Does NOT know: any view names, any render functions, SEO details
+│
+├── js/api.js (~350 lines)
+│   Purpose: Data fetching, CSV parsing, local caching
+│   Exports: fetchSheet(endpoint, key, onRevalidate), parseCSV(raw),
+│            cGet(key), cSet(key, data), cDel(key), CFG, buildImgMap, buildFAQ
+│   CFG object contains:
+│     siteUrl: "https://suman-dangal.com.np"
+│     cacheMins: 10  ← localStorage TTL in minutes
+│     postsPerPage: 6
+│     chordsPerPage: 12
+│     api: {
+│       blog: '/api/data?sheet=blog',
+│       skills: '/api/data?sheet=skills',
+│       projects: '/api/data?sheet=projects',
+│       exp: '/api/data?sheet=exp',
+│       about: '/api/data?sheet=about',
+│       faq: '/api/data?sheet=faq',
+│       images: '/api/data?sheet=images',
+│       featured: '/api/data?sheet=featured',
+│       chords: '/api/data?sheet=chords'
+│     }
+│   fetchSheet(endpoint, key, onRevalidate):
+│     - Checks localStorage with prefix 'sd5_' and 10-min TTL
+│     - If FRESH cache: returns immediately (no network)
+│     - If STALE cache: returns stale data, fetches fresh in background,
+│       calls onRevalidate(fresh) if provided
+│     - If NO cache: fetches, waits for response, caches, returns
+│   parseCSV(raw):
+│     - Handles quoted fields, escaped quotes (""), CRLF + LF
+│     - Strips empty rows
+│     - Returns Array<Object> keyed by header row
+│   cGet(key) / cSet(key, data) / cDel(key):
+│     - localStorage helpers with 'sd5_' prefix
+│     - Errors swallowed (private browsing doesn't throw)
+│   buildImgMap(post, imageRows):
+│     - Resolves Img1_URL...ImgN_URL columns + images sheet rows
+│     - Returns { '[img1]': '<figure>...</figure>', ... }
+│   buildFAQ(slug, rows):
+│     - Fetches FAQ rows for blog slug, injects FAQPage schema
+│     - Returns rendered HTML string
+│   Does NOT: touch DOM, call fetch on behalf of views
+│
+├── js/seo.js (~400 lines)
+│   Purpose: All SEO, meta tags, structured data
+│   Exports: updateSEO(opts), buildBreadcrumb(crumbs),
+│            buildBlogPosting(meta), buildMusicComposition(meta),
+│            buildHomeSchemas(), injectSchema(id, schema),
+│            removeSchema(id), removeSchemas(ids)
+│   updateSEO(opts) updates:
+│     • <title>
+│     • meta[name="description"] content
+│     • meta[name="robots"] (noindex on 404)
+│     • link[rel="canonical"]
+│     • og:title, og:description, og:url, og:image, og:type
+│     • twitter:card, twitter:title, twitter:description, twitter:image
+│     • #site-h1 visibility (visible on home only)
+│     • BreadcrumbList schema (always)
+│     • BlogPosting schema (if opts.articleMeta provided)
+│     • MusicComposition schema (if opts.chordMeta provided)
+│   buildHomeSchemas():
+│     - Injects Person + Organization + WebSite schemas (static)
+│     - Called once on home route, persists for session
+│   injectSchema(id, schema):
+│     - Creates/updates <script type="application/ld+json">
+│     - Idempotent by id (updates existing, doesn't duplicate)
+│
+├── js/utils.js (~600 lines)
+│   Purpose: Shared utilities (no DOM manipulation at module level)
+│   Exports: esc(s), fixImgUrl(url), sanitizeHTML(raw), md(text, imgMap),
+│            watchReveals(), pStart(), pEnd(), loadCSS(href),
+│            showToast(message, duration)
+│   esc(s): 
+│     - Escapes &<>"' for safe innerHTML insertion
+│     - MUST be called on ALL sheet data before innerHTML
+│   fixImgUrl(url):
+│     - Converts Google Drive URLs to lh3.googleusercontent.com
+│     - Non-Drive URLs passed through unchanged
+│   sanitizeHTML(raw):
+│     - Whitelist-based HTML sanitizer
+│     - Safe tags: table, tr, th, td, strong, em, a, ul, ol, li, code, pre
+│     - Strips disallowed attributes, forces safe link behaviour
+│   md(text, imgMap):
+│     - Markdown-ish renderer:
+│       ## h2, ### h3, > blockquote
+│       - unordered, 1. ordered lists
+│       **bold**, *italic*, `code`, [text](url)
+│       ``` code blocks
+│       | as line separator (Google Sheets compatible)
+│       [img1] [img2] inline image placeholders → resolved via imgMap
+│     - Returns HTML string safe for innerHTML
+│   watchReveals():
+│     - Hooks IntersectionObserver onto all .reveal elements
+│     - Staggered fade-up animation on scroll
+│     - Threshold 0.07, rootMargin '0px 0px -40px 0px'
+│     - Module singleton (one observer instance for app lifetime)
+│   pStart() / pEnd():
+│     - Drives #nprogress bar during navigation
+│     - pStart(): resets to 0%, animates to ~80%
+│     - pEnd(): completes to 100%, fades after 380ms
+│   loadCSS(href):
+│     - Lazily loads section CSS files on demand
+│     - Guards against double-injection with internal Set
+│     - Returns Promise that resolves when sheet is loaded
+│
+├── js/views/
+│   │
+│   ├── home.js (~130 lines)
+│   │   Exports: renderHome()
+│   │   Does:
+│   │     • Shows #view-home
+│   │     • Calls renderFeaturedPosts() (non-blocking)
+│   │     • renderFeaturedPosts():
+│   │       - Fetches featured + blog sheets in parallel
+│   │       - Matches featured slugs to blog rows
+│   │       - Renders .fp-card cards with 16:9 thumbnails
+│   │       - Prepopulates blog module cache via setBlogRows()
+│   │       - Reveals section with .reveal animations
+│   │       - Silent fail if API unavailable
+│   │
+│   ├── blog.js (~500 lines) **TWO MODES: LIST + ARTICLE**
+│   │   Exports: renderBlogList(page), renderArticle(slug),
+│   │            setBlogRows(rows), buildCategoryChips(rows)
+│   │   Module state:
+│   │     blogRows: cached sheet rows (pre-populated by home.js)
+│   │     blogState: { query, category, sort, page } — mutable filter state
+│   │   renderBlogList(page):
+│   │     • Shows #view-blog
+│   │     • Fetches blog sheet
+│   │     • Builds search + filter toolbar
+│   │     • Wires search input (260ms debounce)
+│   │     • Wires category filter chips
+│   │     • Wires sort dropdown (newest/oldest/A-Z/Z-A)
+│   │     • Applies filters → renders cards
+│   │     • Renders pagination (CFG.postsPerPage = 6)
+│   │     • Falls back to hardcoded if API fails
+│   │   renderArticle(slug):
+│   │     • Shows #view-article
+│   │     • Fetches blog + faq + images in parallel
+│   │     • Renders markdown content with md()
+│   │     • Renders FAQ accordion if rows exist
+│   │     • Calls updateSEO with BlogPosting schema
+│   │     • Returns 404 overlay if slug not found
+│   │
+│   ├── skills.js (~90 lines)
+│   │   Exports: renderSkills()
+│   │   Does:
+│   │     • Shows #view-skills
+│   │     • Fetches skills sheet
+│   │     • Renders .skill-card grid (auto-fill 255px)
+│   │     • Column format: title, icon, color (c-green/c-blue/c-amber), tags
+│   │     • Falls back to hardcoded FB.skills if API fails
+│   │
+│   ├── projects.js (~180 lines)
+│   │   Exports: renderProjects()
+│   │   Does:
+│   │     • Shows #view-projects
+│   │     • Fetches projects sheet
+│   │     • Renders .proj-card grid (2 columns, auto-layout)
+│   │     • featured="true" → spans both columns + visual panel
+│   │     • wide="true" → spans both columns, no visual
+│   │     • Falls back to FB.projects if API fails
+│   │     • Column format: title, desc, stack, link, featured, wide,
+│   │       bullets (pipe-separated), visual (emoji)
+│   │
+│   ├── about.js (~100 lines)
+│   │   Exports: renderAbout()
+│   │   Does:
+│   │     • Shows #view-about
+│   │     • Fetches about sheet (single row)
+│   │     • Renders bio paragraphs (bio1, bio2, bio3, bio4 columns)
+│   │     • Appends chord sheets callout link → /chords
+│   │     • Falls back to hardcoded FB about if API fails
+│   │     • Shares about.css with experience.js + contact.js
+│   │
+│   ├── experience.js (~120 lines)
+│   │   Exports: renderExperience()
+│   │   Does:
+│   │     • Shows #view-experience
+│   │     • Fetches exp sheet
+│   │     • Renders timeline (.tl-item with .tl-dot spine)
+│   │     • Column format: role, org, date, datetime, bullets, type
+│   │     • Falls back to hardcoded FB.experience if API fails
+│   │
+│   ├── contact.js (~30 lines)
+│   │   Exports: renderContact()
+│   │   Does:
+│   │     • Shows #view-contact (purely static)
+│   │     • Loads about.css (shared with experience + about)
+│   │     • Just calls updateSEO + watchReveals
+│   │     • No fetch, no dynamic content
+│   │
+│   └── chords.js (~800 lines) **MAJOR: LIST + DETAIL + TRANSPOSE + POPOVER**
+│       Exports: renderChords(slug), renderChordDetail(slug)
+│       renderChords():
+│         • Shows #view-chords
+│         • Fetches chords sheet
+│         • Renders featured strip (Featured==="true" rows)
+│         • Toolbar: search, filter chips (Category), 
+│           filter dropdowns (Difficulty, Key), sort
+│         • Search: title + artist + tags
+│         • Sort: newest / A-Z / by artist
+│         • Pagination: CFG.chordsPerPage = 12 per page
+│         • Renders .chord-card grid
+│         • Calls updateSEO for /chords route
+│       renderChordDetail(slug):
+│         • Shows #view-chord-detail
+│         • Fetches chords sheet, finds row by Slug
+│         • Returns 404 overlay if not found
+│         • Renders header:
+│             title, artist, key, capo, BPM,
+│             difficulty badge, category badge,
+│             Chords_Used as interactive pills
+│         • Renders Tab_Content (split by | for lines, || for gaps)
+│         • TRANSPOSE ENGINE:
+│             +/- buttons, range -6 to +6 semitones
+│             updates all chord names in real time
+│             shows current transposed key
+│             shows capo suggestion when applicable
+│             handles: maj, m, 7, maj7, m7, sus2, sus4, add9, power
+│             enharmonic-aware (C# ↔ Db)
+│         • CHORD DIAGRAM POPOVER:
+│             Tap/hover any chord name
+│             SVG fretboard 80×100px from chord-shapes.js
+│             Shows finger positions, barre, muted/open strings
+│             Modal-like popover, closes on outside click
+│             Mobile-friendly (tap instead of hover)
+│         • FONT SIZE: A− / A+ buttons
+│             localStorage key: 'chord_fontsize'
+│             persisted across sessions
+│         • AUTO-SCROLL:
+│             Toggle button + speed slider (1-10)
+│             Scrolls page automatically for live playing
+│             Stops on toggle off or manual scroll
+│         • PRINT: window.print() with clean print CSS
+│         • SHARE: copies URL to clipboard, shows toast
+│         • Calls updateSEO with MusicComposition schema
+│
+│   └── js/data/
+│       └── chord-shapes.js (~1000+ lines)
+│           Purpose: Finger position data for all common chords
+│           Exports: CHORD_SHAPES (default)
+│           Structure:
+│             CHORD_SHAPES = {
+│               'C': { frets: [0,1,0,2,3,-1], 
+│                      fingers: [0,1,0,2,3,0],
+│                      baseFret: 1 },
+│               'Cm': { ... },
+│               'C#': { frets: [...], barre: {fret, from, to}, 
+│                       baseFret: 4 },
+│               'Db': reference to 'C#',  ← enharmonic alias
+│               ... all 12 roots × major/m/7/maj7/m7/sus2/sus4/add9/5
+│             }
+│           fret values: 0=open, -1=muted, 1-5=finger position
+│           string order: [e, B, G, D, A, E] (high to low)
+│           barre: { fret, from (string idx), to (string idx) }
+│
+├── css/base.css (~450 lines)
+│   Scope: ALWAYS loaded in <head>, never lazy
+│   Contains:
+│     • :root CSS custom properties (all 25 variables)
+│     • * reset, html/body base styles
+│     • nav fixed positioning + backdrop blur
+│     • .nav-links, .nav-burger (mobile)
+│     • #nprogress (progress bar)
+│     • .view + .view.active (fade-in animation)
+│     • .btn .btn-solid .btn-ghost variants
+│     • .container, .section-eyebrow, .section-heading
+│     • .hero, .hero-badge, .hero-title, .hero-sub, .hero-ctas, .hero-stats
+│     • .reveal + @keyframes fade-up animation
+│     • .skel, .skel-card, .skel-line (skeleton shimmer)
+│     • #offline-banner
+│     • 404 overlay (.not-found-wrap, .not-found-code)
+│     • footer styles
+│     • .sr-only (screen reader only)
+│     • :focus-visible (keyboard navigation)
+│     • @media print
+│     • @media prefers-reduced-motion
+│     • mobile breakpoints for nav + hamburger
+│   Rule: No section-specific styles here
+│
+├── css/featured.css (~200 lines)
+│   Lazy-loaded by home.js
+│   Contains: .featured-section, .featured-header, .featured-grid,
+│            .fp-card, .fp-thumb, .fp-body, .fp-meta, .fp-cat,
+│            .fp-title, .fp-excerpt, .fp-arrow, .fp-skel-*
+│
+├── css/blog.css (~400 lines)
+│   Lazy-loaded by blog.js
+│   Contains:
+│     • Toolbar: .blog-toolbar, .blog-search-wrap, .blog-filters,
+│       .filter-chip, .blog-sort-wrap, #blogSort
+│     • List: .blog-grid, .blog-card, .blog-card-thumb,
+│       .blog-card-body, .blog-card-meta, .blog-cat,
+│       .blog-card-title, .blog-card-excerpt, .blog-card-tags, .blog-tag
+│     • Article: .article-back, .article-meta, .article-title,
+│       .article-cover, .article-body (all child: h2, h3, p, a, ul, ol,
+│       li, blockquote, code, pre), .article-author, .article-tags, .article-tag
+│     • Inline images: .blog-inline-img, .blog-figure, figcaption
+│     • FAQ: .faq-section, .faq-item, .faq-question, .faq-answer
+│     • Sheet HTML: .sheet-html-block table styles
+│     • Pagination: .pagination, prev/next buttons
+│     • Empty state: .empty-state
+│
+├── css/skills.css (~150 lines)
+│   Lazy-loaded by skills.js
+│   Contains: .skills-grid, .skill-card, .skill-card::before (accent bar),
+│            .skill-card.c-green/.c-blue/.c-amber,
+│            .skill-icon, .skill-name, .tag-row, .tag
+│
+├── css/projects.css (~180 lines)
+│   Lazy-loaded by projects.js
+│   Contains: .projects-grid, .proj-card, .proj-card.feat,
+│            .proj-card.wide, .proj-num, .proj-title, .proj-desc,
+│            .proj-bullets, .proj-stack, .proj-links, .proj-visual, .proj-note
+│
+├── css/about.css (~350 lines)
+│   Lazy-loaded by about.js, experience.js, contact.js
+│   Contains:
+│     • Timeline: .timeline, .timeline::before (spine),
+│       .tl-item, .tl-dot, .tl-date, .tl-role, .tl-org, .tl-list, .tl-list li
+│     • About: .about-grid, .about-text, .info-row, .info-label, .info-val,
+│       .edu-card, .edu-deg, .edu-uni, .about-chord-callout
+│     • Contact: .contact-grid, .contact-tile
+│
+└── css/chords.css (~600 lines)
+    Lazy-loaded by chords.js
+    Contains:
+      • List page: .chords-hero, .chords-hero-title, .chords-toolbar
+      • Search + filters: .chords-search-wrap, .chords-filters,
+        .filter-chip, .chord-filter-label
+      • Card grid: .chords-grid, .chord-card, .chord-card-thumb,
+        .chord-card-meta, .chord-difficulty-badge, .chord-category-badge,
+        .chord-featured-badge
+      • Detail page: .chord-detail-header, .chord-title, .chord-artist,
+        .chord-meta-row, .chord-badges
+      • Tab viewer: .chord-tab-content, .chord-line, .chord-row,
+        .chord-name (interactive), .lyric-row, .chord-section-label
+      • Controls bar: .chord-controls, .transpose-display,
+        .chord-control-btn, .capo-suggestion, .autoscroll-controls
+      • Popover: .chord-popover, .chord-diagram-svg
+      • Mobile: fixed bottom controls, responsive grid
+      • Print: @media print styles
+
 └── worker/
-    ├── index.js               ← thin fetch() router only. Imports and
-    │                            delegates to handlers. Rate limit,
-    │                            security headers, asset pass-through.
-    ├── sheets.js              ← getSheetGids(env). SINGLE source of
-    │                            truth for ALL GIDs. One line per section.
-    ├── utils.js               ← escHtml, escJson, parseCSV, fixImgUrl,
-    │                            renderMarkdown, formatDate, sanitizeHTML.
-    │                            Shared by all SSR handlers — no duplication.
+    │
+    ├── index.js (~350 lines)
+    │   Purpose: Main Worker fetch() router
+    │   Imports: everything from ./sheets.js, ./ssr/*, ./utils.js
+    │   Does:
+    │     • Rate limiting: 120 req/min per IP (in-memory)
+    │     • SLUG_REDIRECTS map for 301 redirects
+    │     • Route dispatch:
+    │       GET /api/data?sheet=<name> → handleDataEndpoint()
+    │       GET /blog/:slug           → prerenderBlogPost()
+    │       GET /chords/:slug         → prerenderChord()
+    │       GET /sitemap.xml          → generateSitemap()
+    │       GET /robots.txt           → generated response
+    │       GET /llms.txt             → generated response
+    │       GET * (everything else)   → serveIndex() or serveIndexWithMeta()
+    │     • Security headers on every response
+    │     • Caching strategy: 
+    │       API responses: max-age=600, stale-while-revalidate=3600
+    │       HTML responses: max-age=3600, stale-while-revalidate=86400
+    │
+    ├── sheets.js (~120 lines)
+    │   Purpose: Google Sheets data access (single source of truth for GIDs)
+    │   Exports: getSheetGids(env), getAllowedSheetNames(env),
+    │            handleDataEndpoint(url, env)
+    │   getSheetGids(env):
+    │     Returns object mapping sheet names → GIDs from env:
+    │       blog, skills, projects, exp, about, faq, images,
+    │       featured, chords
+    │     THIS IS THE ONLY PLACE GIDs ARE REFERENCED
+    │   handleDataEndpoint(url, env):
+    │     • Validates sheet name against whitelist (no arbitrary proxying)
+    │     • Unknown sheets → 404 response
+    │     • Checks 10-min in-memory cache
+    │     • Fetches from Google Sheets if not cached
+    │     • Returns CSV with correct headers
+    │     • CORS: Access-Control-Allow-Origin: same-origin only
+    │
+    ├── utils.js (~400 lines) [SERVER-SIDE VERSION — separate from js/utils.js]
+    │   Purpose: Worker utility functions (NO DOM ACCESS)
+    │   Exports: escHtml(s), escJson(s), parseCSV(raw), fixImgUrl(url),
+    │            renderMarkdown(text, imgMap), formatDate(dateStr),
+    │            sanitizeHTML(raw)
+    │   escHtml(): same escaping as browser esc()
+    │   parseCSV(): identical to browser version — kept in sync manually
+    │   renderMarkdown(): SSR-safe markdown renderer (same as browser md())
+    │   NO DUPLICATION between worker/utils.js and js/utils.js
+    │
     └── ssr/
-        ├── blog.js            ← prerenderBlogPost(slug, env, request).
-        │                        Pure function. Imports worker/utils.js.
-        ├── meta.js            ← PRERENDER_CSS, ROUTE_META,
-        │                        serveIndexWithMeta, generateSitemap,
-        │                        SECURITY_HEADERS, htmlCacheHeaders.
-        └── chords.js          ← NEW: prerenderChord(slug, env, request).
+        │
+        ├── meta.js (~300 lines)
+        │   Purpose: SSR metadata, CSS, and schema templates
+        │   Exports: SITE_URL, ROUTE_META, PRERENDER_CSS,
+        │            SECURITY_HEADERS, applySecurityHeaders,
+        │            htmlCacheHeaders, buildSSRHead,
+        │            preNavHTML, preFooterHTML, hydrationScript,
+        │            serveIndex, serveIndexWithMeta, generateSitemap
+        │   PRERENDER_CSS: Complete base styles for SSR pages
+        │     • All :root variables inlined
+        │     • Nav, hero, article, chord, timeline styles
+        │     • Bots see styled HTML before JS hydrates
+        │   ROUTE_META: Per-route SEO data (title, desc, canonical, h1)
+        │     Includes all 8 static routes + dynamic /blog/:slug + /chords/:slug
+        │   generateSitemap():
+        │     • Includes all static routes
+        │     • Fetches blog sheet, adds all slugs
+        │     • Fetches chords sheet, adds all slugs
+        │     • Returns proper sitemap.xml
+        │   SECURITY_HEADERS: Applied to every response
+        │     X-Frame-Options, X-Content-Type-Options,
+        │     Content-Security-Policy, Referrer-Policy, etc.
+        │
+        ├── blog.js (~200 lines)
+        │   Purpose: SSR prerender for blog articles
+        │   Exports: prerenderBlogPost(slug, env, request, fetchSheetData)
+        │   Does:
+        │     • Fetches blog + faq + images sheets in parallel
+        │     • Finds post row by Slug
+        │     • Returns 404 HTML if not found (noindex, nofollow)
+        │     • Renders complete static HTML:
+        │       - All meta tags (og:*, twitter:*, description, canonical)
+        │       - BlogPosting structured data
+        │       - BreadcrumbList schema
+        │       - FAQPage schema (if FAQ rows exist)
+        │       - Person schema
+        │       - Full article content (markdown rendered)
+        │       - PRERENDER_CSS inlined for instant styling
+        │       - hydrationScript for real users (redirects to SPA)
+        │     • Bots get full static content
+        │     • Real users hydrate to SPA, all interactive features work
+        │
+        └── chords.js (~200 lines)
+            Purpose: SSR prerender for chord detail pages
+            Exports: prerenderChord(slug, env, request, fetchSheetData)
+            Does:
+              • Fetches chords sheet
+              • Finds song row by Slug
+              • Returns 404 HTML if not found (noindex, nofollow)
+              • Renders complete static HTML:
+                - All meta tags
+                - MusicComposition structured data
+                - BreadcrumbList schema
+                - Person schema
+                - Chord metadata (artist, key, capo, BPM, difficulty)
+                - Tab content as preformatted text (readable for bots)
+                - PRERENDER_CSS inlined
+                - hydrationScript for real users
+              • Bots get readable chord tab content
+              • Real users hydrate to SPA, all interactive (transpose,
+                popover, autoscroll) work
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 3 — SECURITY REQUIREMENTS (NON-NEGOTIABLE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3 — DATA LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-These must be preserved exactly in every file you generate:
+GOOGLE SHEETS COLUMNS:
 
-1. Sheet IDs and GIDs NEVER reach the browser. Only
-   /api/data?sheet=<name> is called from client JS.
-   Sheet URLs live only in worker/sheets.js + worker/index.js.
+blog:
+  Title (H1), Slug (unique URL slug), Date (YYYY-MM-DD),
+  Category (string), Excerpt (plain text),
+  Tags (comma-separated), Image_URL, Image_Alt,
+  Content (markdown + pipe-separated), Table_HTML (trusted HTML),
+  Img1_URL, Img1_Alt, Img2_URL, Img2_Alt, ... (inline images)
 
-2. All API endpoints are whitelisted by name. Unknown sheet
-   names return 404, not a proxy to arbitrary URLs.
+skills:
+  title, icon (emoji), tags (comma-separated),
+  color (c-green | c-blue | c-amber)
 
-3. Security headers on every response:
-   X-Frame-Options: SAMEORIGIN
-   X-Content-Type-Options: nosniff
-   Referrer-Policy: strict-origin-when-cross-origin
-   Cross-Origin-Opener-Policy: same-origin-allow-popups
-   Content-Security-Policy: connect-src 'self' only
-     (no Google URLs from browser)
+projects:
+  title, desc, stack (comma-separated), link (URL),
+  featured (true/false), wide (true/false),
+  bullets (pipe-separated list items),
+  visual (emoji or blank — auto-picked by keyword match)
 
-4. Rate limiting: 120 req/min per IP, in-memory in worker.
+exp:
+  role, org, date (display string), datetime (ISO for <time>),
+  type (work|project|volunteer — optional),
+  bullets (pipe-separated)
 
-5. HTML escaping: esc() used on ALL user-facing data before
-   innerHTML insertion. No raw string interpolation of sheet data.
+about:
+  bio1, bio2, bio3, bio4 (paragraphs, OR single "bio" pipe-separated)
 
-6. Access-Control-Allow-Origin: same-origin on all /api/data
-   responses. No wildcard CORS.
+faq:
+  Blog_Slug (matches blog row Slug), FAQ_Number (sort order),
+  FAQ_Question, FAQ_Answer (markdown)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 4 — THE CHORDS APP (NEW SECTION)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+images:
+  Blog_Slug (matches blog row), Img_Number (1-indexed),
+  Img_URL, Img_Alt
 
-This is a separate app-like section, linked from the home page
-hero and the about page. It lives at /chords and /chords/:slug.
-It is NOT in the main nav. It is inspired by Ultimate Guitar /
-Tabs Ultimate but is entirely my own original design.
+featured:
+  Slug (references blog row Slug for home featured section)
 
-DATA SOURCE: A separate Google Sheet with these columns:
-  Slug, Title, Artist, Album, Year, Key, Capo, Difficulty
-  (beginner/intermediate/advanced), Category (pop/rock/folk/
-  classical/devotional/nepali), Tags, Intro_Text, Chords_Used
-  (comma-separated list of chord names e.g. "G,Em,C,D"),
-  Tab_Content (the actual lyrics+chords in plain text using
-  [G] notation), BPM, Time_Signature, Tuning, Date_Added,
-  Featured (true/false), Image_URL, Image_Alt, Excerpt
+chords:
+  Slug (unique URL slug), Title, Artist, Key (e.g. "G", "Am"),
+  Capo (fret number), Difficulty (Beginner|Intermediate|Advanced),
+  Category (string), Chords_Used (comma-separated chord names),
+  Tab_Content (pipe-separated lines, || = gap),
+  Featured (true/false for featured strip), Excerpt (short desc),
+  Date_Added (YYYY-MM-DD), Image_URL, Image_Alt
 
-The [G] notation in Tab_Content works like this:
-  "Amazing [G]grace how [Em]sweet the [C]sound [G]"
-  Square brackets wrap the chord name that appears above
-  the following word.
+TAB_CONTENT FORMAT RULES:
 
-FEATURES REQUIRED — build all of these:
+Lines separated by:    |
+Section gaps:          ||
+Section labels:        [Verse 1] [Chorus] [Bridge] etc
+Chord markers:         [G] [Em7] [Capo+2] above lyrics
+Lyric lines:           plain text, chords appear above
+Chord name pattern:    /^[A-G][#b]?(maj7|m7|7|sus2|sus4|add9|m|5)?$/
 
-  1. CHORD LIST PAGE (/chords):
-     - Search bar (searches Title + Artist + Tags)
-     - Filter chips by Category
-     - Filter by Difficulty (beginner / intermediate / advanced)
-     - Filter by Key (A through G#/Ab etc)
-     - Sort: newest, A-Z, by artist
-     - Card grid showing: song title, artist, key, capo,
-       difficulty badge, category badge, thumbnail
-     - Pagination (same pattern as blog, 12 per page)
-     - Featured songs section at top (Featured=true rows)
-     - SEO: updateSEO for /chords page
+CACHING STRATEGY:
 
-  2. CHORD DETAIL PAGE (/chords/:slug):
-     - Song header: title, artist, key, capo, BPM,
-       time signature, tuning, difficulty, tags
-     - TRANSPOSE control: +/- semitone buttons and a
-       display of current key. Transposes ALL chord
-       names in the rendered tab in real time.
-       Transpose range: -6 to +6 semitones.
-       Chord name mapping must handle enharmonic equivalents
-       (C# = Db, F# = Gb etc). Must handle minor chords (Em,
-       Am), seventh chords (G7, Cmaj7, Dm7), suspended
-       (Dsus2, Asus4), add chords (Cadd9), power chords (A5).
-     - CAPO DISPLAY: when user transposes, show the
-       "play with capo X at fret Y" suggestion. Logic:
-       if transposed key can be played with a capo, show it.
-     - CHORD DIAGRAM HOVER / CLICK: every chord name in
-       the rendered tab is a clickable/hoverable element.
-       On hover (desktop) or tap (mobile), show a popover
-       with the chord diagram — a visual fretboard showing
-       finger positions. Chord diagrams must be generated
-       as inline SVG — no external images, no library.
-       Must cover: all major, minor, 7th, maj7, m7,
-       sus2, sus4, add9, power chords for all 12 roots.
-       Store chord finger data as a JS object in
-       js/data/chord-shapes.js.
-     - FONT SIZE control: A- / A+ buttons to increase or
-       decrease the tab text size. Preference saved to
-       localStorage.
-     - SCROLL MODE: auto-scroll toggle with speed control
-       (slider 1-10). Starts/stops auto-scrolling the page
-       at chosen speed for hands-free playing.
-     - PRINT / SHARE: a print button that opens a
-       clean print-friendly version (no nav, no controls,
-       just title + tab). A share button that copies the
-       URL to clipboard with a toast notification.
-     - SEO for each chord page: updateSEO with title,
-       description (excerpt), structured data as
-       MusicComposition schema (schema.org/MusicComposition),
-       og tags, canonical URL.
-     - SSR prerender: worker/ssr/chords.js renders full
-       HTML for bots with all the same SEO. Tab content
-       rendered as plain pre-formatted text for crawlers.
+Browser localStorage:     prefix 'sd5_', TTL 10 minutes
+Worker in-memory cache:   TTL 10 minutes, shared by all requests
+CDN (Cloudflare):         max-age=600, stale-while-revalidate=3600 (API)
+                          max-age=3600, stale-while-revalidate=86400 (HTML)
 
-  3. CHORD DIAGRAM SVG SPEC:
-     - Fretboard: 5 frets x 6 strings
-     - Show fret number if chord starts above fret 1
-     - Nut at top if open chord (fret 1 start)
-     - Open string: small circle above nut
-     - Muted string: X above nut
-     - Finger dot: filled circle at fret position
-     - Barre: filled rounded rect spanning strings
-     - Finger number inside dot (1=index, 2=middle,
-       3=ring, 4=pinky)
-     - SVG dimensions: 80px wide x 100px tall
-     - Colors: use site CSS variables
-       (--accent for dots, --text for strings/frets)
-     - Popover: appears above the chord name on desktop,
-       centered on screen on mobile. Closes on outside click.
-       Show chord name at top of popover.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 4 — DESIGN SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  4. DESIGN REQUIREMENTS:
-     - Matches existing design system exactly:
-       same --accent green, same fonts, same card style,
-       same .reveal animations, same .skel skeletons.
-     - Tab content rendered in DM Mono font, fixed-width,
-       with chords appearing above lyrics in a different
-       color (--accent green).
-     - Mobile: tab content scrolls horizontally if wider
-       than viewport. Controls (transpose, font size,
-       scroll) stay fixed at bottom on mobile.
-     - NOT in main nav. Linked from:
-       (a) Home hero section: a new "Chord Sheets" button
-           alongside the existing "View Projects" button.
-       (b) About page: a line "I also maintain a chord
-           sheet collection →" linking to /chords.
-     - Entry in sitemap.xml for /chords and all
-       /chords/:slug URLs.
+CSS CUSTOM PROPERTIES (all in css/base.css):
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 5 — SEO REQUIREMENTS (preserve all existing)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Colours:
+  --bg: #ffffff              --surface: #f7f8f6
+  --card: #ffffff            --border: #e2e6df
+  --border-dark: #c8d0c4     --accent: #2d6a4f (brand green)
+  --accent-light: #52b788    --accent-bg: #edf5f0
+  --accent2: #1b4332 (dark green)  --accent3: #b7791f (amber)
+  --text: #1a1e1a            --muted: #5a6659
+  --muted-light: #8a9688
 
-Every page must have:
-- <title> tag updated per route
-- <meta name="description"> updated per route
-- <link rel="canonical"> updated per route
-- og:title, og:description, og:url, og:image updated per route
-- twitter:card, twitter:title, twitter:description updated
-- BreadcrumbList schema injected per route
-- Person + Organization + WebSite schema on home
-- BlogPosting schema on blog article pages
-- FAQPage schema on blog articles that have FAQ rows
-- MusicComposition schema on chord detail pages (NEW)
-- All schema injected as <script type="application/ld+json">
-- Sitemap includes all blog slugs + all chord slugs
-- robots.txt: disallow /api/
-- llms.txt: updated to mention chord sheets section
+Fonts:
+  --serif: 'DM Serif Display', Georgia, serif
+  --mono: 'DM Mono', 'Courier New', monospace
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif
 
-SSR prerender (worker): bots get full static HTML with all
-meta tags, structured data, and content. Real users get
-the SPA (hydration script in SSR HTML redirects them).
+Layout:
+  --nav-h: 62px              --max: 1080px
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 6 — PERFORMANCE REQUIREMENTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Shadows:
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.09)
+  --shadow-md: 0 4px 18px rgba(0,0,0,.1)
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.12)
 
-Target: 90+ mobile PageSpeed, 95+ desktop.
+Animation:
+  --ease: cubic-bezier(.4,0,.2,1)
 
-- CSS: base.css loaded in <head>. Section CSS loaded lazily
-  by each view module (dynamic import or <link> injection).
-  No section's CSS blocks another section's render.
-- JS: main.js is type=module. Views imported only when
-  their route is first visited (dynamic import() in router).
-- Images: loading="lazy" on all non-hero images.
-  fetchpriority="high" on hero and article cover images.
-- Fonts: preconnect + preload pattern (already in index.html,
-  preserve it).
-- Cache: localStorage cache 10 minutes for sheet data.
-  Cloudflare edge cache 10 minutes for /api/data responses.
-  Static assets: Cache-Control immutable for hashed assets.
-- No render-blocking scripts. No synchronous XHR.
-- content-visibility: auto on large grids (chord list,
-  blog grid, skills grid).
+TYPOGRAPHY:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 7 — HOW TO WORK WITH ME (CRITICAL — READ THIS)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fonts: Google Fonts (DM Serif Display, DM Mono, DM Sans)
+Loading: <link rel="preconnect"> + onload="rel='stylesheet'" pattern
+Fallbacks: @font-face with size-adjust, ascent-override
+Display: swap (show fallback until font loads)
 
-I will ask you to build this one file at a time.
-Each file I ask for: give me the COMPLETE file, production-ready,
-no placeholders, no "// TODO", no truncation. Full code only.
+COMPONENT PATTERNS:
 
-When you finish a file, end your response with this exact block:
+Every view MUST contain:
+  ✓ Skeleton placeholders (.skel, .skel-card, .skel-line)
+    shown while data fetches
+  ✓ Fallback content (FB object hardcoded in view)
+    shown if fetch fails completely
+  ✓ Empty state (.empty-state)
+    shown if fetch succeeds but returns 0 rows
+  ✓ .reveal on all cards/items
+    for IntersectionObserver fade-up animation
+  ✓ Error handling and silent fails
+    never throw, never blank screen
 
---- PROGRESS TRACKER ---
-COMPLETED: [filename]
-STATUS: [one line describing what this file does]
-NEXT SUGGESTED: [filename] — [why it should come next]
-REMAINING FILES:
-  [ ] js/router.js
-  [ ] js/api.js
-  [ ] js/seo.js
-  [ ] js/utils.js
-  [ ] js/main.js
-  [ ] js/views/home.js
-  [ ] js/views/blog.js
-  [ ] js/views/skills.js
-  [ ] js/views/projects.js
-  [ ] js/views/about.js
-  [ ] js/views/experience.js
-  [ ] js/views/contact.js
-  [ ] js/views/chords.js
-  [ ] js/data/chord-shapes.js
-  [ ] css/base.css
-  [ ] css/blog.css
-  [ ] css/skills.css
-  [ ] css/projects.css
-  [ ] css/about.css
-  [ ] css/featured.css
-  [ ] css/chords.css
-  [ ] index.html
-  [ ] worker/index.js
-  [ ] worker/sheets.js
-  [ ] worker/utils.js
-  [ ] worker/ssr/blog.js
-  [ ] worker/ssr/meta.js
-  [ ] worker/ssr/chords.js
-  [ ] wrangler.toml
-(mark completed ones with [x])
---- END TRACKER ---
+SPACING SCALE:
 
-If I switch to a new chat, I will paste the tracker to resume.
-You will know exactly what is done and what remains.
+0.25rem (4px)    0.5rem (8px)    0.75rem (12px)
+1rem (16px)      1.2rem (19px)   1.4rem (22px)
+1.6rem (26px)    2rem (32px)     2.4rem (38px)
+3rem (48px)      4rem (64px)     5rem (80px)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 8 — CODING STANDARDS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 5 — SECURITY RULES (NEVER BREAK THESE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- Vanilla JS only. No React, no Vue, no jQuery, no build step.
-  ES modules (import/export) via <script type=module>.
-- No TypeScript. Plain JS with JSDoc comments where helpful.
-- All DOM manipulation: createElement + appendChild over
-  innerHTML where possible. innerHTML only for trusted,
-  already-escaped template strings.
-- Error handling: every fetchSheet call wrapped in try/catch.
-  Fallback content (the FB object) shown if API unavailable.
-  Never a blank white screen.
-- Accessibility: aria-label on all interactive elements,
-  role attributes on regions, keyboard navigation on cards
-  (Enter/Space), focus-visible outlines preserved.
-- Mobile: min touch target 44px. No hover-only interactions
-  (chord popover must also work on tap).
+SECRETS (never visible in code):
+  ✓ SHEET_ID → Cloudflare Dashboard secret ONLY
+    Set via: wrangler pages secret put SHEET_ID
+    Also stored in .dev.vars (gitignored)
+    Retrieved via: env.SHEET_ID in Worker code
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 9 — EXISTING CODE CONTEXT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHITELIST ONLY:
+  ✓ Sheet names in /api/data?sheet=<name>
+    Must match getSheetGids() keys
+    Unknown names → 404, never proxies arbitrary URLs
+  ✓ HTML tags in sanitizeHTML():
+    Only: table, tr, th, td, strong, em, a, code, pre, ul, ol, li
+    All disallowed tags stripped, attributes removed except href/colspan/rowspan/scope
 
-[MY CURRENT index.html AND worker.js FULL CODE ARE PASTED HERE 
-WHEN STARTING THE CONVERSATION — so the AI can extract the
-exact existing functions, CSS variables, and logic without
-guessing or inventing new patterns]
+DATA ESCAPING:
+  ✓ esc() MUST be called on ALL sheet data before innerHTML
+  ✓ Can never trust: Title, Excerpt, Content, artist name, chord names, anything from sheet
+  ✓ After esc() is safe for innerHTML
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION 10 — START COMMAND
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECURITY HEADERS (Applied to every response):
+  ✓ X-Frame-Options: DENY
+  ✓ X-Content-Type-Options: nosniff
+  ✓ Referrer-Policy: strict-origin-when-cross-origin
+  ✓ Permissions-Policy: geolocation=(), microphone=()
+  ✓ Content-Security-Policy:
+      default-src 'self'
+      script-src 'self'
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
+      font-src 'self' https://fonts.gstatic.com
+      connect-src 'self' (limits API calls to same-origin)
+      img-src 'self' https: data:
+      frame-ancestors 'none'
 
-Confirm you have read and understood all 9 sections above.
-Then tell me:
-  1. The recommended build order (which file first, why)
-  2. Any clarifying questions before we start
-  3. Wait for me to say "build [filename]" before writing code.
+RATE LIMITING:
+  ✓ 120 requests per minute per IP address
+  ✓ In-memory tracking (worker/index.js)
+  ✓ Resets on Worker cold start
+  ✓ Returns 429 Too Many Requests if exceeded
 
-Do not write any code until I say "build [filename]".
+CORS:
+  ✓ Access-Control-Allow-Origin: same-origin only
+  ✓ /api/data endpoint: CORS headers set
+  ✓ All other responses: NO CORS headers
 
-Phase A — foundation (start here, everything depends on these)
-  1. worker/sheets.js      — GID registry, no dependencies
-  2. worker/utils.js       — shared helpers, no dependencies
-  3. js/utils.js           — browser helpers, no dependencies
-  4. js/api.js             — needs utils.js
-  5. js/seo.js             — needs utils.js
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 6 — PERFORMANCE RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Phase B — routing core
-  6. js/router.js          — needs utils.js
-  7. css/base.css          — independent
-  8. index.html            — needs router.js to exist
+CSS LOADING:
+  ✓ base.css in <head> (never lazy)
+  ✓ All section CSS lazy-loaded via loadCSS() per view
+  ✓ Load order in HTML head: (historical, actual load is async):
+    base.css → never blocks
+  ✓ Sheets.css not linked, loaded on-demand by js/views/*.js
+  ✓ Single <link rel="stylesheet"> per section
 
-Phase C — worker split
-  9. worker/ssr/meta.js    — needs worker/utils.js
-  10. worker/ssr/blog.js   — needs worker/utils.js + meta.js
-  11. worker/index.js      — needs all worker files
+JAVASCRIPT:
+  ✓ type="module" (ES modules)
+  ✓ Dynamic import() per route in router.js
+  ✓ No render-blocking scripts in <head>
+  ✓ Single defer or module script in body
 
-Phase D — view modules (any order, each independent)
-  12. js/views/skills.js
-  13. js/views/projects.js
-  14. js/views/experience.js
-  15. js/views/about.js
-  16. js/views/contact.js
-  17. css/skills.css
-  18. css/projects.css
-  19. css/about.css
+IMAGES:
+  ✓ Hero image: fetchpriority="high", loading="eager"
+  ✓ All other images: loading="lazy", decoding="async"
+  ✓ Always include width + height attributes
+  ✓ Use object-fit: cover for thumbnails
 
-Phase E — blog (most complex existing feature)
-  20. css/blog.css
-  21. css/featured.css
-  22. js/views/blog.js
-  23. js/views/home.js
+FONTS:
+  ✓ <link rel="preconnect"> to fonts.googleapis.com + fonts.gstatic.com
+  ✓ <link rel="preload" as="style"> with onload handler (non-blocking)
+  ✓ Fallback via @font-face with size-adjust (prevents CLS)
 
-Phase F — chords (new feature, built last so nothing else depends on it)
-  24. js/data/chord-shapes.js
-  25. css/chords.css
-  26. js/views/chords.js
-  27. worker/ssr/chords.js
+MEMORY & STORAGE:
+  ✓ localStorage: max ~5MB per origin, gracefully skip on full
+  ✓ Worker memory cache: per-instance, cleared on cold start
+  ✓ IntersectionObserver: single shared instance (watchReveals module singleton)
 
-Phase G — wiring
-  28. js/main.js           — imports all views, registers all routes
-  29. wrangler.toml        — all env vars consolidated
+LAYOUT PERFORMANCE:
+  ✓ content-visibility: auto on all grids
+  ✓ contain: layout style on all cards
+  ✓ will-change: transform on nav
+  ✓ No layout thrashing in loops
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 7 — SEO RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+EVERY ROUTE MUST UPDATE:
 
-after every build give me  what files are done, what each one exports/does,
-any decisions we made that aren't in the master prompt,
-and any gotchas I should tell the next Claude.
+<title>
+<meta name="description">
+<meta name="robots">
+<link rel="canonical">
+<meta property="og:title">
+<meta property="og:description">
+<meta property="og:url">
+<meta property="og:image">
+<meta property="og:type">
+<meta name="twitter:card">
+<meta name="twitter:title">
+<meta name="twitter:description">
+<meta name="twitter:image">
 
+STRUCTURED DATA (JSON-LD):
 
+HOME (/):
+  Person (static)
+  Organization (static)
+  WebSite (static)
 
+BLOG ARTICLE (/blog/:slug):
+  BlogPosting (dynamic)
+  BreadcrumbList (dynamic)
+  FAQPage (if FAQ rows exist)
+  Person (static author)
+
+CHORD DETAIL (/chords/:slug):
+  MusicComposition (dynamic)
+  BreadcrumbList (dynamic)
+  Person (static)
+
+SLUG IMMUTABILITY:
+
+✓ Slug set once, NEVER changed
+✓ If changed: add old → new mapping to SLUG_REDIRECTS in worker/index.js
+✓ Return HTTP 301 (permanent redirect)
+✓ Old slugs must redirect for years (SEO safety)
+
+SSR PRERENDER:
+
+✓ GET /blog/:slug → full static HTML (bots see all content)
+✓ GET /chords/:slug → full static HTML (bots see tab content)
+✓ POST /api/data?sheet=blog → CSV only (bots don't use this)
+✓ Bots (Googlebot, Slurp, etc.) → full HTML, no JS needed
+✓ Real users → hydrate to SPA, all JS features work
+
+SITEMAP.xml:
+
+✓ Includes all 8 static routes: /, /skills, /projects, /blog,
+  /experience, /about, /contact, /chords
+✓ Includes ALL blog post slugs (fetched from blog sheet)
+✓ Includes ALL chord slugs (fetched from chords sheet)
+✓ Regenerated on every request (fresh sheet data)
+✓ lastmod: current date for static routes
+✓ lastmod: Date column for blog/chord rows
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 8 — CURRENT STATE & KNOWN ISSUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FULLY WORKING:
+
+✓ SPA routing (8 static routes + 2 prefix routes)
+✓ Blog list + article rendering
+✓ Skills, Projects, Experience, About, Contact views
+✓ Featured posts section on home
+✓ SEO meta tags on all routes
+✓ BlogPosting + Person + Organization schemas
+✓ SSR prerender for blog articles
+✓ Chords list view + detail page
+✓ Chord transpose engine (±6 semitones)
+✓ Chord diagram popover (SVG from chord-shapes.js)
+✓ Chord font-size persistence (localStorage)
+✓ Chord auto-scroll with speed control
+✓ Chord print + share functionality
+✓ MusicComposition schema for chord pages
+✓ SSR prerender for chord detail pages
+✓ Rate limiting (120 req/min per IP)
+✓ Offline banner
+✓ Progress bar (NProgress-style)
+✓ Reveal animations on scroll
+✓ Mobile responsive design
+✓ Security headers on all responses
+
+IN PROGRESS / TODO:
+
+[ ] Test chord transpose accuracy on all chord types
+[ ] Capo suggestion logic edge cases
+[ ] Mobile popover scroll behavior (might cover content)
+[ ] Chord sheet print layout (might need CSS refinement)
+
+LAST CHANGE:
+
+Chords section fully implemented:
+  - renderChords() + renderChordDetail()
+  - Transpose with enharmonic handling
+  - SVG chord diagram popover
+  - Font size + autoscroll persistence
+  - MusicComposition schema
+  - SSR prerender for bot crawlers
+  - worker/ssr/chords.js
+  - css/chords.css
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 9 — HOW TO DEBUG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHEN I REPORT AN ERROR:
+
+1. Identify which file(s) are involved (use Section 2 architecture guide)
+
+2. Ask me to paste the FULL current content of that file
+   (I'll compare actual code against this ideal spec)
+
+3. Tell me the exact line(s) causing the error
+
+4. Provide the complete fixed code block — never pseudocode,
+   always the full function or section
+
+5. Specify exactly where in which file to paste it
+
+6. If multiple files need changes, list them in order:
+
+   --- FILES TO UPDATE ---
+   File: js/views/blog.js
+   Action: Replace function renderBlogList (lines X-Y)
+   
+   File: worker/ssr/blog.js
+   Action: Replace function prerenderBlogPost (lines A-B)
+   ---
+
+DEBUGGING CHECKLIST:
+
+✓ Check browser console (F12 → Console) for JS errors
+✓ Check Network tab for failed API calls
+✓ Check if fetchSheet is returning null (API down?)
+✓ Check if esc() was called on all sheet data before innerHTML
+✓ Check if the view element #view-X exists in index.html
+✓ Check if .reveal class is on cards (watchReveals won't animate otherwise)
+✓ Check if loadCSS() promise is awaited
+✓ Check if registerRoute() was called in main.js
+✓ Check localStorage prefix 'sd5_' (CFG.cacheMins = 10)
+✓ Check if date format is YYYY-MM-DD for Date columns
+✓ Check Rate limit: 120 req/min per IP (worker/index.js isRateLimited)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 10 — MY CURRENT ERROR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Page URL where error happens:
+[PASTE URL]
+
+Browser console errors (F12 → Console):
+[PASTE ERRORS]
+
+Network tab errors (F12 → Network):
+[PASTE NETWORK ERRORS]
+
+What I expected to happen:
+[DESCRIBE]
+
+What actually happened:
+[DESCRIBE]
+
+Relevant file(s) — paste the FULL current content:
+[PASTE FILE HERE]
+
+═══════════════════════════════════════════════════════════════════════════════
+TOTAL FILES: 31 | TOTAL LINES: ~8,000+ | LAST UPDATED: May 4, 2026
+═══════════════════════════════════════════════════════════════════════════════

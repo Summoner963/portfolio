@@ -511,7 +511,7 @@ document.addEventListener('click', e => {
 
 const FONT_SIZES  = ['.70rem','.76rem','.82rem','.88rem','.94rem','1.0rem','1.06rem','1.12rem','1.2rem'];
 const FONT_DEFAULT_IDX = 3; // '.88rem'
-const LS_FONT_KEY = 'sd_tab_font_size';
+const LS_FONT_KEY = 'sd5_tab_font_size';
 
 function getFontIdx() {
   try {
@@ -536,7 +536,7 @@ function setFontIdx(tabBody, idx, display) {
 //  AUTO-SCROLL
 // ─────────────────────────────────────────────────────────────────────────
 
-const LS_SPEED_KEY = 'sd_scroll_speed';
+const LS_SPEED_KEY = 'sd5_scroll_speed';
 let _scrollInterval = null;
 
 function getScrollSpeed() {
@@ -634,21 +634,22 @@ function buildChordCard(row) {
   const card = document.createElement('article');
   card.className = 'chord-card reveal';
   card.setAttribute('tabindex', '0');
+  card.setAttribute('role', 'listitem');
   card.setAttribute('aria-label', `${row.Title || 'Song'} by ${row.Artist || 'Unknown'}`);
 
   const imgUrl = fixImgUrl(row.Image_URL || '');
 
-  // Thumbnail
+  // Small square thumbnail
   const thumb = document.createElement('div');
   thumb.className = 'chord-card-thumb';
   if (imgUrl) {
     const img    = document.createElement('img');
     img.src      = imgUrl;
-    img.alt      = row.Image_Alt || `${row.Title} chord sheet thumbnail`;
+    img.alt      = row.Image_Alt || `${row.Title} thumbnail`;
     img.loading  = 'lazy';
     img.decoding = 'async';
-    img.width    = 290;
-    img.height   = 163;
+    img.width    = 42;
+    img.height   = 42;
     thumb.appendChild(img);
   } else {
     thumb.setAttribute('aria-hidden', 'true');
@@ -656,39 +657,61 @@ function buildChordCard(row) {
   }
   card.appendChild(thumb);
 
-  // Body
+  // Main text
   const body = document.createElement('div');
   body.className = 'chord-card-body';
 
-  const keyStr  = row.Key   ? `<span class="chord-badge chord-badge-key">Key of ${esc(row.Key)}</span>` : '';
-  const capoStr = row.Capo && row.Capo !== '0'
-    ? `<span class="chord-badge chord-badge-key">Capo ${esc(row.Capo)}</span>` : '';
-  const diffStr = row.Difficulty
-    ? `<span class="chord-badge ${diffBadgeClass(row.Difficulty)}">${esc(row.Difficulty)}</span>` : '';
-  const catStr  = row.Category
-    ? `<span class="chord-badge chord-badge-cat">${esc(row.Category)}</span>` : '';
+  // Artist line — include album/year if present
+  const artistParts = [row.Artist];
+  if (row.Album) artistParts.push(row.Album);
+  const artistLine = artistParts.filter(Boolean).map(p => esc(p)).join(' · ');
 
   body.innerHTML =
-    `<div class="chord-card-meta">` +
-      `<time datetime="${esc(row.Date_Added || '')}">${esc(row.Date_Added || '')}</time>` +
-    `</div>` +
-    `<h3 class="chord-card-title">${esc(row.Title || '')}</h3>` +
-    `<div class="chord-card-artist">${esc(row.Artist || '')}</div>` +
-    `<div class="chord-card-badges">${catStr}${diffStr}${keyStr}${capoStr}</div>`;
-
+    `<div class="chord-card-title">${esc(row.Title || '')}</div>` +
+    `<div class="chord-card-artist">
+  <button class="chord-artist-link" data-artist="${esc(row.Artist || '')}" 
+    type="button" aria-label="Filter by ${esc(row.Artist || '')}">
+    ${artistLine}
+  </button>
+</div>`;
   card.appendChild(body);
+
+  // Badges — key + capo combined, difficulty, category
+  const badges = document.createElement('div');
+  badges.className = 'chord-card-badges';
+
+  const keyCapo = [
+    row.Key  ? `Key ${esc(row.Key)}` : '',
+    row.Capo && row.Capo !== '0' ? `Capo ${esc(row.Capo)}` : '',
+  ].filter(Boolean).join(' · ');
+
+  if (keyCapo) {
+    badges.insertAdjacentHTML('beforeend',
+      `<span class="chord-badge chord-badge-key">${keyCapo}</span>`);
+  }
+  if (row.Category) {
+    badges.insertAdjacentHTML('beforeend',
+      `<span class="chord-badge chord-badge-cat">${esc(row.Category)}</span>`);
+  }
+  if (row.Difficulty) {
+    badges.insertAdjacentHTML('beforeend',
+      `<span class="chord-badge ${diffBadgeClass(row.Difficulty)}">${esc(row.Difficulty)}</span>`);
+  }
+  card.appendChild(badges);
 
   // Navigation
   const slug = (row.Slug || '').trim();
-  const go   = () => import('../router.js').then(({ navigate }) => navigate(`/chords/${slug}`));
-  card.addEventListener('click', go);
+  const go = () => import('../router.js').then(({ navigate }) => navigate(`/chords/${slug}`));
+  card.addEventListener('click', e => {
+    if (e.target.closest('.chord-artist-link')) return; // let artist handler take it
+    go();
+  });
   card.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
   });
 
   return card;
 }
-
 // ─────────────────────────────────────────────────────────────────────────
 //  FILTER CHIP BUILDER (category + difficulty + key)
 // ─────────────────────────────────────────────────────────────────────────
@@ -925,7 +948,7 @@ function buildListUI(view, rows) {
     </div>
     <div class="chords-section">
       ${featuredHTML}
-      <div class="chords-grid" id="chordsGrid" aria-live="polite" aria-label="Chord sheet list"></div>
+      <div class="chords-grid" id="chordsGrid" role="list" aria-live="polite" aria-label="Chord sheet list"></div>
       <div class="chords-pagination" id="chordsPagination" aria-label="Chord sheet pagination"></div>
     </div>`;
 
@@ -955,6 +978,17 @@ function buildListUI(view, rows) {
     });
   }
 
+  // Artist click — filter by that artist
+    view.addEventListener('click', e => {
+      const btn = e.target.closest('.chord-artist-link');
+      if (!btn) return;
+      e.stopPropagation();
+      chordsState.query = btn.dataset.artist;
+      chordsState.page  = 1;
+      const searchEl = document.getElementById('chordsSearch');
+      if (searchEl) searchEl.value = btn.dataset.artist;
+      refresh();
+    });
   // Sort
   const sortEl = document.getElementById('chordsSort');
   if (sortEl) {
