@@ -1141,13 +1141,14 @@ export async function renderChordDetail(slug) {
       </button>
 
       <div class="chord-detail-header">
-        <h2 class="chord-detail-title" id="chordDetailTitle">${esc(post.Title || '')}</h2>
-        <div class="chord-detail-artist">${esc(post.Artist || '')}
-          ${post.Album ? `· <em>${esc(post.Album)}</em>` : ''}
-          ${post.Year  ? `· ${esc(post.Year)}` : ''}
-        </div>
-
         ${coverHTML}
+        <div class="chord-detail-title-wrap">
+          <h2 class="chord-detail-title" id="chordDetailTitle">${esc(post.Title || '')}</h2>
+          <div class="chord-detail-artist">${esc(post.Artist || '')}
+            ${post.Album ? `· <em>${esc(post.Album)}</em>` : ''}
+            ${post.Year  ? `· ${esc(post.Year)}` : ''}
+          </div>
+        </div>
 
         <div class="chord-detail-meta">
           ${post.Key           ? `<span>Key <strong id="currentKeyDisplay">${esc(post.Key)}</strong></span>` : ''}
