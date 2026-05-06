@@ -333,12 +333,19 @@ export default {
     const path   = url.pathname;
     const method = request.method;
 
-    // ── Only allow GET / HEAD ────────────────────────────────────────────
+// ── Method check ─────────────────────────────────────────────────────────
+// CMS endpoints need POST. All other routes only allow GET / HEAD.
+    const CMS_POST_PATHS = new Set(['/api/cms/auth', '/api/cms/write']);
+
     if (method !== 'GET' && method !== 'HEAD') {
-      return new Response('Method Not Allowed', {
-        status: 405,
-        headers: { Allow: 'GET, HEAD' },
-      });
+      if (method === 'POST' && CMS_POST_PATHS.has(path)) {
+        // allowed — falls through to route handlers below
+      } else {
+        return new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        });
+      }
     }
 
     // ── Rate limiting ────────────────────────────────────────────────────
