@@ -174,6 +174,13 @@ registerPrefix('/chords/', async ({ slug }) => {
   watchReveals();
 });
 
+// After the last registerPrefix call, before boot():
+
+registerRoute('/back-lab', async () => {
+  const { renderCMS } = await import('./views/cms.js');
+  await renderCMS();
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 //  BOOT
 //  Must come AFTER all registerRoute / registerPrefix calls.

@@ -83,6 +83,12 @@ export const ROUTE_META = {
     canonical:   `${SITE_URL}/chords`,
     h1:          'Chord Sheets',
   },
+  '/back-lab': {
+    title:       'Content Studio | Suman Dangal',
+    description: 'Private content management.',
+    canonical:   `${SITE_URL}/back-lab`,
+    h1:          null,
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────

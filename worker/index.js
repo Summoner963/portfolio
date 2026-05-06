@@ -30,6 +30,8 @@ import {
   escHtml, parseCSV, fixImgUrl, formatDate,
   SECURITY_HEADERS, applySecurityHeaders,
 }                              from './utils.js';
+import { handleCMSAuth }  from './cms-auth.js';
+import { handleCMSWrite } from './cms-proxy.js';
 import { prerenderBlogPost }   from './ssr/blog.js';
 import { prerenderChord }      from './ssr/chords.js';
 import {
@@ -227,6 +229,7 @@ function handleRobotsTxt() {
     `User-agent: *\n` +
     `Allow: /\n` +
     `Disallow: /api/\n` +
+    `Disallow: /back-lab\n` + 
     `Sitemap: ${SITE_URL}/sitemap.xml\n`;
   return new Response(body, {
     status: 200,
@@ -353,6 +356,21 @@ export default {
     // ── /api/data?sheet=<name>  (secure named sheet proxy) ──────────────
     if (path === '/api/data') {
       const resp    = await handleDataEndpoint(url, env);
+      const headers = applySecurityHeaders(new Headers(resp.headers));
+      return new Response(resp.body, { status: resp.status, headers });
+    }
+
+
+    // ── CMS auth ─────────────────────────────────────────────────────────────
+    if (path === '/api/cms/auth') {
+      const resp    = await handleCMSAuth(request, env);
+      const headers = applySecurityHeaders(new Headers(resp.headers));
+      return new Response(resp.body, { status: resp.status, headers });
+    }
+
+    // ── CMS write ─────────────────────────────────────────────────────────────
+    if (path === '/api/cms/write') {
+      const resp    = await handleCMSWrite(request, env);
       const headers = applySecurityHeaders(new Headers(resp.headers));
       return new Response(resp.body, { status: resp.status, headers });
     }

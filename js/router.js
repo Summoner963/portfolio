@@ -160,6 +160,7 @@ function _getViewIdForPath(path) {
     '/about':      'view-about',
     '/contact':    'view-contact',
     '/chords':     'view-chords',
+    '/back-lab':   'view-cms',
   };
 
   // Try exact match first
