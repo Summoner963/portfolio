@@ -1362,3 +1362,4 @@ function renderTabPreview(raw) {
     return `<div style="font-family:var(--mono);font-size:.82rem;line-height:1.7;color:var(--text)">${esc(line)}</div>`;
   }).join('');
 }
+//
