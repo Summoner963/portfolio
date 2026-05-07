@@ -1,19 +1,5 @@
 // js/views/cms.js
 // Content Studio — full CMS UI.
-//
-// Dashboard structure:
-//   After login → two sections: "All Blogs" and "All Chords"
-//   Each section shows a searchable/filterable list of existing entries.
-//   "Add New" button opens a blank form.
-//   Clicking a row opens that entry pre-filled for editing.
-//   After publish/update → returns to the list view.
-//
-// Editors:
-//   Blog    — split pane with markdown toolbar (H2, H3, bold, italic,
-//             code, link, color, bullet, image placeholder, special chars)
-//   Chords  — natural textarea (press Enter normally); converted to
-//             pipe-separated format before sending to the sheet.
-//             blogimage rows managed inline; faq rows managed inline.
 
 import { esc, loadCSS, showToast, md } from '../utils.js';
 
@@ -35,68 +21,50 @@ async function apiLogin(username, password) {
   return r.json();
 }
 
-/**
- * Read all rows from a sheet tab.
- * @param {string} sheet
- * @returns {Promise<{ok:boolean, rows?:object[], error?:string}>}
- */
 async function apiRead(sheet) {
   const r = await fetch('/api/cms/read', {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
-      'Authorization': `Bearer ${getToken()}`,
+      'Authorization': 'Bearer ' + getToken(),
     },
     body: JSON.stringify({ action: 'read', sheet }),
   });
   return r.json();
 }
 
-/**
- * Append a new row.
- * @param {string} sheet
- * @param {object} row
- */
 async function apiAppend(sheet, row) {
   const r = await fetch('/api/cms/write', {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
-      'Authorization': `Bearer ${getToken()}`,
+      'Authorization': 'Bearer ' + getToken(),
     },
     body: JSON.stringify({ action: 'append', sheet, row }),
   });
   return r.json();
 }
 
-/**
- * Update an existing row by slug.
- * @param {string} sheet
- * @param {string} slug
- * @param {object} row
- * @param {string} [slugField='Slug']
- */
-async function apiUpdate(sheet, slug, row, slugField = 'Slug') {
+async function apiUpdate(sheet, slug, row, slugField) {
+  if (!slugField) slugField = 'Slug';
   const r = await fetch('/api/cms/write', {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
-      'Authorization': `Bearer ${getToken()}`,
+      'Authorization': 'Bearer ' + getToken(),
     },
     body: JSON.stringify({ action: 'update', sheet, slug, slugField, row }),
   });
   return r.json();
 }
 
-/**
- * Delete a row by slug.
- */
-async function apiDelete(sheet, slug, slugField = 'Slug') {
+async function apiDelete(sheet, slug, slugField) {
+  if (!slugField) slugField = 'Slug';
   const r = await fetch('/api/cms/write', {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
-      'Authorization': `Bearer ${getToken()}`,
+      'Authorization': 'Bearer ' + getToken(),
     },
     body: JSON.stringify({ action: 'delete', sheet, slug, slugField }),
   });
@@ -119,22 +87,13 @@ function today() {
   return new Date().toISOString().split('T')[0];
 }
 
-/**
- * Convert natural line-break chord text → pipe-separated format for the sheet.
- * Empty lines become ||, regular newlines become |.
- */
 function linesTopipes(text) {
   return text
     .split('\n')
-    .map(line => line === '' ? '' : line)
     .join('|')
-    // collapse runs of || for empty paragraphs
     .replace(/\|{3,}/g, '||');
 }
 
-/**
- * Convert pipe-separated chord format → natural line breaks for the editor.
- */
 function pipesToLines(raw) {
   if (!raw) return '';
   return raw.split('|').join('\n');
@@ -146,7 +105,6 @@ export async function renderCMS() {
   await loadCSS('/css/cms.css');
   const view = document.getElementById('view-cms');
   if (!view) return;
-
   if (isLoggedIn()) {
     renderDashboard(view);
   } else {
@@ -190,27 +148,26 @@ function renderLogin(view) {
   const errEl    = document.getElementById('cmsLoginError');
   const loginBtn = document.getElementById('cmsLoginBtn');
 
-  form.addEventListener('submit', async e => {
+  form.addEventListener('submit', async function(e) {
     e.preventDefault();
     const username = document.getElementById('cmsUser').value.trim();
     const password = document.getElementById('cmsPw').value;
     loginBtn.disabled    = true;
-    loginBtn.textContent = 'Signing in…';
+    loginBtn.textContent = 'Signing in\u2026';
     errEl.hidden         = true;
-
     try {
       const result = await apiLogin(username, password);
       if (result.ok && result.token) {
         setToken(result.token);
         renderDashboard(view);
       } else {
-        errEl.textContent = result.error || 'Invalid credentials';
-        errEl.hidden      = false;
+        errEl.textContent    = result.error || 'Invalid credentials';
+        errEl.hidden         = false;
         loginBtn.disabled    = false;
         loginBtn.textContent = 'Sign in';
       }
-    } catch {
-      errEl.textContent    = 'Network error — try again';
+    } catch (err) {
+      errEl.textContent    = 'Network error \u2014 try again';
       errEl.hidden         = false;
       loginBtn.disabled    = false;
       loginBtn.textContent = 'Sign in';
@@ -219,10 +176,10 @@ function renderLogin(view) {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
-// Two tabs: All Blogs | All Chords
-// Each tab shows a list with search/filter/sort + "Add New" button.
 
-function renderDashboard(view, activeTab = 'blog') {
+function renderDashboard(view, activeTab) {
+  if (!activeTab) activeTab = 'blog';
+
   view.innerHTML = `
     <div class="cms-wrap">
       <header class="cms-header">
@@ -236,51 +193,42 @@ function renderDashboard(view, activeTab = 'blog') {
         </div>
         <button class="cms-btn cms-btn-ghost cms-signout" id="cmsSignOut">Sign out</button>
       </header>
-
       <div class="cms-tabs" role="tablist">
-        <button class="cms-tab${activeTab === 'blog'   ? ' active' : ''}"
-          data-tab="blog"   role="tab"
-          aria-selected="${activeTab === 'blog'}">📝 Blog Posts</button>
+        <button class="cms-tab${activeTab === 'blog' ? ' active' : ''}"
+          data-tab="blog" role="tab" aria-selected="${activeTab === 'blog'}">\uD83D\uDCDD Blog Posts</button>
         <button class="cms-tab${activeTab === 'chords' ? ' active' : ''}"
-          data-tab="chords" role="tab"
-          aria-selected="${activeTab === 'chords'}">🎸 Chord Sheets</button>
+          data-tab="chords" role="tab" aria-selected="${activeTab === 'chords'}">\uD83C\uDFB8 Chord Sheets</button>
       </div>
-
       <div class="cms-body">
         <div class="cms-panel" id="panel-blog"   ${activeTab !== 'blog'   ? 'hidden' : ''}></div>
         <div class="cms-panel" id="panel-chords" ${activeTab !== 'chords' ? 'hidden' : ''}></div>
       </div>
     </div>`;
 
-  // Tab switching
-  view.querySelectorAll('.cms-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      view.querySelectorAll('.cms-tab').forEach(t => {
+  view.querySelectorAll('.cms-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      view.querySelectorAll('.cms-tab').forEach(function(t) {
         t.classList.remove('active');
         t.setAttribute('aria-selected', 'false');
       });
       tab.classList.add('active');
       tab.setAttribute('aria-selected', 'true');
-      view.querySelectorAll('.cms-panel').forEach(p => { p.hidden = true; });
-      const panel = document.getElementById(`panel-${tab.dataset.tab}`);
+      view.querySelectorAll('.cms-panel').forEach(function(p) { p.hidden = true; });
+      const panel = document.getElementById('panel-' + tab.dataset.tab);
       if (panel) panel.hidden = false;
     });
   });
 
-  // Sign out
-  document.getElementById('cmsSignOut').addEventListener('click', () => {
+  document.getElementById('cmsSignOut').addEventListener('click', function() {
     clearToken();
     renderLogin(view);
   });
 
-  // Load both list panels
-  renderBlogList(document.getElementById('panel-blog'),   view);
+  renderBlogList(document.getElementById('panel-blog'), view);
   renderChordList(document.getElementById('panel-chords'), view);
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  BLOG LIST VIEW
-// ─────────────────────────────────────────────────────────────────────────
+// ── BLOG LIST ─────────────────────────────────────────────────────────────
 
 async function renderBlogList(panel, view) {
   panel.innerHTML = `
@@ -291,51 +239,50 @@ async function renderBlogList(panel, view) {
       </div>
       <div class="cms-list-toolbar">
         <input class="cms-input cms-list-search" id="blogListSearch"
-          type="search" placeholder="Search posts…" autocomplete="off" />
+          type="search" placeholder="Search posts\u2026" autocomplete="off" />
         <select class="cms-input cms-select cms-list-sort" id="blogListSort">
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
-          <option value="az">Title A–Z</option>
+          <option value="az">Title A\u2013Z</option>
         </select>
       </div>
       <div class="cms-list-body" id="blogListBody">
-        <div class="cms-list-loading">Loading posts…</div>
+        <div class="cms-list-loading">Loading posts\u2026</div>
       </div>
     </div>`;
 
-  document.getElementById('blogAddNew').addEventListener('click', () => {
+  document.getElementById('blogAddNew').addEventListener('click', function() {
     renderBlogForm(panel, view, null);
   });
 
   let rows = [];
-
   try {
     const result = await apiRead('blog');
     if (result.ok) {
       rows = result.rows || [];
     } else {
       document.getElementById('blogListBody').innerHTML =
-        `<div class="cms-list-empty">Error loading posts: ${esc(result.error || 'Unknown error')}</div>`;
+        '<div class="cms-list-empty">Error loading posts: ' + esc(result.error || 'Unknown error') + '</div>';
       return;
     }
   } catch (e) {
     document.getElementById('blogListBody').innerHTML =
-      `<div class="cms-list-empty">Network error loading posts.</div>`;
+      '<div class="cms-list-empty">Network error loading posts.</div>';
     return;
   }
 
   function renderList() {
-    const search = (document.getElementById('blogListSearch')?.value || '').toLowerCase();
-    const sort   =  document.getElementById('blogListSort')?.value || 'newest';
+    const search = (document.getElementById('blogListSearch') ? document.getElementById('blogListSearch').value : '').toLowerCase();
+    const sort   = document.getElementById('blogListSort') ? document.getElementById('blogListSort').value : 'newest';
 
-    let filtered = rows.filter(r =>
-      !search ||
-      (r.Title    || '').toLowerCase().includes(search) ||
-      (r.Category || '').toLowerCase().includes(search) ||
-      (r.Tags     || '').toLowerCase().includes(search)
-    );
+    let filtered = rows.filter(function(r) {
+      return !search ||
+        (r.Title    || '').toLowerCase().includes(search) ||
+        (r.Category || '').toLowerCase().includes(search) ||
+        (r.Tags     || '').toLowerCase().includes(search);
+    });
 
-    filtered.sort((a, b) => {
+    filtered.sort(function(a, b) {
       if (sort === 'newest') return new Date(b.Date || 0) - new Date(a.Date || 0);
       if (sort === 'oldest') return new Date(a.Date || 0) - new Date(b.Date || 0);
       if (sort === 'az')     return (a.Title || '').localeCompare(b.Title || '');
@@ -346,42 +293,42 @@ async function renderBlogList(panel, view) {
     if (!body) return;
 
     if (!filtered.length) {
-      body.innerHTML = `<div class="cms-list-empty">${
-        rows.length ? 'No posts match your search.' : 'No posts yet. Click "Add New Post" to create one.'
-      }</div>`;
+      body.innerHTML = '<div class="cms-list-empty">' +
+        (rows.length ? 'No posts match your search.' : 'No posts yet. Click "Add New Post" to create one.') +
+        '</div>';
       return;
     }
 
     body.innerHTML = '';
-    filtered.forEach(row => {
+    filtered.forEach(function(row) {
       const item = document.createElement('div');
       item.className = 'cms-list-item';
       item.innerHTML =
-        `<div class="cms-list-item-main">
-          <span class="cms-list-item-title">${esc(row.Title || '(no title)')}</span>
-          <span class="cms-list-item-meta">
-            ${row.Category ? `<span class="cms-list-badge">${esc(row.Category)}</span>` : ''}
-            ${row.Date     ? `<span class="cms-list-date">${esc(row.Date)}</span>` : ''}
-          </span>
-        </div>
-        <div class="cms-list-item-actions">
-          <button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="edit">Edit</button>
-          <button class="cms-btn cms-btn-danger cms-btn-sm" data-action="delete">Delete</button>
-        </div>`;
+        '<div class="cms-list-item-main">' +
+          '<span class="cms-list-item-title">' + esc(row.Title || '(no title)') + '</span>' +
+          '<span class="cms-list-item-meta">' +
+            (row.Category ? '<span class="cms-list-badge">' + esc(row.Category) + '</span>' : '') +
+            (row.Date     ? '<span class="cms-list-date">'  + esc(row.Date)     + '</span>' : '') +
+          '</span>' +
+        '</div>' +
+        '<div class="cms-list-item-actions">' +
+          '<button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="edit">Edit</button>' +
+          '<button class="cms-btn cms-btn-danger cms-btn-sm" data-action="delete">Delete</button>' +
+        '</div>';
 
-      item.querySelector('[data-action="edit"]').addEventListener('click', () => {
+      item.querySelector('[data-action="edit"]').addEventListener('click', function() {
         renderBlogForm(panel, view, row, rows);
       });
 
-      item.querySelector('[data-action="delete"]').addEventListener('click', async () => {
-        if (!confirm(`Delete "${row.Title}"? This cannot be undone.`)) return;
-        const r = await apiDelete('blog', row.Slug);
-        if (r.ok) {
+      item.querySelector('[data-action="delete"]').addEventListener('click', async function() {
+        if (!confirm('Delete "' + row.Title + '"? This cannot be undone.')) return;
+        const res = await apiDelete('blog', row.Slug);
+        if (res.ok) {
           showToast('Post deleted');
-          rows = rows.filter(x => x.Slug !== row.Slug);
+          rows = rows.filter(function(x) { return x.Slug !== row.Slug; });
           renderList();
         } else {
-          showToast(r.error || 'Delete failed', 'error');
+          showToast(res.error || 'Delete failed', 'error');
         }
       });
 
@@ -394,24 +341,17 @@ async function renderBlogList(panel, view) {
   renderList();
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  BLOG FORM (Add New / Edit)
-// ─────────────────────────────────────────────────────────────────────────
+// ── BLOG FORM ─────────────────────────────────────────────────────────────
 
 async function renderBlogForm(panel, view, existingRow, allRows) {
   const isEdit = !!existingRow;
-
-  // Load blogimage and faq rows for this slug if editing
-  let biRows  = []; // blogimage rows
-  let faqRows = []; // faq rows
+  let biRows  = [];
+  let faqRows = [];
 
   if (isEdit && existingRow.Slug) {
-    const [biResult, faqResult] = await Promise.all([
-      apiRead('blogimage'),
-      apiRead('faq'),
-    ]);
-    if (biResult.ok)  biRows  = (biResult.rows  || []).filter(r => r.Blog_Slug === existingRow.Slug);
-    if (faqResult.ok) faqRows = (faqResult.rows  || []).filter(r => r.Blog_Slug === existingRow.Slug);
+    const results = await Promise.all([apiRead('blogimage'), apiRead('faq')]);
+    if (results[0].ok) biRows  = (results[0].rows || []).filter(function(r) { return r.Blog_Slug === existingRow.Slug; });
+    if (results[1].ok) faqRows = (results[1].rows || []).filter(function(r) { return r.Blog_Slug === existingRow.Slug; });
   }
 
   const r = existingRow || {};
@@ -419,10 +359,9 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   panel.innerHTML = `
     <div class="cms-form-wrap">
       <div class="cms-form-topbar">
-        <button class="cms-btn cms-btn-ghost cms-btn-sm" id="blogBackToList">← All Posts</button>
+        <button class="cms-btn cms-btn-ghost cms-btn-sm" id="blogBackToList">\u2190 All Posts</button>
         <h3 class="cms-form-title">${isEdit ? 'Edit Post' : 'New Blog Post'}</h3>
       </div>
-
       <div class="cms-row">
         <div class="cms-field cms-field-wide">
           <label class="cms-label">Title *</label>
@@ -436,7 +375,6 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
             ${isEdit ? 'readonly style="opacity:.6;cursor:not-allowed"' : ''} />
         </div>
       </div>
-
       <div class="cms-row">
         <div class="cms-field">
           <label class="cms-label">Date</label>
@@ -445,7 +383,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
         <div class="cms-field">
           <label class="cms-label">Category</label>
           <input class="cms-input" id="bCategory" type="text"
-            value="${esc(r.Category || '')}" placeholder="Dev, QA, Tutorial…" />
+            value="${esc(r.Category || '')}" placeholder="Dev, QA, Tutorial\u2026" />
         </div>
         <div class="cms-field">
           <label class="cms-label">Tags</label>
@@ -453,18 +391,16 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
             value="${esc(r.Tags || '')}" placeholder="tag1, tag2" />
         </div>
       </div>
-
       <div class="cms-field">
         <label class="cms-label">Excerpt *</label>
         <textarea class="cms-input cms-textarea-sm" id="bExcerpt" rows="2"
-          placeholder="One sentence for SEO and card preview…">${esc(r.Excerpt || '')}</textarea>
+          placeholder="One sentence for SEO and card preview\u2026">${esc(r.Excerpt || '')}</textarea>
       </div>
-
       <div class="cms-row">
         <div class="cms-field">
           <label class="cms-label">Image URL <span class="cms-label-hint">Main cover image</span></label>
           <input class="cms-input" id="bImageUrl" type="url"
-            value="${esc(r.Image_URL || '')}" placeholder="https://drive.google.com/…" />
+            value="${esc(r.Image_URL || '')}" placeholder="https://drive.google.com/\u2026" />
         </div>
         <div class="cms-field">
           <label class="cms-label">Image Alt</label>
@@ -472,37 +408,23 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
             value="${esc(r.Image_Alt || '')}" placeholder="Descriptive alt text" />
         </div>
       </div>
-
-      <!-- Inline blog images (blogimage sheet) -->
       <div class="cms-field">
-        <label class="cms-label">
-          Inline Images
-          <span class="cms-label-hint">
-            These map to [img1] [img2] placeholders in your content.
-            Blog_Slug is set automatically from the Slug field above.
-          </span>
+        <label class="cms-label">Inline Images
+          <span class="cms-label-hint">Map to [img1] [img2] placeholders in content.</span>
         </label>
         <div id="bImageRows" class="cms-inline-rows"></div>
         <button class="cms-btn cms-btn-ghost cms-btn-sm" id="bAddImage" type="button">+ Add Image Row</button>
       </div>
-
-      <!-- FAQ rows -->
       <div class="cms-field">
-        <label class="cms-label">
-          FAQ Items
-          <span class="cms-label-hint">Each FAQ row links to this post by slug. Blog_Slug is auto-set.</span>
+        <label class="cms-label">FAQ Items
+          <span class="cms-label-hint">Each FAQ row links to this post by slug.</span>
         </label>
         <div id="bFaqRows" class="cms-inline-rows"></div>
         <button class="cms-btn cms-btn-ghost cms-btn-sm" id="bAddFaq" type="button">+ Add FAQ</button>
       </div>
-
-      <!-- Content editor with toolbar -->
       <div class="cms-field">
-        <label class="cms-label">
-          Content
-          <span class="cms-label-hint">
-            Markdown. Use [img1], [img2]… to embed inline images from the table above.
-          </span>
+        <label class="cms-label">Content
+          <span class="cms-label-hint">Markdown. Use [img1], [img2]\u2026 for inline images.</span>
         </label>
         <div class="cms-toolbar" id="bToolbar" role="toolbar" aria-label="Formatting toolbar"></div>
         <div class="cms-editor-wrap">
@@ -510,7 +432,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
             <div class="cms-editor-label">Write</div>
             <textarea class="cms-input cms-editor" id="bContent"
               rows="22" spellcheck="true"
-              placeholder="Write your blog post in markdown…">${esc(r.Content || '')}</textarea>
+              placeholder="Write your blog post in markdown\u2026">${esc(r.Content || '')}</textarea>
           </div>
           <div class="cms-preview-pane">
             <div class="cms-editor-label">Preview</div>
@@ -518,56 +440,47 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
           </div>
         </div>
       </div>
-
       <div class="cms-actions">
         <button class="cms-btn cms-btn-primary" id="bPublish">
-          ${isEdit ? '💾 Save Changes' : 'Publish to Sheet →'}
+          ${isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192'}
         </button>
         <button class="cms-btn cms-btn-ghost" id="blogBackToList2">Cancel</button>
         <span class="cms-status" id="bStatus"></span>
       </div>
     </div>`;
 
-  // Back buttons
-  const goBack = () => renderBlogList(panel, view);
-  document.getElementById('blogBackToList') .addEventListener('click', goBack);
+  const goBack = function() { renderBlogList(panel, view); };
+  document.getElementById('blogBackToList').addEventListener('click', goBack);
   document.getElementById('blogBackToList2').addEventListener('click', goBack);
 
-  // Slug auto-gen
   const titleEl = document.getElementById('bTitle');
   const slugEl  = document.getElementById('bSlug');
   if (!isEdit) {
-    titleEl.addEventListener('input', () => {
+    titleEl.addEventListener('input', function() {
       if (!slugEl._manuallyEdited) slugEl.value = makeSlug(titleEl.value);
     });
-    slugEl.addEventListener('input', () => { slugEl._manuallyEdited = true; });
+    slugEl.addEventListener('input', function() { slugEl._manuallyEdited = true; });
   }
 
-  // ── Inline image rows ─────────────────────────────────────────────────
+  // Inline image rows
   const imageRowsEl = document.getElementById('bImageRows');
   let imageRows = biRows.length
-    ? biRows.map(r => ({ num: r.Img_Number || '', url: r.Img_URL || '', alt: r.Img_Alt || '' }))
+    ? biRows.map(function(x) { return { num: x.Img_Number || '', url: x.Img_URL || '', alt: x.Img_Alt || '' }; })
     : [];
 
   function renderImageRows() {
     imageRowsEl.innerHTML = '';
-    imageRows.forEach((ir, idx) => {
+    imageRows.forEach(function(ir, idx) {
       const row = document.createElement('div');
       row.className = 'cms-inline-row';
       row.innerHTML =
-        `<span class="cms-inline-label">[img${idx + 1}]</span>
-         <input class="cms-input cms-inline-input" type="url"
-           placeholder="Image URL" value="${esc(ir.url)}" data-field="url" />
-         <input class="cms-input cms-inline-input" type="text"
-           placeholder="Alt text" value="${esc(ir.alt)}" data-field="alt" />
-         <button class="cms-btn cms-btn-danger cms-btn-xs" data-rm="${idx}" type="button">✕</button>`;
-      row.querySelector('[data-field="url"]').addEventListener('input', e => {
-        imageRows[idx].url = e.target.value;
-      });
-      row.querySelector('[data-field="alt"]').addEventListener('input', e => {
-        imageRows[idx].alt = e.target.value;
-      });
-      row.querySelector(`[data-rm="${idx}"]`).addEventListener('click', () => {
+        '<span class="cms-inline-label">[img' + (idx + 1) + ']</span>' +
+        '<input class="cms-input cms-inline-input" type="url" placeholder="Image URL" value="' + esc(ir.url) + '" data-field="url" />' +
+        '<input class="cms-input cms-inline-input" type="text" placeholder="Alt text" value="' + esc(ir.alt) + '" data-field="alt" />' +
+        '<button class="cms-btn cms-btn-danger cms-btn-xs" data-rm="' + idx + '" type="button">\u2715</button>';
+      row.querySelector('[data-field="url"]').addEventListener('input', function(e) { imageRows[idx].url = e.target.value; });
+      row.querySelector('[data-field="alt"]').addEventListener('input', function(e) { imageRows[idx].alt = e.target.value; });
+      row.querySelector('[data-rm="' + idx + '"]').addEventListener('click', function() {
         imageRows.splice(idx, 1);
         renderImageRows();
       });
@@ -575,39 +488,32 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     });
   }
 
-  document.getElementById('bAddImage').addEventListener('click', () => {
+  document.getElementById('bAddImage').addEventListener('click', function() {
     imageRows.push({ num: '', url: '', alt: '' });
     renderImageRows();
   });
-
   renderImageRows();
 
-  // ── FAQ rows ──────────────────────────────────────────────────────────
+  // FAQ rows
   const faqRowsEl = document.getElementById('bFaqRows');
   let faqItems = faqRows.length
-    ? faqRows.map(r => ({ q: r.FAQ_Question || '', a: r.FAQ_Answer || '' }))
+    ? faqRows.map(function(x) { return { q: x.FAQ_Question || '', a: x.FAQ_Answer || '' }; })
     : [];
 
   function renderFaqRows() {
     faqRowsEl.innerHTML = '';
-    faqItems.forEach((fq, idx) => {
+    faqItems.forEach(function(fq, idx) {
       const row = document.createElement('div');
       row.className = 'cms-inline-row cms-faq-row';
       row.innerHTML =
-        `<div class="cms-faq-fields">
-           <input class="cms-input" type="text"
-             placeholder="Question" value="${esc(fq.q)}" data-field="q" />
-           <textarea class="cms-input cms-textarea-sm" rows="2"
-             placeholder="Answer">${esc(fq.a)}</textarea>
-         </div>
-         <button class="cms-btn cms-btn-danger cms-btn-xs" data-rm="${idx}" type="button">✕</button>`;
-      row.querySelector('[data-field="q"]').addEventListener('input', e => {
-        faqItems[idx].q = e.target.value;
-      });
-      row.querySelector('textarea').addEventListener('input', e => {
-        faqItems[idx].a = e.target.value;
-      });
-      row.querySelector(`[data-rm="${idx}"]`).addEventListener('click', () => {
+        '<div class="cms-faq-fields">' +
+          '<input class="cms-input" type="text" placeholder="Question" value="' + esc(fq.q) + '" data-field="q" />' +
+          '<textarea class="cms-input cms-textarea-sm" rows="2" placeholder="Answer">' + esc(fq.a) + '</textarea>' +
+        '</div>' +
+        '<button class="cms-btn cms-btn-danger cms-btn-xs" data-rm="' + idx + '" type="button">\u2715</button>';
+      row.querySelector('[data-field="q"]').addEventListener('input', function(e) { faqItems[idx].q = e.target.value; });
+      row.querySelector('textarea').addEventListener('input', function(e) { faqItems[idx].a = e.target.value; });
+      row.querySelector('[data-rm="' + idx + '"]').addEventListener('click', function() {
         faqItems.splice(idx, 1);
         renderFaqRows();
       });
@@ -615,37 +521,33 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     });
   }
 
-  document.getElementById('bAddFaq').addEventListener('click', () => {
+  document.getElementById('bAddFaq').addEventListener('click', function() {
     faqItems.push({ q: '', a: '' });
     renderFaqRows();
   });
-
   renderFaqRows();
 
-  // ── Markdown toolbar ──────────────────────────────────────────────────
+  // Toolbar + preview
   buildMarkdownToolbar(
     document.getElementById('bToolbar'),
     document.getElementById('bContent'),
     document.getElementById('bPreview')
   );
 
-  // ── Live preview ──────────────────────────────────────────────────────
   const contentEl = document.getElementById('bContent');
   const previewEl = document.getElementById('bPreview');
-
-  // Initial preview
   if (contentEl.value) previewEl.innerHTML = md(contentEl.value);
 
   let previewTimer;
-  contentEl.addEventListener('input', () => {
+  contentEl.addEventListener('input', function() {
     clearTimeout(previewTimer);
-    previewTimer = setTimeout(() => {
+    previewTimer = setTimeout(function() {
       previewEl.innerHTML = md(contentEl.value);
     }, 300);
   });
 
-  // ── Publish / Update ──────────────────────────────────────────────────
-  document.getElementById('bPublish').addEventListener('click', async () => {
+  // Publish
+  document.getElementById('bPublish').addEventListener('click', async function() {
     const title    = document.getElementById('bTitle').value.trim();
     const slug     = document.getElementById('bSlug').value.trim() || makeSlug(title);
     const date     = document.getElementById('bDate').value || today();
@@ -662,10 +564,10 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     if (!excerpt) { showToast('Excerpt is required', 'error'); return; }
 
     btn.disabled    = true;
-    btn.textContent = isEdit ? 'Saving…' : 'Publishing…';
+    btn.textContent = isEdit ? 'Saving\u2026' : 'Publishing\u2026';
     statusEl.textContent = '';
 
-    const row = {
+    const rowData = {
       ID:        r.ID || '',
       Title:     title,
       Slug:      slug,
@@ -679,31 +581,27 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     };
 
     try {
-      // Save main blog row
       const result = isEdit
-        ? await apiUpdate('blog', r.Slug, row)
-        : await apiAppend('blog', row);
+        ? await apiUpdate('blog', r.Slug, rowData)
+        : await apiAppend('blog', rowData);
 
       if (!result.ok) {
         showToast(result.error || 'Save failed', 'error');
-        statusEl.textContent = '✗ ' + (result.error || 'Error');
+        statusEl.textContent = '\u2717 ' + (result.error || 'Error');
         statusEl.style.color = '#991b1b';
         btn.disabled    = false;
-        btn.textContent = isEdit ? '💾 Save Changes' : 'Publish to Sheet →';
+        btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
         return;
       }
 
       // Save blogimage rows
-      // Strategy: delete all existing for this slug, then append current ones
       if (isEdit && biRows.length) {
-        for (const bi of biRows) {
-          await apiDelete('blogimage', slug, 'Blog_Slug');
-        }
+        await apiDelete('blogimage', slug, 'Blog_Slug');
       }
       for (let i = 0; i < imageRows.length; i++) {
         if (imageRows[i].url) {
           await apiAppend('blogimage', {
-            Blog_Slug: slug,
+            Blog_Slug:  slug,
             Img_Number: String(i + 1),
             Img_URL:    imageRows[i].url,
             Img_Alt:    imageRows[i].alt,
@@ -713,9 +611,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
 
       // Save FAQ rows
       if (isEdit && faqRows.length) {
-        for (const fq of faqRows) {
-          await apiDelete('faq', slug, 'Blog_Slug');
-        }
+        await apiDelete('faq', slug, 'Blog_Slug');
       }
       for (let i = 0; i < faqItems.length; i++) {
         if (faqItems[i].q) {
@@ -729,70 +625,67 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
       }
 
       showToast(isEdit ? 'Post updated!' : 'Post published!');
-      // Return to list
       renderBlogList(panel, view);
 
     } catch (e) {
       showToast('Network error', 'error');
       btn.disabled    = false;
-      btn.textContent = isEdit ? '💾 Save Changes' : 'Publish to Sheet →';
+      btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
     }
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  MARKDOWN TOOLBAR
-// ─────────────────────────────────────────────────────────────────────────
+// ── MARKDOWN TOOLBAR ──────────────────────────────────────────────────────
 
-const COLORS = ['#2d6a4f','#1b4332','#e63946','#f4a261','#457b9d','#6d6875'];
+const COLORS = ['#2d6a4f', '#1b4332', '#e63946', '#f4a261', '#457b9d', '#6d6875'];
 
 const TOOLBAR_ACTIONS = [
-  { label: 'H2',    title: 'Heading 2',    wrap: ['## ',      ''],         block: true  },
-  { label: 'H3',    title: 'Heading 3',    wrap: ['### ',     ''],         block: true  },
-  { label: 'B',     title: 'Bold',         wrap: ['**',       '**'],       block: false },
-  { label: 'I',     title: 'Italic',       wrap: ['*',        '*'],        block: false },
-  { label: '`',     title: 'Inline code',  wrap: ['`',        '`'],        block: false },
-  { label: '```',   title: 'Code block',   wrap: ['```\n',    '\n```'],    block: true  },
-  { label: '🔗',    title: 'Link',         wrap: ['[',        '](url)'],   block: false },
-  { label: '—',     title: 'Separator',    insert: '\n---\n'                            },
-  { label: '•',     title: 'Bullet list',  wrap: ['- ',       ''],         block: true  },
-  { label: '[img]', title: 'Image placeholder (increments automatically)',
-    insertFn: (ta) => {
-      // Count existing [imgN] to pick next number
+  { label: 'H2',    title: 'Heading 2',   wrap: ['## ',   ''],      block: true  },
+  { label: 'H3',    title: 'Heading 3',   wrap: ['### ',  ''],      block: true  },
+  { label: 'B',     title: 'Bold',        wrap: ['**',    '**'],    block: false },
+  { label: 'I',     title: 'Italic',      wrap: ['*',     '*'],     block: false },
+  { label: '`',     title: 'Inline code', wrap: ['`',     '`'],     block: false },
+  { label: '```',   title: 'Code block',  wrap: ['```\n', '\n```'], block: true  },
+  { label: '\uD83D\uDD17', title: 'Link', wrap: ['[',     '](url)'],block: false },
+  { label: '\u2014',title: 'Separator',   insert: '\n---\n'                      },
+  { label: '\u2022',title: 'Bullet list', wrap: ['- ',    ''],      block: true  },
+  { label: '[img]', title: 'Image placeholder',
+    insertFn: function(ta) {
       const matches = (ta.value.match(/\[img(\d+)\]/g) || []);
-      const next    = matches.length + 1;
-      return `[img${next}]`;
+      return '[img' + (matches.length + 1) + ']';
     }
   },
 ];
 
+// Special chars as unicode escapes — no smart quote issues
 const SPECIAL_CHARS = [
-  '—', '–', '…', '"', '"', ''', ''', '«', '»',
-  '©', '®', '™', '→', '←', '↑', '↓', '✓', '✗',
-  '•', '·', '°', '№', '₹', '€', '£',
+  '\u2014', '\u2013', '\u2026',
+  '\u201C', '\u201D', '\u2018', '\u2019',
+  '\u00AB', '\u00BB',
+  '\u00A9', '\u00AE', '\u2122',
+  '\u2192', '\u2190', '\u2191', '\u2193',
+  '\u2713', '\u2717',
+  '\u2022', '\u00B7', '\u00B0',
+  '\u2116', '\u20B9', '\u20AC', '\u00A3',
 ];
 
 function buildMarkdownToolbar(toolbar, textarea, preview) {
   toolbar.innerHTML = '';
 
-  // Action buttons
-  TOOLBAR_ACTIONS.forEach(action => {
+  TOOLBAR_ACTIONS.forEach(function(action) {
     const btn = document.createElement('button');
     btn.type      = 'button';
     btn.className = 'cms-tb-btn';
     btn.title     = action.title;
-    btn.innerHTML = `<span>${action.label}</span>`;
-
-    btn.addEventListener('click', () => {
+    btn.innerHTML = '<span>' + action.label + '</span>';
+    btn.addEventListener('click', function() {
       applyToolbarAction(textarea, action);
-      setTimeout(() => { if (preview) preview.innerHTML = md(textarea.value); }, 50);
+      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
       textarea.focus();
     });
-
     toolbar.appendChild(btn);
   });
 
-  // Separator
   const sep = document.createElement('span');
   sep.className = 'cms-tb-sep';
   toolbar.appendChild(sep);
@@ -800,96 +693,96 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   // Color picker
   const colorWrap = document.createElement('div');
   colorWrap.className = 'cms-tb-color-wrap';
-  colorWrap.title     = 'Text color';
-  colorWrap.innerHTML = `<button class="cms-tb-btn cms-tb-color-btn" type="button" title="Text color">
-    <span id="colorSwatch" style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2d6a4f;vertical-align:middle"></span>
-    <span>Color</span>
-  </button>
-  <div class="cms-color-picker" id="colorPicker" hidden>
-    ${COLORS.map(c =>
-      `<button class="cms-color-swatch" style="background:${c}" data-color="${c}" type="button" title="${c}"></button>`
-    ).join('')}
-    <input type="color" class="cms-color-custom" id="colorCustom" value="#2d6a4f" title="Custom color" />
-  </div>`;
+  colorWrap.innerHTML =
+    '<button class="cms-tb-btn cms-tb-color-btn" type="button" title="Text color">' +
+      '<span id="colorSwatch" style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2d6a4f;vertical-align:middle"></span>' +
+      '<span>Color</span>' +
+    '</button>' +
+    '<div class="cms-color-picker" id="colorPicker" hidden>' +
+      COLORS.map(function(c) {
+        return '<button class="cms-color-swatch" style="background:' + c + '" data-color="' + c + '" type="button" title="' + c + '"></button>';
+      }).join('') +
+      '<input type="color" class="cms-color-custom" id="colorCustom" value="#2d6a4f" title="Custom color" />' +
+    '</div>';
 
   let activeColor = COLORS[0];
 
-  colorWrap.querySelector('.cms-tb-color-btn').addEventListener('click', (e) => {
+  colorWrap.querySelector('.cms-tb-color-btn').addEventListener('click', function(e) {
     e.stopPropagation();
     const picker = document.getElementById('colorPicker');
     picker.hidden = !picker.hidden;
   });
 
-  colorWrap.querySelectorAll('.cms-color-swatch').forEach(sw => {
-    sw.addEventListener('click', () => {
+  colorWrap.querySelectorAll('.cms-color-swatch').forEach(function(sw) {
+    sw.addEventListener('click', function() {
       activeColor = sw.dataset.color;
       document.getElementById('colorSwatch').style.background = activeColor;
       document.getElementById('colorPicker').hidden = true;
       applyColor(textarea, activeColor);
-      setTimeout(() => { if (preview) preview.innerHTML = md(textarea.value); }, 50);
+      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
       textarea.focus();
     });
   });
 
-  const customColor = document.getElementById('colorCustom');
+  const customColor = colorWrap.querySelector('#colorCustom');
   if (customColor) {
-    customColor.addEventListener('input', e => {
+    customColor.addEventListener('input', function(e) {
       activeColor = e.target.value;
       document.getElementById('colorSwatch').style.background = activeColor;
     });
-    customColor.addEventListener('change', e => {
+    customColor.addEventListener('change', function(e) {
       activeColor = e.target.value;
       document.getElementById('colorPicker').hidden = true;
       applyColor(textarea, activeColor);
-      setTimeout(() => { if (preview) preview.innerHTML = md(textarea.value); }, 50);
+      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
       textarea.focus();
     });
   }
 
   toolbar.appendChild(colorWrap);
 
-  // Special characters
   const sep2 = document.createElement('span');
   sep2.className = 'cms-tb-sep';
   toolbar.appendChild(sep2);
 
+  // Special chars
   const specialBtn = document.createElement('button');
   specialBtn.type      = 'button';
   specialBtn.className = 'cms-tb-btn';
   specialBtn.title     = 'Special characters';
-  specialBtn.innerHTML = '<span>Ω</span>';
+  specialBtn.innerHTML = '<span>\u03A9</span>';
 
   const specialPicker = document.createElement('div');
   specialPicker.className = 'cms-special-picker';
   specialPicker.hidden    = true;
   specialPicker.id        = 'specialPicker';
 
-  SPECIAL_CHARS.forEach(ch => {
+  SPECIAL_CHARS.forEach(function(ch) {
     const b = document.createElement('button');
-    b.type      = 'button';
-    b.className = 'cms-special-char';
+    b.type        = 'button';
+    b.className   = 'cms-special-char';
     b.textContent = ch;
     b.title       = ch;
-    b.addEventListener('click', () => {
+    b.addEventListener('click', function() {
       insertAtCursor(textarea, ch, '');
       specialPicker.hidden = true;
-      setTimeout(() => { if (preview) preview.innerHTML = md(textarea.value); }, 50);
+      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
       textarea.focus();
     });
     specialPicker.appendChild(b);
   });
 
-  specialBtn.addEventListener('click', e => {
+  specialBtn.addEventListener('click', function(e) {
     e.stopPropagation();
     specialPicker.hidden = !specialPicker.hidden;
-    document.getElementById('colorPicker') && (document.getElementById('colorPicker').hidden = true);
+    const cp = document.getElementById('colorPicker');
+    if (cp) cp.hidden = true;
   });
 
   toolbar.appendChild(specialBtn);
   toolbar.appendChild(specialPicker);
 
-  // Close pickers on outside click
-  document.addEventListener('click', () => {
+  document.addEventListener('click', function() {
     const cp = document.getElementById('colorPicker');
     const sp = document.getElementById('specialPicker');
     if (cp) cp.hidden = true;
@@ -906,37 +799,30 @@ function applyToolbarAction(textarea, action) {
     insertAtCursor(textarea, action.insert, '');
     return;
   }
-
   if (action.insertFn) {
-    const text = action.insertFn(textarea);
-    insertAtCursor(textarea, text, '');
+    insertAtCursor(textarea, action.insertFn(textarea), '');
     return;
   }
-
   if (action.wrap) {
-    const [before, after] = action.wrap;
+    const before = action.wrap[0];
+    const after  = action.wrap[1];
     if (action.block && !sel) {
-      // Block-level: operate on current line
       const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
       const lineEnd   = textarea.value.indexOf('\n', end);
       const realEnd   = lineEnd === -1 ? textarea.value.length : lineEnd;
       const line      = textarea.value.slice(lineStart, realEnd);
-      const newText   = before + line + after;
-      textarea.setRangeText(newText, lineStart, realEnd, 'select');
+      textarea.setRangeText(before + line + after, lineStart, realEnd, 'select');
     } else {
-      // Inline: wrap selection
-      const newText = before + sel + after;
-      textarea.setRangeText(newText, start, end, 'select');
+      textarea.setRangeText(before + sel + after, start, end, 'select');
     }
   }
 }
 
 function applyColor(textarea, color) {
-  const start = textarea.selectionStart;
-  const end   = textarea.selectionEnd;
-  const sel   = textarea.value.slice(start, end) || 'text';
-  // Use HTML span — md() passes through inline HTML
-  const wrapped = `<span style="color:${color}">${sel}</span>`;
+  const start   = textarea.selectionStart;
+  const end     = textarea.selectionEnd;
+  const sel     = textarea.value.slice(start, end) || 'text';
+  const wrapped = '<span style="color:' + color + '">' + sel + '</span>';
   textarea.setRangeText(wrapped, start, end, 'end');
 }
 
@@ -947,9 +833,7 @@ function insertAtCursor(textarea, before, after) {
   textarea.setRangeText(before + sel + after, start, end, 'end');
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  CHORD LIST VIEW
-// ─────────────────────────────────────────────────────────────────────────
+// ── CHORD LIST ─────────────────────────────────────────────────────────────
 
 async function renderChordList(panel, view) {
   panel.innerHTML = `
@@ -960,10 +844,10 @@ async function renderChordList(panel, view) {
       </div>
       <div class="cms-list-toolbar">
         <input class="cms-input cms-list-search" id="chordListSearch"
-          type="search" placeholder="Search songs, artists…" autocomplete="off" />
+          type="search" placeholder="Search songs, artists\u2026" autocomplete="off" />
         <select class="cms-input cms-select cms-list-sort" id="chordListSort">
           <option value="newest">Newest first</option>
-          <option value="az">Title A–Z</option>
+          <option value="az">Title A\u2013Z</option>
           <option value="artist">By artist</option>
         </select>
         <select class="cms-input cms-select" id="chordListDiff">
@@ -974,44 +858,43 @@ async function renderChordList(panel, view) {
         </select>
       </div>
       <div class="cms-list-body" id="chordListBody">
-        <div class="cms-list-loading">Loading chord sheets…</div>
+        <div class="cms-list-loading">Loading chord sheets\u2026</div>
       </div>
     </div>`;
 
-  document.getElementById('chordAddNew').addEventListener('click', () => {
+  document.getElementById('chordAddNew').addEventListener('click', function() {
     renderChordForm(panel, view, null);
   });
 
   let rows = [];
-
   try {
     const result = await apiRead('chords');
     if (result.ok) {
       rows = result.rows || [];
     } else {
       document.getElementById('chordListBody').innerHTML =
-        `<div class="cms-list-empty">Error loading chord sheets: ${esc(result.error || 'Unknown error')}</div>`;
+        '<div class="cms-list-empty">Error loading chord sheets: ' + esc(result.error || 'Unknown error') + '</div>';
       return;
     }
   } catch (e) {
     document.getElementById('chordListBody').innerHTML =
-      `<div class="cms-list-empty">Network error loading chord sheets.</div>`;
+      '<div class="cms-list-empty">Network error loading chord sheets.</div>';
     return;
   }
 
   function renderList() {
-    const search = (document.getElementById('chordListSearch')?.value || '').toLowerCase();
-    const sort   =  document.getElementById('chordListSort')?.value   || 'newest';
-    const diff   = (document.getElementById('chordListDiff')?.value   || '').toLowerCase();
+    const search = (document.getElementById('chordListSearch') ? document.getElementById('chordListSearch').value : '').toLowerCase();
+    const sort   = document.getElementById('chordListSort')   ? document.getElementById('chordListSort').value   : 'newest';
+    const diff   = (document.getElementById('chordListDiff')  ? document.getElementById('chordListDiff').value   : '').toLowerCase();
 
-    let filtered = rows.filter(r =>
-      (!search ||
+    let filtered = rows.filter(function(r) {
+      return (!search ||
         (r.Title  || '').toLowerCase().includes(search) ||
         (r.Artist || '').toLowerCase().includes(search)) &&
-      (!diff || (r.Difficulty || '').toLowerCase() === diff)
-    );
+        (!diff || (r.Difficulty || '').toLowerCase() === diff);
+    });
 
-    filtered.sort((a, b) => {
+    filtered.sort(function(a, b) {
       if (sort === 'newest') return new Date(b.Date_Added || 0) - new Date(a.Date_Added || 0);
       if (sort === 'az')     return (a.Title  || '').localeCompare(b.Title  || '');
       if (sort === 'artist') return (a.Artist || '').localeCompare(b.Artist || '');
@@ -1022,41 +905,41 @@ async function renderChordList(panel, view) {
     if (!body) return;
 
     if (!filtered.length) {
-      body.innerHTML = `<div class="cms-list-empty">${
-        rows.length ? 'No chord sheets match your search.' : 'No chord sheets yet. Click "Add New" to create one.'
-      }</div>`;
+      body.innerHTML = '<div class="cms-list-empty">' +
+        (rows.length ? 'No chord sheets match your search.' : 'No chord sheets yet. Click "Add New" to create one.') +
+        '</div>';
       return;
     }
 
     body.innerHTML = '';
-    filtered.forEach(row => {
+    filtered.forEach(function(row) {
       const item = document.createElement('div');
       item.className = 'cms-list-item';
       item.innerHTML =
-        `<div class="cms-list-item-main">
-          <span class="cms-list-item-title">${esc(row.Title || '(no title)')}</span>
-          <span class="cms-list-item-meta">
-            <span class="cms-list-badge">${esc(row.Artist || '')}</span>
-            ${row.Key        ? `<span class="cms-list-badge">Key ${esc(row.Key)}</span>` : ''}
-            ${row.Difficulty ? `<span class="cms-list-badge">${esc(row.Difficulty)}</span>` : ''}
-            ${row.Date_Added ? `<span class="cms-list-date">${esc(row.Date_Added)}</span>` : ''}
-          </span>
-        </div>
-        <div class="cms-list-item-actions">
-          <button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="edit">Edit</button>
-          <button class="cms-btn cms-btn-danger cms-btn-sm" data-action="delete">Delete</button>
-        </div>`;
+        '<div class="cms-list-item-main">' +
+          '<span class="cms-list-item-title">' + esc(row.Title || '(no title)') + '</span>' +
+          '<span class="cms-list-item-meta">' +
+            '<span class="cms-list-badge">' + esc(row.Artist || '') + '</span>' +
+            (row.Key        ? '<span class="cms-list-badge">Key ' + esc(row.Key) + '</span>' : '') +
+            (row.Difficulty ? '<span class="cms-list-badge">' + esc(row.Difficulty) + '</span>' : '') +
+            (row.Date_Added ? '<span class="cms-list-date">' + esc(row.Date_Added) + '</span>' : '') +
+          '</span>' +
+        '</div>' +
+        '<div class="cms-list-item-actions">' +
+          '<button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="edit">Edit</button>' +
+          '<button class="cms-btn cms-btn-danger cms-btn-sm" data-action="delete">Delete</button>' +
+        '</div>';
 
-      item.querySelector('[data-action="edit"]').addEventListener('click', () => {
-        renderChordForm(panel, view, row, rows);
+      item.querySelector('[data-action="edit"]').addEventListener('click', function() {
+        renderChordForm(panel, view, row);
       });
 
-      item.querySelector('[data-action="delete"]').addEventListener('click', async () => {
-        if (!confirm(`Delete "${row.Title}"? This cannot be undone.`)) return;
+      item.querySelector('[data-action="delete"]').addEventListener('click', async function() {
+        if (!confirm('Delete "' + row.Title + '"? This cannot be undone.')) return;
         const res = await apiDelete('chords', row.Slug);
         if (res.ok) {
           showToast('Chord sheet deleted');
-          rows = rows.filter(x => x.Slug !== row.Slug);
+          rows = rows.filter(function(x) { return x.Slug !== row.Slug; });
           renderList();
         } else {
           showToast(res.error || 'Delete failed', 'error');
@@ -1073,9 +956,7 @@ async function renderChordList(panel, view) {
   renderList();
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  CHORD FORM (Add New / Edit)
-// ─────────────────────────────────────────────────────────────────────────
+// ── CHORD FORM ─────────────────────────────────────────────────────────────
 
 function renderChordForm(panel, view, existingRow) {
   const isEdit = !!existingRow;
@@ -1083,19 +964,20 @@ function renderChordForm(panel, view, existingRow) {
 
   const keys = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
                  'Cm','Dm','Em','Am','Fm','Gm'];
-  const keyOptions = ['<option value="">-- select --</option>',
-    ...keys.map(k => `<option value="${esc(k)}"${r.Key === k ? ' selected' : ''}>${esc(k)}</option>`)
-  ].join('');
 
-  function sel(val, opt) { return val === opt ? ' selected' : ''; }
+  function selOpt(val, opt) { return val === opt ? ' selected' : ''; }
+
+  const keyOptions = '<option value="">-- select --</option>' +
+    keys.map(function(k) {
+      return '<option value="' + esc(k) + '"' + (r.Key === k ? ' selected' : '') + '>' + esc(k) + '</option>';
+    }).join('');
 
   panel.innerHTML = `
     <div class="cms-form-wrap">
       <div class="cms-form-topbar">
-        <button class="cms-btn cms-btn-ghost cms-btn-sm" id="chordBackToList">← All Chord Sheets</button>
+        <button class="cms-btn cms-btn-ghost cms-btn-sm" id="chordBackToList">\u2190 All Chord Sheets</button>
         <h3 class="cms-form-title">${isEdit ? 'Edit Chord Sheet' : 'New Chord Sheet'}</h3>
       </div>
-
       <div class="cms-row">
         <div class="cms-field cms-field-wide">
           <label class="cms-label">Song Title *</label>
@@ -1109,7 +991,6 @@ function renderChordForm(panel, view, existingRow) {
             ${isEdit ? 'readonly style="opacity:.6;cursor:not-allowed"' : ''} />
         </div>
       </div>
-
       <div class="cms-row">
         <div class="cms-field">
           <label class="cms-label">Artist *</label>
@@ -1126,33 +1007,31 @@ function renderChordForm(panel, view, existingRow) {
             min="0" max="12" value="${esc(r.Capo || '0')}" />
         </div>
       </div>
-
       <div class="cms-row">
         <div class="cms-field">
           <label class="cms-label">Difficulty</label>
           <select class="cms-input cms-select" id="cDifficulty">
-            <option value="beginner"    ${sel(r.Difficulty,'beginner')}>Beginner</option>
-            <option value="intermediate"${sel(r.Difficulty,'intermediate') || (!r.Difficulty ? ' selected' : '')}>Intermediate</option>
-            <option value="advanced"    ${sel(r.Difficulty,'advanced')}>Advanced</option>
+            <option value="beginner"${selOpt(r.Difficulty,'beginner')}>Beginner</option>
+            <option value="intermediate"${selOpt(r.Difficulty,'intermediate') || (!r.Difficulty ? ' selected' : '')}>Intermediate</option>
+            <option value="advanced"${selOpt(r.Difficulty,'advanced')}>Advanced</option>
           </select>
         </div>
         <div class="cms-field">
           <label class="cms-label">Category</label>
           <select class="cms-input cms-select" id="cCategory">
-            ${['nepali','english','hindi','devotional','folk','pop','rock','classical']
-              .map(c => `<option value="${c}"${sel(r.Category,c)}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`)
-              .join('')}
+            ${['nepali','english','hindi','devotional','folk','pop','rock','classical'].map(function(c) {
+              return '<option value="' + c + '"' + selOpt(r.Category, c) + '>' + c.charAt(0).toUpperCase() + c.slice(1) + '</option>';
+            }).join('')}
           </select>
         </div>
         <div class="cms-field">
           <label class="cms-label">Featured</label>
           <select class="cms-input cms-select" id="cFeatured">
-            <option value="false"${sel(r.Featured,'false') || (!r.Featured ? ' selected' : '')}>No</option>
-            <option value="true" ${sel(r.Featured,'true')}>Yes</option>
+            <option value="false"${selOpt(r.Featured,'false') || (!r.Featured ? ' selected' : '')}>No</option>
+            <option value="true"${selOpt(r.Featured,'true')}>Yes</option>
           </select>
         </div>
       </div>
-
       <div class="cms-row">
         <div class="cms-field">
           <label class="cms-label">Chords Used</label>
@@ -1164,7 +1043,6 @@ function renderChordForm(panel, view, existingRow) {
           <input class="cms-input" id="cDate" type="date" value="${esc(r.Date_Added || today())}" />
         </div>
       </div>
-
       <div class="cms-row">
         <div class="cms-field">
           <label class="cms-label">Image URL</label>
@@ -1175,21 +1053,17 @@ function renderChordForm(panel, view, existingRow) {
           <input class="cms-input" id="cImageAlt" type="text" value="${esc(r.Image_Alt || '')}" />
         </div>
       </div>
-
       <div class="cms-field">
         <label class="cms-label">Excerpt</label>
         <textarea class="cms-input cms-textarea-sm" id="cExcerpt" rows="2"
-          placeholder="Learn to play this song with G Em7 Cadd9 chords…">${esc(r.Excerpt || '')}</textarea>
+          placeholder="Learn to play this song with G Em7 Cadd9 chords\u2026">${esc(r.Excerpt || '')}</textarea>
       </div>
-
-      <!-- Natural chord editor: just type and press Enter normally -->
       <div class="cms-field">
-        <label class="cms-label">
-          Tab Content
+        <label class="cms-label">Tab Content
           <span class="cms-label-hint">
-            Type normally — press <kbd>Enter</kbd> for a new line, leave a blank line for a gap between sections.
-            Put chord names in [brackets]: <code>[G]hey its me [C]here</code>
-            Start section labels alone on their own line: <code>[Verse 1]</code> or <code>[Chorus]</code>
+            Press Enter for new line, blank line for section gap.
+            Chords in [brackets]: [G]hey its me [C]here
+            Section labels on own line: [Verse 1] or [Chorus]
           </span>
         </label>
         <div class="cms-editor-wrap">
@@ -1197,13 +1071,7 @@ function renderChordForm(panel, view, existingRow) {
             <div class="cms-editor-label">Write</div>
             <textarea class="cms-input cms-editor cms-editor-mono"
               id="cTabContent" rows="22" spellcheck="false"
-              placeholder="[Verse 1]
-[G]Hey its me
-[C]here with you
-
-[Chorus]
-[G]This is the [Em]chorus
-[Am]singing [D]along"></textarea>
+              placeholder="[Verse 1]&#10;[G]Hey its me&#10;[C]here with you&#10;&#10;[Chorus]&#10;[G]This is the [Em]chorus"></textarea>
           </div>
           <div class="cms-preview-pane">
             <div class="cms-editor-label">Preview</div>
@@ -1211,52 +1079,46 @@ function renderChordForm(panel, view, existingRow) {
           </div>
         </div>
       </div>
-
       <div class="cms-actions">
         <button class="cms-btn cms-btn-primary" id="cPublish">
-          ${isEdit ? '💾 Save Changes' : 'Publish to Sheet →'}
+          ${isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192'}
         </button>
         <button class="cms-btn cms-btn-ghost" id="chordBackToList2">Cancel</button>
         <span class="cms-status" id="cStatus"></span>
       </div>
     </div>`;
 
-  // Pre-fill natural editor from stored pipe format
   const tabEl = document.getElementById('cTabContent');
   if (r.Tab_Content) tabEl.value = pipesToLines(r.Tab_Content);
 
-  // Back buttons
-  const goBack = () => renderChordList(panel, view);
-  document.getElementById('chordBackToList') .addEventListener('click', goBack);
+  const goBack = function() { renderChordList(panel, view); };
+  document.getElementById('chordBackToList').addEventListener('click', goBack);
   document.getElementById('chordBackToList2').addEventListener('click', goBack);
 
-  // Slug auto-gen
   const titleEl = document.getElementById('cTitle');
   const slugEl  = document.getElementById('cSlug');
   if (!isEdit) {
-    titleEl.addEventListener('input', () => {
+    titleEl.addEventListener('input', function() {
       if (!slugEl._manuallyEdited) slugEl.value = makeSlug(titleEl.value);
     });
-    slugEl.addEventListener('input', () => { slugEl._manuallyEdited = true; });
+    slugEl.addEventListener('input', function() { slugEl._manuallyEdited = true; });
   }
 
-  // Live tab preview
   const previewEl = document.getElementById('cTabPreview');
-  let   previewTimer;
+  let previewTimer;
 
   function updateTabPreview() {
     previewEl.innerHTML = renderTabPreview(tabEl.value);
   }
 
-  tabEl.addEventListener('input', () => {
+  tabEl.addEventListener('input', function() {
     clearTimeout(previewTimer);
     previewTimer = setTimeout(updateTabPreview, 300);
   });
 
   if (tabEl.value) updateTabPreview();
 
-  // Publish / Update
-  document.getElementById('cPublish').addEventListener('click', async () => {
+  document.getElementById('cPublish').addEventListener('click', async function() {
     const title      = document.getElementById('cTitle').value.trim();
     const slug       = document.getElementById('cSlug').value.trim() || makeSlug(title);
     const artist     = document.getElementById('cArtist').value.trim();
@@ -1270,8 +1132,7 @@ function renderChordForm(panel, view, existingRow) {
     const imageUrl   = document.getElementById('cImageUrl').value.trim();
     const imageAlt   = document.getElementById('cImageAlt').value.trim();
     const excerpt    = document.getElementById('cExcerpt').value.trim();
-    const tabRaw     = tabEl.value;
-    const tabContent = linesTopipes(tabRaw);
+    const tabContent = linesTopipes(tabEl.value);
     const statusEl   = document.getElementById('cStatus');
     const btn        = document.getElementById('cPublish');
 
@@ -1279,10 +1140,10 @@ function renderChordForm(panel, view, existingRow) {
     if (!artist) { showToast('Artist is required', 'error'); return; }
 
     btn.disabled    = true;
-    btn.textContent = isEdit ? 'Saving…' : 'Publishing…';
+    btn.textContent = isEdit ? 'Saving\u2026' : 'Publishing\u2026';
     statusEl.textContent = '';
 
-    const row = {
+    const rowData = {
       Slug:        slug,
       Title:       title,
       Artist:      artist,
@@ -1301,65 +1162,55 @@ function renderChordForm(panel, view, existingRow) {
 
     try {
       const result = isEdit
-        ? await apiUpdate('chords', r.Slug, row)
-        : await apiAppend('chords', row);
+        ? await apiUpdate('chords', r.Slug, rowData)
+        : await apiAppend('chords', rowData);
 
       if (result.ok) {
         showToast(isEdit ? 'Chord sheet updated!' : 'Chord sheet published!');
         renderChordList(panel, view);
       } else {
         showToast(result.error || 'Save failed', 'error');
-        statusEl.textContent = '✗ ' + (result.error || 'Error');
+        statusEl.textContent = '\u2717 ' + (result.error || 'Error');
         statusEl.style.color = '#991b1b';
         btn.disabled    = false;
-        btn.textContent = isEdit ? '💾 Save Changes' : 'Publish to Sheet →';
+        btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
       }
     } catch (e) {
       showToast('Network error', 'error');
       btn.disabled    = false;
-      btn.textContent = isEdit ? '💾 Save Changes' : 'Publish to Sheet →';
+      btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
     }
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  CHORD TAB PREVIEW (for the CMS editor)
-// ─────────────────────────────────────────────────────────────────────────
+// ── CHORD TAB PREVIEW ─────────────────────────────────────────────────────
 
 const CHORD_RE_PREVIEW = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
 
 function renderTabPreview(raw) {
-  if (!raw) return '<span style="color:var(--muted-light)">Preview will appear here…</span>';
+  if (!raw) return '<span style="color:var(--muted-light)">Preview will appear here\u2026</span>';
 
-  // raw is natural line breaks from the editor
-  const lines = raw.split('\n');
-
-  return lines.map(line => {
+  return raw.split('\n').map(function(line) {
     const trimmed = line.trim();
-
     if (!trimmed) return '<div style="height:.6rem"></div>';
 
-    // Section label: [Chorus], [Verse 1] etc
     const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
     if (sectionMatch && !CHORD_RE_PREVIEW.test(sectionMatch[1])) {
-      return `<div style="font-family:var(--serif);font-weight:500;color:var(--accent2);margin:.8rem 0 .2rem">${esc(sectionMatch[1])}</div>`;
+      return '<div style="font-family:var(--serif);font-weight:500;color:var(--accent2);margin:.8rem 0 .2rem">' + esc(sectionMatch[1]) + '</div>';
     }
 
-    // Line with chord tokens
     const parts = line.split(/(\[[^\]]+\])/);
     if (parts.length > 1) {
-      const spans = parts.map(part => {
+      const spans = parts.map(function(part) {
         const m = part.match(/^\[([^\]]+)\]$/);
         if (m && CHORD_RE_PREVIEW.test(m[1])) {
-          return `<span style="color:var(--accent);font-weight:600">${esc(m[1])}</span>`;
+          return '<span style="color:var(--accent);font-weight:600">' + esc(m[1]) + '</span>';
         }
         return esc(part);
       });
-      return `<div style="font-family:var(--mono);font-size:.82rem;line-height:2">${spans.join('')}</div>`;
+      return '<div style="font-family:var(--mono);font-size:.82rem;line-height:2">' + spans.join('') + '</div>';
     }
 
-    // Plain lyric line
-    return `<div style="font-family:var(--mono);font-size:.82rem;line-height:1.7;color:var(--text)">${esc(line)}</div>`;
+    return '<div style="font-family:var(--mono);font-size:.82rem;line-height:1.7;color:var(--text)">' + esc(line) + '</div>';
   }).join('');
 }
-//
