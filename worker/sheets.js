@@ -23,20 +23,25 @@
  */
 export function getSheetGids(env) {
   return {
-    // ── Existing sheets ────────────────────────────────────────────────
-    blog:     env.BLOG_GID     || '1132024800',
-    skills:   env.SKILLS_GID   || '302402061',
-    projects: env.PROJECTS_GID || '0',
-    exp:      env.EXP_GID      || '245982630',
-    about:    env.ABOUT_GID    || '1066410604',
-    faq:      env.FAQ_GID      || '303688554',
-    images:   env.IMAGES_GID   || '1267436347',
-    featured: env.FEATURED_GID || '980532084',
+    // ── Core content sheets ────────────────────────────────────────────
+    blog:       env.BLOG_GID       || '1132024800',
+    skills:     env.SKILLS_GID     || '302402061',
+    projects:   env.PROJECTS_GID   || '0',
+    exp:        env.EXP_GID        || '245982630',
+    about:      env.ABOUT_GID      || '1066410604',
+    faq:        env.FAQ_GID        || '303688554',
+    images:     env.IMAGES_GID     || '1267436347',
+    featured:   env.FEATURED_GID   || '980532084',
 
-    // ── Chords sheet (NEW) ─────────────────────────────────────────────
+    // ── Blog linked sheets ─────────────────────────────────────────────
+    // Used by the blog page to load inline images ([img1], [img2]…).
+    // Set BLOGIMAGE_GID in wrangler.toml [vars] to your blogimage tab GID.
+    blogimage:  env.BLOGIMAGE_GID  || '1267436347',
+
+    // ── Chords sheet ───────────────────────────────────────────────────
     // Set CHORDS_GID in wrangler.toml [vars] once the sheet tab is created.
     // Until then this returns '' which causes /api/data?sheet=chords → 404.
-    chords:   env.CHORDS_GID   || '',
+    chords:     env.CHORDS_GID     || '687736904',
   };
 }
 

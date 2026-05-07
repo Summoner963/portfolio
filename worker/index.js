@@ -30,8 +30,8 @@ import {
   escHtml, parseCSV, fixImgUrl, formatDate,
   SECURITY_HEADERS, applySecurityHeaders,
 }                              from './utils.js';
-import { handleCMSAuth }  from './cms-auth.js';
-import { handleCMSWrite } from './cms-proxy.js';
+import { handleCMSAuth }       from './cms-auth.js';
+import { handleCMSRead, handleCMSWrite } from './cms-proxy.js';
 import { prerenderBlogPost }   from './ssr/blog.js';
 import { prerenderChord }      from './ssr/chords.js';
 import {
@@ -56,11 +56,6 @@ const _memCache = {};
 
 const CACHE_MS = 10 * 60 * 1000; // 10 minutes
 
-/**
- * Retrieve a value from the in-memory cache.
- * @param {string} key
- * @returns {string|null}
- */
 function memGet(key) {
   const it = _memCache[key];
   if (!it) return null;
@@ -68,11 +63,6 @@ function memGet(key) {
   return it.data;
 }
 
-/**
- * Store a value in the in-memory cache.
- * @param {string} key
- * @param {string} data
- */
 function memSet(key, data) {
   _memCache[key] = { data, exp: Date.now() + CACHE_MS };
 }
@@ -81,17 +71,12 @@ function memSet(key, data) {
 //  Rate limiting (in-memory, per IP, 120 req/min)
 // ─────────────────────────────────────────────────────────────────────────
 
-const RL_WINDOW_MS = 60_000; // 1 minute
-const RL_MAX       = 120;    // requests per window
+const RL_WINDOW_MS = 60_000;
+const RL_MAX       = 120;
 
 /** @type {Record<string, {count: number, windowStart: number}>} */
 const _rl = {};
 
-/**
- * Returns true if this IP has exceeded the rate limit.
- * @param {string} ip
- * @returns {boolean}
- */
 function isRateLimited(ip) {
   const now   = Date.now();
   const entry = _rl[ip];
@@ -103,22 +88,10 @@ function isRateLimited(ip) {
   return entry.count > RL_MAX;
 }
 
-// applySecurityHeaders and SECURITY_HEADERS imported from ./utils.js above.
-
 // ─────────────────────────────────────────────────────────────────────────
-//  Internal sheet fetcher (used by /api/data and by SSR handlers
-//  via the fetchSheetData parameter pattern)
+//  Internal sheet fetcher
 // ─────────────────────────────────────────────────────────────────────────
 
-/**
- * Fetches a named sheet, parses CSV, returns array of row objects.
- * Results are cached in-memory for CACHE_MS.
- * Sheet URLs and GIDs never leave this file.
- *
- * @param {string} sheetName  — key from getSheetGids()
- * @param {object} env        — Cloudflare Worker env bindings
- * @returns {Promise<object[]>}
- */
 async function fetchSheetData(sheetName, env) {
   const cacheKey = `sheet_${sheetName}`;
   const cached   = memGet(cacheKey);
@@ -155,24 +128,14 @@ async function fetchSheetData(sheetName, env) {
 //  /api/data?sheet=<name>  handler
 // ─────────────────────────────────────────────────────────────────────────
 
-/**
- * Secure named-sheet proxy. Sheet URLs and GIDs never reach the browser.
- * Unknown sheet names → 404. Never proxies arbitrary URLs.
- *
- * @param {URL}    url
- * @param {object} env
- * @returns {Promise<Response>}
- */
 async function handleDataEndpoint(url, env) {
   const sheetName = (url.searchParams.get('sheet') || '').toLowerCase().trim();
   const gids      = getSheetGids(env);
 
-  // Whitelist check — unknown names return 404, not a proxy
   if (!gids[sheetName]) {
     return new Response('Not found', { status: 404 });
   }
 
-  // Serve from cache if fresh
   const cacheKey = `sheet_${sheetName}`;
   const cached   = memGet(cacheKey);
   if (cached) {
@@ -229,7 +192,7 @@ function handleRobotsTxt() {
     `User-agent: *\n` +
     `Allow: /\n` +
     `Disallow: /api/\n` +
-    `Disallow: /back-lab\n` + 
+    `Disallow: /back-lab\n` +
     `Sitemap: ${SITE_URL}/sitemap.xml\n`;
   return new Response(body, {
     status: 200,
@@ -295,15 +258,6 @@ rock, and classical songs.
 const STATIC_EXT_RE = /\.(png|jpg|jpeg|gif|svg|ico|webp|avif|woff2?|ttf|eot|css|js|txt|json|xml|map)$/i;
 const FONT_EXT_RE   = /\.(woff2?|ttf|eot)$/i;
 
-/**
- * Serves a static asset from Cloudflare Pages ASSETS binding.
- * Applies security headers and long-lived caching for fonts.
- *
- * @param {Request} request
- * @param {string}  path
- * @param {object}  env
- * @returns {Promise<Response>}
- */
 async function handleStaticAsset(request, path, env) {
   try {
     const assetResp = await env.ASSETS.fetch(request);
@@ -318,24 +272,17 @@ async function handleStaticAsset(request, path, env) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Main fetch handler (Cloudflare Worker entry point)
+//  Main fetch handler
 // ─────────────────────────────────────────────────────────────────────────
 
 export default {
-  /**
-   * @param {Request} request
-   * @param {object}  env      — Cloudflare env bindings from wrangler.toml
-   * @param {object}  ctx      — ExecutionContext (waitUntil etc.)
-   * @returns {Promise<Response>}
-   */
   async fetch(request, env, ctx) {
     const url    = new URL(request.url);
     const path   = url.pathname;
     const method = request.method;
 
-// ── Method check ─────────────────────────────────────────────────────────
-// CMS endpoints need POST. All other routes only allow GET / HEAD.
-    const CMS_POST_PATHS = new Set(['/api/cms/auth', '/api/cms/write']);
+    // ── Method check ──────────────────────────────────────────────────────
+    const CMS_POST_PATHS = new Set(['/api/cms/auth', '/api/cms/read', '/api/cms/write']);
 
     if (method !== 'GET' && method !== 'HEAD') {
       if (method === 'POST' && CMS_POST_PATHS.has(path)) {
@@ -348,41 +295,44 @@ export default {
       }
     }
 
-    // ── Rate limiting ────────────────────────────────────────────────────
+    // ── Rate limiting ──────────────────────────────────────────────────────
     const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
     if (isRateLimited(clientIP)) {
       return new Response('Too Many Requests', {
         status: 429,
-        headers: {
-          'Retry-After':   '60',
-          'Content-Type':  'text/plain',
-        },
+        headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' },
       });
     }
 
-    // ── /api/data?sheet=<name>  (secure named sheet proxy) ──────────────
+    // ── /api/data?sheet=<name> ─────────────────────────────────────────────
     if (path === '/api/data') {
       const resp    = await handleDataEndpoint(url, env);
       const headers = applySecurityHeaders(new Headers(resp.headers));
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-
-    // ── CMS auth ─────────────────────────────────────────────────────────────
+    // ── CMS auth ───────────────────────────────────────────────────────────
     if (path === '/api/cms/auth') {
       const resp    = await handleCMSAuth(request, env);
       const headers = applySecurityHeaders(new Headers(resp.headers));
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // ── CMS write ─────────────────────────────────────────────────────────────
+    // ── CMS read ───────────────────────────────────────────────────────────
+    if (path === '/api/cms/read') {
+      const resp    = await handleCMSRead(request, env);
+      const headers = applySecurityHeaders(new Headers(resp.headers));
+      return new Response(resp.body, { status: resp.status, headers });
+    }
+
+    // ── CMS write ──────────────────────────────────────────────────────────
     if (path === '/api/cms/write') {
       const resp    = await handleCMSWrite(request, env);
       const headers = applySecurityHeaders(new Headers(resp.headers));
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // ── Legacy endpoint — permanently gone ──────────────────────────────
+    // ── Legacy endpoint ────────────────────────────────────────────────────
     if (path === '/api/sheet') {
       return new Response(
         'This endpoint has been removed. Use /api/data?sheet=<name>',
@@ -390,49 +340,41 @@ export default {
       );
     }
 
-    // ── /sitemap.xml ─────────────────────────────────────────────────────
+    // ── /sitemap.xml ───────────────────────────────────────────────────────
     if (path === '/sitemap.xml') {
-      // generateSitemap needs to fetch blog + chord slugs.
-      // Pass fetchSheetData as a parameter to avoid circular imports
-      // (meta.js must not import from index.js).
       return await generateSitemap(env, fetchSheetData);
     }
 
-    // ── /robots.txt ──────────────────────────────────────────────────────
+    // ── /robots.txt ────────────────────────────────────────────────────────
     if (path === '/robots.txt') return handleRobotsTxt();
 
-    // ── /llms.txt ────────────────────────────────────────────────────────
+    // ── /llms.txt ──────────────────────────────────────────────────────────
     if (path === '/llms.txt') return handleLlmsTxt();
 
-    // ── Static assets ────────────────────────────────────────────────────
+    // ── Static assets ──────────────────────────────────────────────────────
     if (STATIC_EXT_RE.test(path)) {
       return await handleStaticAsset(request, path, env);
     }
 
-    // ── Blog post SSR — /blog/:slug ──────────────────────────────────────
-    // Full HTML prerender for crawlers & social sharing bots.
-    // Real users are redirected to the SPA via the hydration script.
+    // ── Blog post SSR — /blog/:slug ────────────────────────────────────────
     const blogMatch = path.match(/^\/blog\/([^/]+)\/?$/);
     if (blogMatch) {
-      const slug = decodeURIComponent(blogMatch[1]);
-      const resp = await prerenderBlogPost(slug, env, request, fetchSheetData);
+      const slug    = decodeURIComponent(blogMatch[1]);
+      const resp    = await prerenderBlogPost(slug, env, request, fetchSheetData);
       const headers = applySecurityHeaders(new Headers(resp.headers));
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // ── Chord detail SSR — /chords/:slug ─────────────────────────────────
-    // Same pattern as blog SSR. Renders MusicComposition schema + full tab.
+    // ── Chord detail SSR — /chords/:slug ──────────────────────────────────
     const chordMatch = path.match(/^\/chords\/([^/]+)\/?$/);
     if (chordMatch) {
-      const slug = decodeURIComponent(chordMatch[1]);
-      const resp = await prerenderChord(slug, env, request, fetchSheetData);
+      const slug    = decodeURIComponent(chordMatch[1]);
+      const resp    = await prerenderChord(slug, env, request, fetchSheetData);
       const headers = applySecurityHeaders(new Headers(resp.headers));
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // ── Chord list page — /chords ─────────────────────────────────────────
-    // Treated as a known SPA route with meta injection.
-    // (ROUTE_META['/chords'] is defined in worker/ssr/meta.js)
+    // ── Chord list page — /chords ──────────────────────────────────────────
     if (path === '/chords' || path === '/chords/') {
       const normPath = '/chords';
       const resp     = await serveIndexWithMeta(env, request, normPath);
@@ -440,10 +382,7 @@ export default {
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // ── Known SPA routes — inject per-route meta tags ────────────────────
-    // Social crawlers (Facebook, Twitter, LinkedIn, Slack, Discord, etc.)
-    // send requests with no JS. They receive an index.html with correct
-    // og:title / og:description / canonical already set in the HTML.
+    // ── Known SPA routes — inject per-route meta tags ──────────────────────
     const normPath = path === '/' ? '/' : path.replace(/\/$/, '');
     if (ROUTE_META[normPath]) {
       const resp    = await serveIndexWithMeta(env, request, normPath);
@@ -451,8 +390,7 @@ export default {
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // ── Everything else — bare SPA shell ─────────────────────────────────
-    // The client-side router handles unknown paths (shows 404 overlay).
+    // ── Everything else — bare SPA shell ──────────────────────────────────
     const resp    = await serveIndex(env, request);
     const headers = applySecurityHeaders(new Headers(resp.headers));
     return new Response(resp.body, { status: resp.status, headers });
