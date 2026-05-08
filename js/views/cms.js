@@ -429,7 +429,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
         <div class="cms-toolbar" id="bToolbar" role="toolbar" aria-label="Formatting toolbar"></div>
         <div class="cms-editor-wrap">
           <div class="cms-editor-pane">
-            <div class="cms-editor-label">Write</div>
+            <div class="cms-editor-label">Write <span class="cms-editor-wc" id="bWC">0 words</span></div>
             <textarea class="cms-input cms-editor" id="bContent"
               rows="22" spellcheck="true"
               placeholder="Write your blog post in markdown\u2026">${esc(r.Content || '')}</textarea>
@@ -546,6 +546,16 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     }, 300);
   });
 
+  // Word count
+    function updateWC() {
+    const wc = document.getElementById('bWC');
+    if (!wc) return;
+    const words = contentEl.value.trim().split(/\s+/).filter(Boolean).length;
+    wc.textContent = words + ' words';
+    }
+    contentEl.addEventListener('input', updateWC);
+    updateWC();
+
   // Publish
   document.getElementById('bPublish').addEventListener('click', async function() {
     const title    = document.getElementById('bTitle').value.trim();
@@ -635,186 +645,335 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   });
 }
 
+
+
 // ── MARKDOWN TOOLBAR ──────────────────────────────────────────────────────
 
-const COLORS = ['#2d6a4f', '#1b4332', '#e63946', '#f4a261', '#457b9d', '#6d6875'];
+const COLORS = ['#2d6a4f','#1b4332','#e63946','#f4a261','#457b9d','#6d6875','#000000','#ffffff'];
 
-const TOOLBAR_ACTIONS = [
-  { label: 'H2',    title: 'Heading 2',   wrap: ['## ',   ''],      block: true  },
-  { label: 'H3',    title: 'Heading 3',   wrap: ['### ',  ''],      block: true  },
-  { label: 'B',     title: 'Bold',        wrap: ['**',    '**'],    block: false },
-  { label: 'I',     title: 'Italic',      wrap: ['*',     '*'],     block: false },
-  { label: '`',     title: 'Inline code', wrap: ['`',     '`'],     block: false },
-  { label: '```',   title: 'Code block',  wrap: ['```\n', '\n```'], block: true  },
-  { label: '\uD83D\uDD17', title: 'Link', wrap: ['[',     '](url)'],block: false },
-  { label: '\u2014',title: 'Separator',   insert: '\n---\n'                      },
-  { label: '\u2022',title: 'Bullet list', wrap: ['- ',    ''],      block: true  },
-  { label: '[img]', title: 'Image placeholder',
-    insertFn: function(ta) {
-      const matches = (ta.value.match(/\[img(\d+)\]/g) || []);
-      return '[img' + (matches.length + 1) + ']';
-    }
+// Format groups — rendered as grouped button clusters
+const TOOLBAR_GROUPS = [
+  {
+    label: 'text-size',
+    type: 'dropdown',
+    title: 'Text Size',
+    icon: 'T',
+    options: [
+      { label: 'Paragraph',  value: '',    wrap: ['',     ''],    block: false },
+      { label: 'Heading 1',  value: 'h1',  wrap: ['# ',   ''],   block: true  },
+      { label: 'Heading 2',  value: 'h2',  wrap: ['## ',  ''],   block: true  },
+      { label: 'Heading 3',  value: 'h3',  wrap: ['### ', ''],   block: true  },
+      { label: 'Heading 4',  value: 'h4',  wrap: ['#### ',''],   block: true  },
+    ],
+  },
+  {
+    label: 'inline',
+    type: 'group',
+    buttons: [
+      { label: 'B',  title: 'Bold',         wrap: ['**','**'],   block: false, cls: 'tb-bold'   },
+      { label: 'I',  title: 'Italic',       wrap: ['*','*'],     block: false, cls: 'tb-italic' },
+      { label: 'S',  title: 'Strikethrough',wrap: ['~~','~~'],   block: false, cls: 'tb-strike' },
+      { label: '`',  title: 'Inline code',  wrap: ['`','`'],     block: false                   },
+    ],
+  },
+  {
+    label: 'block',
+    type: 'group',
+    buttons: [
+      { label: '❝',   title: 'Blockquote',  wrap: ['> ',''],     block: true  },
+      { label: '```', title: 'Code block',  wrap: ['```\n','\n```'], block: true },
+      { label: '—',   title: 'Divider',     insert: '\n---\n'               },
+    ],
+  },
+  {
+    label: 'lists',
+    type: 'group',
+    buttons: [
+      { label: '•',  title: 'Bullet list',   wrap: ['- ',''],    block: true  },
+      { label: '1.',  title: 'Numbered list', wrap: ['1. ',''],   block: true  },
+    ],
+  },
+  {
+    label: 'insert',
+    type: 'group',
+    buttons: [
+      { label: '🔗', title: 'Link',          wrap: ['[','](url)'], block: false },
+      { label: '[img]', title: 'Image placeholder',
+        insertFn: function(ta) {
+          const matches = (ta.value.match(/\[img(\d+)\]/g) || []);
+          return '[img' + (matches.length + 1) + ']';
+        }
+      },
+    ],
   },
 ];
 
-// Special chars as unicode escapes — no smart quote issues
+// Callout types
+const CALLOUT_TYPES = ['note','tip','warning','important','info'];
+
+// Special chars
 const SPECIAL_CHARS = [
-  '\u2014', '\u2013', '\u2026',
-  '\u201C', '\u201D', '\u2018', '\u2019',
-  '\u00AB', '\u00BB',
-  '\u00A9', '\u00AE', '\u2122',
-  '\u2192', '\u2190', '\u2191', '\u2193',
-  '\u2713', '\u2717',
-  '\u2022', '\u00B7', '\u00B0',
-  '\u2116', '\u20B9', '\u20AC', '\u00A3',
+  '—','–','…','"','"',''',''','«','»',
+  '©','®','™','→','←','↑','↓',
+  '✓','✗','•','·','°','№','₹','€','£',
 ];
 
 function buildMarkdownToolbar(toolbar, textarea, preview) {
   toolbar.innerHTML = '';
 
-  TOOLBAR_ACTIONS.forEach(function(action) {
-    const btn = document.createElement('button');
-    btn.type      = 'button';
-    btn.className = 'cms-tb-btn';
-    btn.title     = action.title;
-    btn.innerHTML = '<span>' + action.label + '</span>';
-    btn.addEventListener('click', function() {
-      applyToolbarAction(textarea, action);
-      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
+  // ── Group 1: Text Size dropdown ────────────────────────────────────────
+  const sizeGroup = TOOLBAR_GROUPS[0];
+  const sizeWrap  = document.createElement('div');
+  sizeWrap.className = 'tb-dropdown-wrap';
+
+  const sizeBtn = document.createElement('button');
+  sizeBtn.type      = 'button';
+  sizeBtn.className = 'cms-tb-btn tb-size-btn';
+  sizeBtn.title     = 'Text size / heading';
+  sizeBtn.innerHTML = '<span class="tb-size-label">Paragraph</span><span class="tb-caret">▾</span>';
+
+  const sizeMenu = document.createElement('div');
+  sizeMenu.className = 'tb-dropdown-menu';
+  sizeMenu.hidden    = true;
+
+  sizeGroup.options.forEach(function(opt) {
+    const item = document.createElement('button');
+    item.type      = 'button';
+    item.className = 'tb-dropdown-item tb-size-' + (opt.value || 'p');
+    item.textContent = opt.label;
+    item.addEventListener('click', function() {
+      applyWrap(textarea, opt.wrap, opt.block);
+      sizeMenu.hidden = true;
+      sizeBtn.querySelector('.tb-size-label').textContent = opt.label;
+      refreshPreview(textarea, preview);
       textarea.focus();
     });
-    toolbar.appendChild(btn);
+    sizeMenu.appendChild(item);
   });
 
-  const sep = document.createElement('span');
-  sep.className = 'cms-tb-sep';
-  toolbar.appendChild(sep);
+  sizeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAllPopups(toolbar);
+    sizeMenu.hidden = !sizeMenu.hidden;
+  });
 
-  // Color picker
+  sizeWrap.appendChild(sizeBtn);
+  sizeWrap.appendChild(sizeMenu);
+  toolbar.appendChild(sizeWrap);
+
+  addSep(toolbar);
+
+  // ── Groups 2-5: button clusters ───────────────────────────────────────
+  TOOLBAR_GROUPS.slice(1).forEach(function(group, gi) {
+    if (gi > 0) addSep(toolbar);
+    const wrap = document.createElement('div');
+    wrap.className = 'tb-btn-group';
+    group.buttons.forEach(function(action) {
+      const btn = document.createElement('button');
+      btn.type      = 'button';
+      btn.className = 'cms-tb-btn' + (action.cls ? ' ' + action.cls : '');
+      btn.title     = action.title;
+      btn.innerHTML = '<span>' + action.label + '</span>';
+      btn.addEventListener('click', function() {
+        closeAllPopups(toolbar);
+        if (action.insert)   { insertAtCursor(textarea, action.insert, ''); }
+        else if (action.insertFn) { insertAtCursor(textarea, action.insertFn(textarea), ''); }
+        else if (action.wrap){ applyWrap(textarea, action.wrap, action.block); }
+        refreshPreview(textarea, preview);
+        textarea.focus();
+      });
+      wrap.appendChild(btn);
+    });
+    toolbar.appendChild(wrap);
+  });
+
+  addSep(toolbar);
+
+  // ── Callout inserter ──────────────────────────────────────────────────
+  const calloutWrap = document.createElement('div');
+  calloutWrap.className = 'tb-dropdown-wrap';
+
+  const calloutBtn = document.createElement('button');
+  calloutBtn.type      = 'button';
+  calloutBtn.className = 'cms-tb-btn';
+  calloutBtn.title     = 'Insert callout block';
+  calloutBtn.innerHTML = '<span>Callout ▾</span>';
+
+  const calloutMenu = document.createElement('div');
+  calloutMenu.className = 'tb-dropdown-menu tb-callout-menu';
+  calloutMenu.hidden    = true;
+
+  CALLOUT_TYPES.forEach(function(type) {
+    const item = document.createElement('button');
+    item.type        = 'button';
+    item.className   = 'tb-dropdown-item tb-callout-' + type;
+    item.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    item.addEventListener('click', function() {
+      const snippet = ':::' + type + '\n\nYour ' + type + ' text here\n\n:::';
+      insertAtCursor(textarea, snippet, '');
+      calloutMenu.hidden = true;
+      refreshPreview(textarea, preview);
+      textarea.focus();
+    });
+    calloutMenu.appendChild(item);
+  });
+
+  calloutBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAllPopups(toolbar);
+    calloutMenu.hidden = !calloutMenu.hidden;
+  });
+
+  calloutWrap.appendChild(calloutBtn);
+  calloutWrap.appendChild(calloutMenu);
+  toolbar.appendChild(calloutWrap);
+
+  addSep(toolbar);
+
+  // ── Color picker ──────────────────────────────────────────────────────
   const colorWrap = document.createElement('div');
-  colorWrap.className = 'cms-tb-color-wrap';
-  colorWrap.innerHTML =
-    '<button class="cms-tb-btn cms-tb-color-btn" type="button" title="Text color">' +
-      '<span id="colorSwatch" style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2d6a4f;vertical-align:middle"></span>' +
-      '<span>Color</span>' +
-    '</button>' +
-    '<div class="cms-color-picker" id="colorPicker" hidden>' +
-      COLORS.map(function(c) {
-        return '<button class="cms-color-swatch" style="background:' + c + '" data-color="' + c + '" type="button" title="' + c + '"></button>';
-      }).join('') +
-      '<input type="color" class="cms-color-custom" id="colorCustom" value="#2d6a4f" title="Custom color" />' +
-    '</div>';
+  colorWrap.className = 'tb-dropdown-wrap';
 
   let activeColor = COLORS[0];
 
-  colorWrap.querySelector('.cms-tb-color-btn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    const picker = document.getElementById('colorPicker');
-    picker.hidden = !picker.hidden;
-  });
+  const colorBtn = document.createElement('button');
+  colorBtn.type      = 'button';
+  colorBtn.className = 'cms-tb-btn tb-color-btn';
+  colorBtn.title     = 'Text color';
+  colorBtn.innerHTML =
+    '<span class="tb-color-swatch-preview" id="tbColorSwatch" style="background:' + activeColor + '"></span>' +
+    '<span>Color</span>';
 
-  colorWrap.querySelectorAll('.cms-color-swatch').forEach(function(sw) {
+  const colorPanel = document.createElement('div');
+  colorPanel.className = 'tb-color-panel';
+  colorPanel.hidden    = true;
+  colorPanel.id        = 'tbColorPanel_' + Math.random().toString(36).slice(2);
+
+  const swatchRow = document.createElement('div');
+  swatchRow.className = 'tb-swatch-row';
+  COLORS.forEach(function(c) {
+    const sw = document.createElement('button');
+    sw.type        = 'button';
+    sw.className   = 'tb-swatch' + (c === '#ffffff' ? ' tb-swatch-light' : '');
+    sw.style.background = c;
+    sw.title       = c;
     sw.addEventListener('click', function() {
-      activeColor = sw.dataset.color;
-      document.getElementById('colorSwatch').style.background = activeColor;
-      document.getElementById('colorPicker').hidden = true;
+      activeColor = c;
+      colorBtn.querySelector('#tbColorSwatch, .tb-color-swatch-preview').style.background = activeColor;
+      colorPanel.hidden = true;
       applyColor(textarea, activeColor);
-      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
+      refreshPreview(textarea, preview);
       textarea.focus();
     });
+    swatchRow.appendChild(sw);
+  });
+  colorPanel.appendChild(swatchRow);
+
+  const customRow = document.createElement('div');
+  customRow.className = 'tb-custom-color-row';
+  const customLabel   = document.createElement('label');
+  customLabel.className   = 'tb-custom-label';
+  customLabel.textContent = 'Custom:';
+  const customInput = document.createElement('input');
+  customInput.type  = 'color';
+  customInput.value = activeColor;
+  customInput.className = 'tb-custom-color-input';
+  customInput.addEventListener('input', function(e) { activeColor = e.target.value; colorBtn.querySelector('.tb-color-swatch-preview').style.background = activeColor; });
+  customInput.addEventListener('change', function(e) {
+    activeColor = e.target.value;
+    colorPanel.hidden = true;
+    applyColor(textarea, activeColor);
+    refreshPreview(textarea, preview);
+    textarea.focus();
+  });
+  customRow.appendChild(customLabel);
+  customRow.appendChild(customInput);
+  colorPanel.appendChild(customRow);
+
+  colorBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAllPopups(toolbar);
+    colorPanel.hidden = !colorPanel.hidden;
   });
 
-  const customColor = colorWrap.querySelector('#colorCustom');
-  if (customColor) {
-    customColor.addEventListener('input', function(e) {
-      activeColor = e.target.value;
-      document.getElementById('colorSwatch').style.background = activeColor;
-    });
-    customColor.addEventListener('change', function(e) {
-      activeColor = e.target.value;
-      document.getElementById('colorPicker').hidden = true;
-      applyColor(textarea, activeColor);
-      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
-      textarea.focus();
-    });
-  }
-
+  colorWrap.appendChild(colorBtn);
+  colorWrap.appendChild(colorPanel);
   toolbar.appendChild(colorWrap);
 
-  const sep2 = document.createElement('span');
-  sep2.className = 'cms-tb-sep';
-  toolbar.appendChild(sep2);
+  addSep(toolbar);
 
-  // Special chars
+  // ── Special chars ─────────────────────────────────────────────────────
+  const specialWrap = document.createElement('div');
+  specialWrap.className = 'tb-dropdown-wrap';
+
   const specialBtn = document.createElement('button');
   specialBtn.type      = 'button';
   specialBtn.className = 'cms-tb-btn';
   specialBtn.title     = 'Special characters';
-  specialBtn.innerHTML = '<span>\u03A9</span>';
+  specialBtn.innerHTML = '<span>Ω</span>';
 
-  const specialPicker = document.createElement('div');
-  specialPicker.className = 'cms-special-picker';
-  specialPicker.hidden    = true;
-  specialPicker.id        = 'specialPicker';
+  const specialPanel = document.createElement('div');
+  specialPanel.className = 'tb-special-panel';
+  specialPanel.hidden    = true;
 
   SPECIAL_CHARS.forEach(function(ch) {
     const b = document.createElement('button');
     b.type        = 'button';
-    b.className   = 'cms-special-char';
+    b.className   = 'tb-special-char';
     b.textContent = ch;
     b.title       = ch;
-    b.addEventListener('click', function() {
+    b.addEventListener('click', function(e) {
+      e.stopPropagation();
       insertAtCursor(textarea, ch, '');
-      specialPicker.hidden = true;
-      setTimeout(function() { if (preview) preview.innerHTML = md(textarea.value); }, 50);
+      specialPanel.hidden = true;
+      refreshPreview(textarea, preview);
       textarea.focus();
     });
-    specialPicker.appendChild(b);
+    specialPanel.appendChild(b);
   });
 
   specialBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    specialPicker.hidden = !specialPicker.hidden;
-    const cp = document.getElementById('colorPicker');
-    if (cp) cp.hidden = true;
+    closeAllPopups(toolbar);
+    specialPanel.hidden = !specialPanel.hidden;
   });
 
-  toolbar.appendChild(specialBtn);
-  toolbar.appendChild(specialPicker);
+  specialWrap.appendChild(specialBtn);
+  specialWrap.appendChild(specialPanel);
+  toolbar.appendChild(specialWrap);
 
+  // ── Global click to close all popups ─────────────────────────────────
   document.addEventListener('click', function() {
-    const cp = document.getElementById('colorPicker');
-    const sp = document.getElementById('specialPicker');
-    if (cp) cp.hidden = true;
-    if (sp) sp.hidden = true;
-  }, true);
+    closeAllPopups(toolbar);
+  });
 }
 
-function applyToolbarAction(textarea, action) {
-  const start = textarea.selectionStart;
-  const end   = textarea.selectionEnd;
-  const sel   = textarea.value.slice(start, end);
+function closeAllPopups(toolbar) {
+  toolbar.querySelectorAll(
+    '.tb-dropdown-menu, .tb-color-panel, .tb-special-panel'
+  ).forEach(function(el) { el.hidden = true; });
+}
 
-  if (action.insert) {
-    insertAtCursor(textarea, action.insert, '');
-    return;
-  }
-  if (action.insertFn) {
-    insertAtCursor(textarea, action.insertFn(textarea), '');
-    return;
-  }
-  if (action.wrap) {
-    const before = action.wrap[0];
-    const after  = action.wrap[1];
-    if (action.block && !sel) {
-      const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
-      const lineEnd   = textarea.value.indexOf('\n', end);
-      const realEnd   = lineEnd === -1 ? textarea.value.length : lineEnd;
-      const line      = textarea.value.slice(lineStart, realEnd);
-      textarea.setRangeText(before + line + after, lineStart, realEnd, 'select');
-    } else {
-      textarea.setRangeText(before + sel + after, start, end, 'select');
-    }
+function addSep(toolbar) {
+  const s = document.createElement('span');
+  s.className = 'cms-tb-sep';
+  toolbar.appendChild(s);
+}
+
+function applyWrap(textarea, wrap, block) {
+  const start  = textarea.selectionStart;
+  const end    = textarea.selectionEnd;
+  const sel    = textarea.value.slice(start, end);
+  const before = wrap[0];
+  const after  = wrap[1];
+  if (block && !sel) {
+    const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd   = textarea.value.indexOf('\n', end);
+    const realEnd   = lineEnd === -1 ? textarea.value.length : lineEnd;
+    const line      = textarea.value.slice(lineStart, realEnd);
+    textarea.setRangeText(before + line + after, lineStart, realEnd, 'select');
+  } else {
+    textarea.setRangeText(before + sel + after, start, end, 'select');
   }
 }
 
@@ -833,354 +992,9 @@ function insertAtCursor(textarea, before, after) {
   textarea.setRangeText(before + sel + after, start, end, 'end');
 }
 
-// ── CHORD LIST ─────────────────────────────────────────────────────────────
-
-async function renderChordList(panel, view) {
-  panel.innerHTML = `
-    <div class="cms-list-wrap">
-      <div class="cms-list-header">
-        <h3 class="cms-form-title">Chord Sheets</h3>
-        <button class="cms-btn cms-btn-primary" id="chordAddNew">+ Add New Chord Sheet</button>
-      </div>
-      <div class="cms-list-toolbar">
-        <input class="cms-input cms-list-search" id="chordListSearch"
-          type="search" placeholder="Search songs, artists\u2026" autocomplete="off" />
-        <select class="cms-input cms-select cms-list-sort" id="chordListSort">
-          <option value="newest">Newest first</option>
-          <option value="az">Title A\u2013Z</option>
-          <option value="artist">By artist</option>
-        </select>
-        <select class="cms-input cms-select" id="chordListDiff">
-          <option value="">All difficulties</option>
-          <option value="beginner">Beginner</option>
-          <option value="intermediate">Intermediate</option>
-          <option value="advanced">Advanced</option>
-        </select>
-      </div>
-      <div class="cms-list-body" id="chordListBody">
-        <div class="cms-list-loading">Loading chord sheets\u2026</div>
-      </div>
-    </div>`;
-
-  document.getElementById('chordAddNew').addEventListener('click', function() {
-    renderChordForm(panel, view, null);
-  });
-
-  let rows = [];
-  try {
-    const result = await apiRead('chords');
-    if (result.ok) {
-      rows = result.rows || [];
-    } else {
-      document.getElementById('chordListBody').innerHTML =
-        '<div class="cms-list-empty">Error loading chord sheets: ' + esc(result.error || 'Unknown error') + '</div>';
-      return;
-    }
-  } catch (e) {
-    document.getElementById('chordListBody').innerHTML =
-      '<div class="cms-list-empty">Network error loading chord sheets.</div>';
-    return;
-  }
-
-  function renderList() {
-    const search = (document.getElementById('chordListSearch') ? document.getElementById('chordListSearch').value : '').toLowerCase();
-    const sort   = document.getElementById('chordListSort')   ? document.getElementById('chordListSort').value   : 'newest';
-    const diff   = (document.getElementById('chordListDiff')  ? document.getElementById('chordListDiff').value   : '').toLowerCase();
-
-    let filtered = rows.filter(function(r) {
-      return (!search ||
-        (r.Title  || '').toLowerCase().includes(search) ||
-        (r.Artist || '').toLowerCase().includes(search)) &&
-        (!diff || (r.Difficulty || '').toLowerCase() === diff);
-    });
-
-    filtered.sort(function(a, b) {
-      if (sort === 'newest') return new Date(b.Date_Added || 0) - new Date(a.Date_Added || 0);
-      if (sort === 'az')     return (a.Title  || '').localeCompare(b.Title  || '');
-      if (sort === 'artist') return (a.Artist || '').localeCompare(b.Artist || '');
-      return 0;
-    });
-
-    const body = document.getElementById('chordListBody');
-    if (!body) return;
-
-    if (!filtered.length) {
-      body.innerHTML = '<div class="cms-list-empty">' +
-        (rows.length ? 'No chord sheets match your search.' : 'No chord sheets yet. Click "Add New" to create one.') +
-        '</div>';
-      return;
-    }
-
-    body.innerHTML = '';
-    filtered.forEach(function(row) {
-      const item = document.createElement('div');
-      item.className = 'cms-list-item';
-      item.innerHTML =
-        '<div class="cms-list-item-main">' +
-          '<span class="cms-list-item-title">' + esc(row.Title || '(no title)') + '</span>' +
-          '<span class="cms-list-item-meta">' +
-            '<span class="cms-list-badge">' + esc(row.Artist || '') + '</span>' +
-            (row.Key        ? '<span class="cms-list-badge">Key ' + esc(row.Key) + '</span>' : '') +
-            (row.Difficulty ? '<span class="cms-list-badge">' + esc(row.Difficulty) + '</span>' : '') +
-            (row.Date_Added ? '<span class="cms-list-date">' + esc(row.Date_Added) + '</span>' : '') +
-          '</span>' +
-        '</div>' +
-        '<div class="cms-list-item-actions">' +
-          '<button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="edit">Edit</button>' +
-          '<button class="cms-btn cms-btn-danger cms-btn-sm" data-action="delete">Delete</button>' +
-        '</div>';
-
-      item.querySelector('[data-action="edit"]').addEventListener('click', function() {
-        renderChordForm(panel, view, row);
-      });
-
-      item.querySelector('[data-action="delete"]').addEventListener('click', async function() {
-        if (!confirm('Delete "' + row.Title + '"? This cannot be undone.')) return;
-        const res = await apiDelete('chords', row.Slug);
-        if (res.ok) {
-          showToast('Chord sheet deleted');
-          rows = rows.filter(function(x) { return x.Slug !== row.Slug; });
-          renderList();
-        } else {
-          showToast(res.error || 'Delete failed', 'error');
-        }
-      });
-
-      body.appendChild(item);
-    });
-  }
-
-  document.getElementById('chordListSearch').addEventListener('input', renderList);
-  document.getElementById('chordListSort').addEventListener('change', renderList);
-  document.getElementById('chordListDiff').addEventListener('change', renderList);
-  renderList();
-}
-
-// ── CHORD FORM ─────────────────────────────────────────────────────────────
-
-function renderChordForm(panel, view, existingRow) {
-  const isEdit = !!existingRow;
-  const r      = existingRow || {};
-
-  const keys = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
-                 'Cm','Dm','Em','Am','Fm','Gm'];
-
-  function selOpt(val, opt) { return val === opt ? ' selected' : ''; }
-
-  const keyOptions = '<option value="">-- select --</option>' +
-    keys.map(function(k) {
-      return '<option value="' + esc(k) + '"' + (r.Key === k ? ' selected' : '') + '>' + esc(k) + '</option>';
-    }).join('');
-
-  panel.innerHTML = `
-    <div class="cms-form-wrap">
-      <div class="cms-form-topbar">
-        <button class="cms-btn cms-btn-ghost cms-btn-sm" id="chordBackToList">\u2190 All Chord Sheets</button>
-        <h3 class="cms-form-title">${isEdit ? 'Edit Chord Sheet' : 'New Chord Sheet'}</h3>
-      </div>
-      <div class="cms-row">
-        <div class="cms-field cms-field-wide">
-          <label class="cms-label">Song Title *</label>
-          <input class="cms-input" id="cTitle" type="text"
-            value="${esc(r.Title || '')}" placeholder="Timi Bina" required />
-        </div>
-        <div class="cms-field">
-          <label class="cms-label">Slug</label>
-          <input class="cms-input" id="cSlug" type="text"
-            value="${esc(r.Slug || '')}" placeholder="auto-generated"
-            ${isEdit ? 'readonly style="opacity:.6;cursor:not-allowed"' : ''} />
-        </div>
-      </div>
-      <div class="cms-row">
-        <div class="cms-field">
-          <label class="cms-label">Artist *</label>
-          <input class="cms-input" id="cArtist" type="text"
-            value="${esc(r.Artist || '')}" placeholder="The Axe Band" />
-        </div>
-        <div class="cms-field">
-          <label class="cms-label">Key</label>
-          <select class="cms-input cms-select" id="cKey">${keyOptions}</select>
-        </div>
-        <div class="cms-field">
-          <label class="cms-label">Capo</label>
-          <input class="cms-input" id="cCapo" type="number"
-            min="0" max="12" value="${esc(r.Capo || '0')}" />
-        </div>
-      </div>
-      <div class="cms-row">
-        <div class="cms-field">
-          <label class="cms-label">Difficulty</label>
-          <select class="cms-input cms-select" id="cDifficulty">
-            <option value="beginner"${selOpt(r.Difficulty,'beginner')}>Beginner</option>
-            <option value="intermediate"${selOpt(r.Difficulty,'intermediate') || (!r.Difficulty ? ' selected' : '')}>Intermediate</option>
-            <option value="advanced"${selOpt(r.Difficulty,'advanced')}>Advanced</option>
-          </select>
-        </div>
-        <div class="cms-field">
-          <label class="cms-label">Category</label>
-          <select class="cms-input cms-select" id="cCategory">
-            ${['nepali','english','hindi','devotional','folk','pop','rock','classical'].map(function(c) {
-              return '<option value="' + c + '"' + selOpt(r.Category, c) + '>' + c.charAt(0).toUpperCase() + c.slice(1) + '</option>';
-            }).join('')}
-          </select>
-        </div>
-        <div class="cms-field">
-          <label class="cms-label">Featured</label>
-          <select class="cms-input cms-select" id="cFeatured">
-            <option value="false"${selOpt(r.Featured,'false') || (!r.Featured ? ' selected' : '')}>No</option>
-            <option value="true"${selOpt(r.Featured,'true')}>Yes</option>
-          </select>
-        </div>
-      </div>
-      <div class="cms-row">
-        <div class="cms-field">
-          <label class="cms-label">Chords Used</label>
-          <input class="cms-input" id="cChordsUsed" type="text"
-            value="${esc(r.Chords_Used || '')}" placeholder="G, Em7, Cadd9, D" />
-        </div>
-        <div class="cms-field">
-          <label class="cms-label">Date Added</label>
-          <input class="cms-input" id="cDate" type="date" value="${esc(r.Date_Added || today())}" />
-        </div>
-      </div>
-      <div class="cms-row">
-        <div class="cms-field">
-          <label class="cms-label">Image URL</label>
-          <input class="cms-input" id="cImageUrl" type="url" value="${esc(r.Image_URL || '')}" />
-        </div>
-        <div class="cms-field">
-          <label class="cms-label">Image Alt</label>
-          <input class="cms-input" id="cImageAlt" type="text" value="${esc(r.Image_Alt || '')}" />
-        </div>
-      </div>
-      <div class="cms-field">
-        <label class="cms-label">Excerpt</label>
-        <textarea class="cms-input cms-textarea-sm" id="cExcerpt" rows="2"
-          placeholder="Learn to play this song with G Em7 Cadd9 chords\u2026">${esc(r.Excerpt || '')}</textarea>
-      </div>
-      <div class="cms-field">
-        <label class="cms-label">Tab Content
-          <span class="cms-label-hint">
-            Press Enter for new line, blank line for section gap.
-            Chords in [brackets]: [G]hey its me [C]here
-            Section labels on own line: [Verse 1] or [Chorus]
-          </span>
-        </label>
-        <div class="cms-editor-wrap">
-          <div class="cms-editor-pane">
-            <div class="cms-editor-label">Write</div>
-            <textarea class="cms-input cms-editor cms-editor-mono"
-              id="cTabContent" rows="22" spellcheck="false"
-              placeholder="[Verse 1]&#10;[G]Hey its me&#10;[C]here with you&#10;&#10;[Chorus]&#10;[G]This is the [Em]chorus"></textarea>
-          </div>
-          <div class="cms-preview-pane">
-            <div class="cms-editor-label">Preview</div>
-            <div class="cms-preview cms-tab-preview" id="cTabPreview"></div>
-          </div>
-        </div>
-      </div>
-      <div class="cms-actions">
-        <button class="cms-btn cms-btn-primary" id="cPublish">
-          ${isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192'}
-        </button>
-        <button class="cms-btn cms-btn-ghost" id="chordBackToList2">Cancel</button>
-        <span class="cms-status" id="cStatus"></span>
-      </div>
-    </div>`;
-
-  const tabEl = document.getElementById('cTabContent');
-  if (r.Tab_Content) tabEl.value = pipesToLines(r.Tab_Content);
-
-  const goBack = function() { renderChordList(panel, view); };
-  document.getElementById('chordBackToList').addEventListener('click', goBack);
-  document.getElementById('chordBackToList2').addEventListener('click', goBack);
-
-  const titleEl = document.getElementById('cTitle');
-  const slugEl  = document.getElementById('cSlug');
-  if (!isEdit) {
-    titleEl.addEventListener('input', function() {
-      if (!slugEl._manuallyEdited) slugEl.value = makeSlug(titleEl.value);
-    });
-    slugEl.addEventListener('input', function() { slugEl._manuallyEdited = true; });
-  }
-
-  const previewEl = document.getElementById('cTabPreview');
-  let previewTimer;
-
-  function updateTabPreview() {
-    previewEl.innerHTML = renderTabPreview(tabEl.value);
-  }
-
-  tabEl.addEventListener('input', function() {
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(updateTabPreview, 300);
-  });
-
-  if (tabEl.value) updateTabPreview();
-
-  document.getElementById('cPublish').addEventListener('click', async function() {
-    const title      = document.getElementById('cTitle').value.trim();
-    const slug       = document.getElementById('cSlug').value.trim() || makeSlug(title);
-    const artist     = document.getElementById('cArtist').value.trim();
-    const key        = document.getElementById('cKey').value;
-    const capo       = document.getElementById('cCapo').value;
-    const difficulty = document.getElementById('cDifficulty').value;
-    const category   = document.getElementById('cCategory').value;
-    const chordsUsed = document.getElementById('cChordsUsed').value.trim();
-    const date       = document.getElementById('cDate').value || today();
-    const featured   = document.getElementById('cFeatured').value;
-    const imageUrl   = document.getElementById('cImageUrl').value.trim();
-    const imageAlt   = document.getElementById('cImageAlt').value.trim();
-    const excerpt    = document.getElementById('cExcerpt').value.trim();
-    const tabContent = linesTopipes(tabEl.value);
-    const statusEl   = document.getElementById('cStatus');
-    const btn        = document.getElementById('cPublish');
-
-    if (!title)  { showToast('Title is required',  'error'); return; }
-    if (!artist) { showToast('Artist is required', 'error'); return; }
-
-    btn.disabled    = true;
-    btn.textContent = isEdit ? 'Saving\u2026' : 'Publishing\u2026';
-    statusEl.textContent = '';
-
-    const rowData = {
-      Slug:        slug,
-      Title:       title,
-      Artist:      artist,
-      Key:         key,
-      Capo:        capo,
-      Difficulty:  difficulty,
-      Category:    category,
-      Chords_Used: chordsUsed,
-      Tab_Content: tabContent,
-      Featured:    featured,
-      Excerpt:     excerpt,
-      Date_Added:  date,
-      Image_URL:   imageUrl,
-      Image_Alt:   imageAlt,
-    };
-
-    try {
-      const result = isEdit
-        ? await apiUpdate('chords', r.Slug, rowData)
-        : await apiAppend('chords', rowData);
-
-      if (result.ok) {
-        showToast(isEdit ? 'Chord sheet updated!' : 'Chord sheet published!');
-        renderChordList(panel, view);
-      } else {
-        showToast(result.error || 'Save failed', 'error');
-        statusEl.textContent = '\u2717 ' + (result.error || 'Error');
-        statusEl.style.color = '#991b1b';
-        btn.disabled    = false;
-        btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
-      }
-    } catch (e) {
-      showToast('Network error', 'error');
-      btn.disabled    = false;
-      btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
-    }
-  });
+function refreshPreview(textarea, preview) {
+  if (!preview) return;
+  setTimeout(function() { preview.innerHTML = md(textarea.value); }, 50);
 }
 
 // ── CHORD TAB PREVIEW ─────────────────────────────────────────────────────
@@ -1188,7 +1002,7 @@ function renderChordForm(panel, view, existingRow) {
 const CHORD_RE_PREVIEW = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
 
 function renderTabPreview(raw) {
-  if (!raw) return '<span style="color:var(--muted-light)">Preview will appear here\u2026</span>';
+  if (!raw) return '<span style="color:var(--muted-light)">Preview will appear here…</span>';
 
   return raw.split('\n').map(function(line) {
     const trimmed = line.trim();
