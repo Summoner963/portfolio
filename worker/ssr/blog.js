@@ -3,22 +3,6 @@
  *
  * Exports:
  *   prerenderBlogPost(slug, env, request, fetchSheetData)
- *
- * Responsibilities:
- *   - Fetch blog post row, FAQ rows, and image rows in parallel
- *   - Render full static HTML for a /blog/:slug page
- *   - Inject BlogPosting + BreadcrumbList + FAQPage + Person schema
- *   - Return a proper 404 HTML response if slug not found
- *   - Real users are redirected to the SPA via the hydration script
- *
- * Imports:
- *   worker/utils.js  — escHtml, escJson, fixImgUrl, renderMarkdown,
- *                       formatDate, applySecurityHeaders
- *   worker/ssr/meta.js — SITE_URL, PRERENDER_CSS, buildSSRHead,
- *                        preNavHTML, preFooterHTML, hydrationScript,
- *                        htmlCacheHeaders
- *
- * Pure function — no global state, no side effects beyond the Response.
  */
 
 import {
@@ -38,27 +22,13 @@ import {
   htmlCacheHeaders,
 } from './meta.js';
 
-// ─────────────────────────────────────────────────────────────────────────
-//  prerenderBlogPost
-// ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Render a full static HTML page for a blog post.
- *
- * @param {string}   slug           — URL slug, e.g. 'my-post'
- * @param {object}   env            — Cloudflare Worker env bindings
- * @param {Request}  request        — incoming Request (used for origin)
- * @param {function} fetchSheetData — (sheetName, env) => Promise<object[]>
- *                                    passed in from worker/index.js to
- *                                    avoid circular imports
- * @returns {Promise<Response>}
- */
 export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
   // ── Fetch all three sheets in parallel ───────────────────────────────
+  // NOTE: 'blogimage' not 'images' — matches your actual sheet tab name
   const [blogRows, faqRows, imageRows] = await Promise.all([
-    fetchSheetData('blog',   env).catch(() => []),
-    fetchSheetData('faq',    env).catch(() => []),
-    fetchSheetData('images', env).catch(() => []),
+    fetchSheetData('blog',       env).catch(() => []),
+    fetchSheetData('faq',        env).catch(() => []),
+    fetchSheetData('blogimage',  env).catch(() => []),
   ]);
 
   const post = (blogRows || []).find(r => (r.Slug || '').trim() === slug);
@@ -95,7 +65,7 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
   const tagList  = (post.Tags || '')
     .split(',').map(t => t.trim()).filter(Boolean);
 
-  // ── Inline image map (Img1_URL / Img1_Alt columns + images sheet) ────
+  // ── Inline image map ─────────────────────────────────────────────────
   const imgMap = _buildImgMap(post, imageRows, slug);
 
   // ── Render markdown body ─────────────────────────────────────────────
@@ -123,12 +93,7 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
     inLanguage:     'en',
     ...(tagList.length ? { keywords: tagList.join(', ') } : {}),
     ...(coverUrl ? {
-      image: {
-        '@type':  'ImageObject',
-        url:       coverUrl,
-        width:     1200,
-        height:    630,
-      },
+      image: { '@type': 'ImageObject', url: coverUrl, width: 1200, height: 630 },
     } : {}),
     author: {
       '@type': 'Person',
@@ -161,20 +126,20 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
     jobTitle:     'Dev & QA Engineer',
     email:        'sumandangal888@gmail.com',
     address: {
-      '@type':           'PostalAddress',
-      addressLocality:    'Bhaktapur',
-      addressCountry:     'NP',
+      '@type':         'PostalAddress',
+      addressLocality:  'Bhaktapur',
+      addressCountry:   'NP',
     },
     sameAs: ['https://linkedin.com/in/sumandangal963'],
   });
 
   const faqSchema = faqItems.length
     ? JSON.stringify({
-        '@context':  'https://schema.org',
-        '@type':     'FAQPage',
-        mainEntity:   faqItems.map(p => ({
-          '@type':         'Question',
-          name:             p.q,
+        '@context': 'https://schema.org',
+        '@type':    'FAQPage',
+        mainEntity:  faqItems.map(p => ({
+          '@type':        'Question',
+          name:            p.q,
           acceptedAnswer: { '@type': 'Answer', text: p.a },
         })),
       })
@@ -183,7 +148,6 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
   const schemas = [blogPostingSchema, breadcrumbSchema, personSchema];
   if (faqSchema) schemas.push(faqSchema);
 
-  // ── Extra <meta> tags for article ────────────────────────────────────
   const extraMeta = [
     `<meta property="og:type" content="article">`,
     `<meta property="article:published_time" content="${escHtml(date)}">`,
@@ -194,7 +158,6 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
       : []),
   ];
 
-  // ── Build <head> via shared helper ───────────────────────────────────
   const headHTML = buildSSRHead({
     title,
     description: excerpt,
@@ -205,14 +168,12 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
     schemas,
   });
 
-  // ── Tags HTML ─────────────────────────────────────────────────────────
   const tagsHTML = tagList.length
     ? `<div class="pre-tags">${tagList.map(t =>
         `<span class="pre-tag">${escHtml(t)}</span>`
       ).join('')}</div>`
     : '';
 
-  // ── Cover image HTML ──────────────────────────────────────────────────
   const coverHTML = coverUrl
     ? `<img class="pre-cover"
            src="${escHtml(coverUrl)}"
@@ -222,7 +183,6 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
            itemprop="image">`
     : '';
 
-  // ── FAQ section HTML ──────────────────────────────────────────────────
   const faqHTML = faqItems.length
     ? `<div class="pre-faq">
         <h2>Frequently Asked Questions</h2>
@@ -234,7 +194,6 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
       </div>`
     : '';
 
-  // ── Author byline ─────────────────────────────────────────────────────
   const authorHTML =
     `<div class="pre-author" itemscope itemtype="https://schema.org/Person">` +
     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ` +
@@ -247,7 +206,6 @@ export async function prerenderBlogPost(slug, env, request, fetchSheetData) {
     `<span itemprop="name">Suman Dangal</span></a>` +
     `</span></div>`;
 
-  // ── Assemble full page HTML ───────────────────────────────────────────
   const html = `${headHTML}
 <body>
 
@@ -260,12 +218,11 @@ ${preNavHTML('/blog')}
   <meta itemprop="datePublished" content="${escHtml(date)}">
   <meta itemprop="url"           content="${escHtml(postUrl)}">
 
-  <!-- Visible breadcrumb -->
   <nav class="pre-breadcrumb" aria-label="Breadcrumb">
     <a href="${SITE_URL}/">Home</a>
-    <span aria-hidden="true">›</span>
+    <span aria-hidden="true">\u203A</span>
     <a href="${SITE_URL}/blog">Blog</a>
-    <span aria-hidden="true">›</span>
+    <span aria-hidden="true">\u203A</span>
     <span>${escHtml(title)}</span>
   </nav>
 
@@ -279,7 +236,6 @@ ${preNavHTML('/blog')}
   <h1 class="pre-title" itemprop="name">${escHtml(title)}</h1>
 
   ${tagsHTML}
-
   ${coverHTML}
 
   <div class="pre-body" itemprop="articleBody">
@@ -287,7 +243,6 @@ ${preNavHTML('/blog')}
   </div>
 
   ${authorHTML}
-
   ${faqHTML}
 
   <hr style="border:none;border-top:1px solid var(--border);margin:2.5rem 0">
@@ -296,12 +251,11 @@ ${preNavHTML('/blog')}
      style="display:inline-flex;align-items:center;gap:.5rem;
             font-family:var(--mono);font-size:.72rem;color:var(--muted);
             text-decoration:none;letter-spacing:.05em">
-    ← Back to all posts
+    \u2190 Back to all posts
   </a>
 </main>
 
 ${preFooterHTML}
-
 ${hydrationScript}
 
 </body>
@@ -317,32 +271,15 @@ ${hydrationScript}
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Internal: build inline image map for renderMarkdown
-//  Handles both Img1_URL/Img1_Alt columns on the post row AND
-//  the separate images sheet (Blog_Slug / Img_Number / Img_URL / Img_Alt).
+//  _buildImgMap — reads from blogimage sheet rows
+//  Sheet columns: Blog_Slug | Img_Number | Img_URL | Img_Alt
 // ─────────────────────────────────────────────────────────────────────────
 
-/**
- * @param {object}   post       — blog post row from sheet
- * @param {object[]} imageRows  — rows from the images sheet
- * @param {string}   slug       — post slug for matching imageRows
- * @returns {Record<string, { url: string, alt: string }>}
- */
 function _buildImgMap(post, imageRows, slug) {
   const map = {};
 
-  // Inline columns: Img1_URL, Img1_Alt, Img2_URL, Img2_Alt, …
-  let n = 1;
-  while (post[`Img${n}_URL`]) {
-    map[`img${n}`] = {
-      url: fixImgUrl((post[`Img${n}_URL`] || '').trim()),
-      alt: (post[`Img${n}_Alt`] || '').trim(),
-    };
-    n++;
-  }
-
-  // Separate images sheet rows — override / fill gaps from inline columns
-  if (imageRows?.length) {
+  // Separate blogimage sheet rows
+  if (imageRows && imageRows.length) {
     imageRows
       .filter(r => (r.Blog_Slug || '').trim() === slug)
       .sort((a, b) => Number(a.Img_Number || 0) - Number(b.Img_Number || 0))
@@ -351,7 +288,7 @@ function _buildImgMap(post, imageRows, slug) {
         if (!num || !r.Img_URL) return;
         map[`img${num}`] = {
           url: fixImgUrl((r.Img_URL || '').trim()),
-          alt: (r.Img_Alt  || '').trim(),
+          alt: (r.Img_Alt || '').trim(),
         };
       });
   }

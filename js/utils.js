@@ -132,34 +132,36 @@ export function sanitizeHTML(raw) {
  *          (built by api.js buildImgMap() before calling md())
  * @returns {string}        — HTML string, safe for innerHTML
  */
+// ── REPLACEMENT for the md() function in js/utils.js ──
+// Replace the entire md() function body with this version.
+// Adds callout blocks: > [!NOTE], > [!TIP], > [!WARNING], > [!IMPORTANT]
+// Everything else is unchanged.
+
 export function md(text, imgMap = {}) {
   if (!text) return '';
 
-  // ── Step 1: tokenise image placeholders so they survive escaping ────
-  // Replace [imgN] codes with opaque tokens before we escape anything.
+  // ── Step 1: tokenise image placeholders ─────────────────────────────
   const toks  = {};
   let   tokIdx = 0;
   for (const [code, html] of Object.entries(imgMap)) {
-    const tok  = `\x00SD${tokIdx++}\x00`;
+    const tok  = '\x00SD' + tokIdx++ + '\x00';
     toks[tok]  = html;
     text       = text.split(code).join(tok);
   }
 
-  // ── Step 2: line-by-line render ────────────────────────────────────
+  // ── Step 2: inline formatter ─────────────────────────────────────────
   function inlineFmt(raw) {
-    // Escape first, then apply inline markup to the escaped string.
     return esc(raw)
-      .replace(/&#124;/g, '|')   // unescape pipe (sheet column separator)
+      .replace(/&#124;/g, '|')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
       .replace(/`([^`]+)`/g,     '<code>$1</code>')
       .replace(
         /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-        (_, t, u) => `<a href="${u.replace(/&amp;/g, '&')}" target="_blank" rel="noopener">${t}</a>`
+        (_, t, u) => '<a href="' + u.replace(/&amp;/g, '&') + '" target="_blank" rel="noopener">' + t + '</a>'
       );
   }
 
-  // Restore image tokens inside formatted lines
   function restoreToks(s) {
     for (const [tok, html] of Object.entries(toks)) {
       if (s.includes(tok)) s = s.split(tok).join(html);
@@ -167,23 +169,31 @@ export function md(text, imgMap = {}) {
     return s;
   }
 
-  let out    = '';
-  let inUL   = false;
-  let inOL   = false;
-  let inPRE  = false;
+  // ── Callout type config ───────────────────────────────────────────────
+  const CALLOUT_TYPES = {
+    'NOTE':      { icon: '\u2139\uFE0F', cls: 'callout-note',      label: 'Note'      },
+    'TIP':       { icon: '\uD83D\uDCA1', cls: 'callout-tip',       label: 'Tip'       },
+    'WARNING':   { icon: '\u26A0\uFE0F', cls: 'callout-warning',   label: 'Warning'   },
+    'IMPORTANT': { icon: '\uD83D\uDD25', cls: 'callout-important', label: 'Important' },
+    'INFO':      { icon: '\uD83D\uDCCC', cls: 'callout-info',      label: 'Info'      },
+  };
+
+  let out   = '';
+  let inUL  = false;
+  let inOL  = false;
+  let inPRE = false;
 
   function closeList() {
     if (inUL) { out += '</ul>'; inUL = false; }
     if (inOL) { out += '</ol>'; inOL = false; }
   }
 
-  // Accept both newline-separated and pipe-separated content
   const lines = text.includes('\n')
     ? text.split('\n').map(l => l.startsWith('|') ? l.slice(1) : l)
     : text.split('|');
 
   for (const raw of lines) {
-    // ── Code fence ──────────────────────────────────────────────────
+    // ── Code fence ───────────────────────────────────────────────────
     if (raw.trim() === '```') {
       if (inPRE) { out += '</code></pre>'; inPRE = false; }
       else       { closeList(); out += '<pre><code>'; inPRE = true; }
@@ -201,22 +211,45 @@ export function md(text, imgMap = {}) {
     let l = inlineFmt(raw);
     l     = restoreToks(l);
 
+    // ── Callout blocks: > [!NOTE] text  ──────────────────────────────
+    // Syntax: > [!NOTE] Your message here
+    // Also supports multiline: > [!NOTE]\n> continued text
+    const calloutMatch = l.match(/^&gt;\s*\[!(NOTE|TIP|WARNING|IMPORTANT|INFO)\]\s*(.*)/i);
+    if (calloutMatch) {
+      closeList();
+      const type    = calloutMatch[1].toUpperCase();
+      const content = calloutMatch[2];
+      const cfg     = CALLOUT_TYPES[type] || CALLOUT_TYPES['NOTE'];
+      out += '<div class="callout ' + cfg.cls + '">' +
+             '<div class="callout-header"><span class="callout-icon">' + cfg.icon + '</span>' +
+             '<span class="callout-label">' + cfg.label + '</span></div>' +
+             (content ? '<div class="callout-body"><p>' + content + '</p></div>' : '<div class="callout-body">') +
+             '</div>';
+      continue;
+    }
+
+    // ── Regular blockquote: > text ───────────────────────────────────
+    if (/^&gt; /.test(l)) {
+      closeList();
+      out += '<blockquote><p>' + l.slice(5) + '</p></blockquote>';
+      continue;
+    }
+
     // ── Block elements ───────────────────────────────────────────────
-    if      (/^## /.test(l))    { closeList(); out += `<h2>${l.slice(3)}</h2>`; }
-    else if (/^### /.test(l))   { closeList(); out += `<h3>${l.slice(4)}</h3>`; }
-    else if (/^&gt; /.test(l))  { closeList(); out += `<blockquote><p>${l.slice(5)}</p></blockquote>`; }
+    if      (/^## /.test(l))    { closeList(); out += '<h2>' + l.slice(3) + '</h2>'; }
+    else if (/^### /.test(l))   { closeList(); out += '<h3>' + l.slice(4) + '</h3>'; }
     else if (/^- /.test(l)) {
-      if (inOL)  { out += '</ol>'; inOL  = false; }
-      if (!inUL) { out += '<ul>';  inUL  = true;  }
-      out += `<li>${l.slice(2)}</li>`;
+      if (inOL)  { out += '</ol>'; inOL = false; }
+      if (!inUL) { out += '<ul>';  inUL = true;  }
+      out += '<li>' + l.slice(2) + '</li>';
     }
     else if (/^\d+\. /.test(l)) {
-      if (inUL)  { out += '</ul>'; inUL  = false; }
-      if (!inOL) { out += '<ol>';  inOL  = true;  }
-      out += `<li>${l.replace(/^\d+\. /, '')}</li>`;
+      if (inUL)  { out += '</ul>'; inUL = false; }
+      if (!inOL) { out += '<ol>';  inOL = true;  }
+      out += '<li>' + l.replace(/^\d+\. /, '') + '</li>';
     }
     else if (l.trim() === '') { closeList(); }
-    else                      { closeList(); out += `<p>${l}</p>`; }
+    else                      { closeList(); out += '<p>' + l + '</p>'; }
   }
 
   if (inPRE) out += '</code></pre>';
