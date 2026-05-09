@@ -11,16 +11,20 @@
  *   - Search (title + artist + tags), filter by category, difficulty, key
  *   - Sort: newest, A–Z, by artist
  *   - Pagination (CFG.chordsPerPage per page)
- *   - Featured strip (Featured === 'true' rows)
+ *   - Featured strip
  *   - Recently Played strip (last 10 songs, localStorage-persisted)
  *   - Transpose ±6 semitones with enharmonic-aware chord name rewriting
  *   - Capo suggestion when transposed key has a simpler open-position equivalent
- *   - SVG chord diagram generated inline for every chord token
+ *   - Multi-instrument support: Guitar / Ukulele / Piano
+ *     · Guitar: 6-string fretboard SVG (tape-label aesthetic)
+ *     · Ukulele: 4-string fretboard SVG
+ *     · Piano: 1-octave keyboard SVG with highlighted keys
+ *   - Diagram Drawer: right-side slide-in panel (desktop), bottom sheet (mobile)
+ *     with per-instrument tabs — replaces the old popover
  *   - Chord-above-lyric layout: chords rendered on their own line above lyrics
- *   - Popover on hover (desktop) / tap (mobile) — no hover-only interactions
  *   - Font-size A−/A+ with localStorage persistence
  *   - Auto-scroll toggle with speed slider (localStorage persistence)
- *   - Print button (window.print()) + Share button (clipboard toast)
+ *   - Print button + Share button (clipboard toast)
  *   - SEO: updateSEO with chordMeta for MusicComposition schema
  *   - Lazy-loads css/chords.css before first render
  *
@@ -28,13 +32,13 @@
  *   js/api.js        → fetchSheet, CFG
  *   js/seo.js        → updateSEO, removeSchemas
  *   js/utils.js      → esc, fixImgUrl, loadCSS, watchReveals, showToast
- *   js/data/chord-shapes.js → CHORD_SHAPES (default export)
+ *   js/data/chord-shapes.js → GUITAR_SHAPES, UKULELE_SHAPES, PIANO_SHAPES (named exports)
  */
 
 import { fetchSheet, CFG }                from '../api.js';
 import { updateSEO, removeSchemas }       from '../seo.js';
 import { esc, fixImgUrl, loadCSS, watchReveals, showToast } from '../utils.js';
-import CHORD_SHAPES                       from '../data/chord-shapes.js';
+import { GUITAR_SHAPES, UKULELE_SHAPES, PIANO_SHAPES } from '../data/chord-shapes.js';
 
 // ─────────────────────────────────────────────────────────────────────────
 //  CSS — lazy-loaded once
@@ -53,33 +57,15 @@ async function ensureCSS() {
 const LS_RECENT_KEY = 'sd5_chords_recent';
 const RECENT_MAX    = 10;
 
-/**
- * @typedef {Object} RecentEntry
- * @property {string} slug
- * @property {string} title
- * @property {string} artist
- * @property {string} key
- * @property {string} difficulty
- * @property {number} ts  — timestamp ms
- */
-
-/** Read recent list from localStorage (returns RecentEntry[]). */
 function recentGet() {
   try {
     const raw = localStorage.getItem(LS_RECENT_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
-/**
- * Push a song to the recent list.
- * Moves it to front if already present.
- * Trims to RECENT_MAX.
- */
 function recentPush(entry) {
   try {
     let list = recentGet().filter(e => e.slug !== entry.slug);
@@ -89,13 +75,12 @@ function recentPush(entry) {
   } catch {}
 }
 
-/** Clear all recent entries. */
 function recentClear() {
   try { localStorage.removeItem(LS_RECENT_KEY); } catch {}
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  CHROMATIC / TRANSPOSE ENGINE
+//  CHROMATIC / TRANSPOSE ENGINE  (unchanged from original)
 // ─────────────────────────────────────────────────────────────────────────
 
 const SHARPS    = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -103,9 +88,7 @@ const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb']);
 const TO_FLAT   = { 'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb' };
 const TO_SHARP  = { 'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#' };
 
-function toSharp(root) {
-  return TO_SHARP[root] || root;
-}
+function toSharp(root) { return TO_SHARP[root] || root; }
 
 function transposeRoot(root, semitones) {
   if (!semitones) return root;
@@ -130,8 +113,7 @@ function transposeChord(name, semitones) {
   if (!semitones) return name;
   const parsed = parseChord(name);
   if (!parsed) return name;
-  const newRoot = transposeRoot(parsed.root, semitones);
-  return newRoot + parsed.suffix;
+  return transposeRoot(parsed.root, semitones) + parsed.suffix;
 }
 
 function transposeKey(keyStr, semitones) {
@@ -154,206 +136,327 @@ function capoSuggestion(originalKey, originalCapo, semitones) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  SVG CHORD DIAGRAM GENERATOR
+//  SVG DIAGRAM GENERATORS
 // ─────────────────────────────────────────────────────────────────────────
 
-function buildDiagramSVG(chordName, shape) {
-  if (!shape) {
-    return `<svg width="100" height="120" viewBox="0 0 100 120"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="${esc(chordName)} chord diagram"
-      class="chord-diagram-svg">
-      <text x="50" y="60" text-anchor="middle"
-        font-family="var(--mono)" font-size="9"
-        fill="var(--muted)">No diagram</text>
-    </svg>`;
-  }
+// ── Shared palette (tape-label aesthetic) ─────────────────────────────────
+const D = {
+  bg:         '#19160f',
+  string:     'rgba(200,170,100,.35)',
+  fret:       'rgba(200,150,42,.2)',
+  nut:        'rgba(200,150,42,.7)',
+  dot:        '#c8962a',
+  dotText:    '#fff',
+  openCircle: 'rgba(200,150,42,.6)',
+  muted:      'rgba(200,150,42,.35)',
+  barre:      '#c8962a',
+  text:       'rgba(200,170,100,.55)',
+  label:      '#e0b050',
+};
+
+// ── Guitar SVG (6 strings) ────────────────────────────────────────────────
+function buildGuitarSVG(chordName, shape) {
+  if (!shape) return _noShapeSVG(chordName, 6);
 
   const { frets, fingers, barre, baseFret = 1 } = shape;
 
-  const LEFT    = 16;
-  const TOP     = 26;
-  const WIDTH   = 54;
-  const HEIGHT  = 65;
-  const STRINGS = 6;
-  const FRETS   = 5;
-  const STR_GAP = WIDTH  / (STRINGS - 1);
-  const FRT_GAP = HEIGHT / FRETS;
-  const DOTR    = 6;
+  const LEFT  = 18, TOP = 28, W = 56, H = 64;
+  const NS    = 6, NF = 5;
+  const SG    = W / (NS - 1);
+  const FG    = H / NF;
+  const DR    = 6;
 
-  const sx = i => LEFT + (STRINGS - 1 - i) * STR_GAP;
-  const fy = f => TOP + (f - 0.5) * FRT_GAP;
+  const sx = i => LEFT + (NS - 1 - i) * SG;
+  const fy = f => TOP + (f - 0.5) * FG;
 
-  const parts = [];
+  const p = [];
 
-  // Nut or fret number
+  // Nut or fret number label
   if (baseFret === 1) {
-    parts.push(
-      `<line x1="${LEFT}" y1="${TOP}" x2="${LEFT + WIDTH}" y2="${TOP}"` +
-      ` stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>`
-    );
+    p.push(`<line x1="${LEFT}" y1="${TOP}" x2="${LEFT + W}" y2="${TOP}" stroke="${D.nut}" stroke-width="3" stroke-linecap="round"/>`);
   } else {
-    parts.push(
-      `<text x="${LEFT - 4}" y="${TOP + FRT_GAP * 0.6}"` +
-      ` text-anchor="end" font-family="var(--mono)" font-size="8"` +
-      ` fill="var(--muted)" dominant-baseline="middle">${baseFret}</text>`
-    );
+    p.push(`<text x="${LEFT - 5}" y="${TOP + FG * 0.55}" text-anchor="end" font-family="monospace" font-size="7.5" fill="${D.text}" dominant-baseline="middle">${baseFret}</text>`);
   }
 
   // Strings
-  for (let s = 0; s < STRINGS; s++) {
+  for (let s = 0; s < NS; s++) {
     const x = sx(s);
-    parts.push(
-      `<line x1="${x}" y1="${TOP}" x2="${x}" y2="${TOP + HEIGHT}"` +
-      ` stroke="var(--text)" stroke-width="1" opacity="0.45"/>`
-    );
+    p.push(`<line x1="${x}" y1="${TOP}" x2="${x}" y2="${TOP + H}" stroke="${D.string}" stroke-width="1.2"/>`);
   }
 
   // Fret lines
-  for (let f = 1; f <= FRETS; f++) {
-    const y = TOP + f * FRT_GAP;
-    parts.push(
-      `<line x1="${LEFT}" y1="${y}" x2="${LEFT + WIDTH}" y2="${y}"` +
-      ` stroke="var(--border-dark,#c8d0c4)" stroke-width="0.8"/>`
-    );
+  for (let f = 1; f <= NF; f++) {
+    const y = TOP + f * FG;
+    p.push(`<line x1="${LEFT}" y1="${y}" x2="${LEFT + W}" y2="${y}" stroke="${D.fret}" stroke-width="0.8"/>`);
   }
 
-  // Barre
+  // Barre arc
   if (barre) {
-    const localFret = barre.fret - baseFret + 1;
-    if (localFret >= 1 && localFret <= FRETS) {
-      const x1 = sx(barre.to);
-      const x2 = sx(barre.from);
-      const by = fy(localFret);
-      parts.push(
-        `<rect x="${x1 - DOTR}" y="${by - DOTR}"` +
-        ` width="${x2 - x1 + DOTR * 2}" height="${DOTR * 2}"` +
-        ` rx="${DOTR}" fill="var(--accent)" opacity="0.9"/>`
-      );
+    const lf = barre.fret - baseFret + 1;
+    if (lf >= 1 && lf <= NF) {
+      const x1 = sx(barre.to), x2 = sx(barre.from), by = fy(lf);
+      p.push(`<rect x="${x1 - DR}" y="${by - DR}" width="${x2 - x1 + DR * 2}" height="${DR * 2}" rx="${DR}" fill="${D.barre}" opacity="0.88"/>`);
     }
   }
 
-  // Open and muted markers above nut
-  for (let s = 0; s < STRINGS; s++) {
-    const f = frets[s];
-    const x = sx(s);
-    const y = TOP - 10;
+  // Open / muted above nut
+  for (let s = 0; s < NS; s++) {
+    const f = frets[s], x = sx(s), y = TOP - 11;
     if (f === -1) {
-      const d = 4;
-      parts.push(
-        `<line x1="${x - d}" y1="${y - d}" x2="${x + d}" y2="${y + d}"` +
-        ` stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>` +
-        `<line x1="${x + d}" y1="${y - d}" x2="${x - d}" y2="${y + d}"` +
-        ` stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>`
+      const d = 3.5;
+      p.push(
+        `<line x1="${x-d}" y1="${y-d}" x2="${x+d}" y2="${y+d}" stroke="${D.muted}" stroke-width="1.5" stroke-linecap="round"/>` +
+        `<line x1="${x+d}" y1="${y-d}" x2="${x-d}" y2="${y+d}" stroke="${D.muted}" stroke-width="1.5" stroke-linecap="round"/>`
       );
     } else if (f === 0) {
-      parts.push(
-        `<circle cx="${x}" cy="${y}" r="4"` +
-        ` fill="none" stroke="var(--text)" stroke-width="1.3" opacity="0.6"/>`
-      );
+      p.push(`<circle cx="${x}" cy="${y}" r="3.5" fill="none" stroke="${D.openCircle}" stroke-width="1.4"/>`);
     }
   }
 
   // Finger dots
-  for (let s = 0; s < STRINGS; s++) {
-    const fretNum   = frets[s];
-    const fingerNum = fingers[s];
+  for (let s = 0; s < NS; s++) {
+    const fretNum = frets[s], finger = fingers[s];
     if (fretNum <= 0) continue;
-
-    const localFret = fretNum - baseFret + 1;
-    if (localFret < 1 || localFret > FRETS) continue;
-
-    const x = sx(s);
-    const y = fy(localFret);
-
-    const onBarre = barre &&
-      fretNum === barre.fret &&
-      s >= Math.min(barre.from, barre.to) &&
-      s <= Math.max(barre.from, barre.to);
-
+    const lf = fretNum - baseFret + 1;
+    if (lf < 1 || lf > NF) continue;
+    const x = sx(s), y = fy(lf);
+    const onBarre = barre && fretNum === barre.fret &&
+      s >= Math.min(barre.from, barre.to) && s <= Math.max(barre.from, barre.to);
     if (!onBarre) {
-      parts.push(
-        `<circle cx="${x}" cy="${y}" r="${DOTR}" fill="var(--accent)"/>`
-      );
+      p.push(`<circle cx="${x}" cy="${y}" r="${DR}" fill="${D.dot}"/>`);
     }
-
-    if (fingerNum && fingerNum > 0) {
-      parts.push(
-        `<text x="${x}" y="${y}" text-anchor="middle"` +
-        ` dominant-baseline="middle" font-family="var(--mono)"` +
-        ` font-size="7" fill="#fff" font-weight="600"` +
-        ` pointer-events="none">${fingerNum}</text>`
-      );
+    if (finger && finger > 0) {
+      p.push(`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="7" fill="${D.dotText}" font-weight="700" pointer-events="none">${finger}</text>`);
     }
   }
 
+  return _wrapSVG(chordName, p, 100, 122);
+}
+
+// ── Ukulele SVG (4 strings) ───────────────────────────────────────────────
+function buildUkuleleSVG(chordName, shape) {
+  if (!shape) return _noShapeSVG(chordName, 4);
+
+  const { frets, fingers, barre, baseFret = 1 } = shape;
+
+  const LEFT  = 18, TOP = 28, W = 42, H = 64;
+  const NS    = 4, NF = 5;
+  const SG    = W / (NS - 1);
+  const FG    = H / NF;
+  const DR    = 6;
+
+  const sx = i => LEFT + (NS - 1 - i) * SG;
+  const fy = f => TOP + (f - 0.5) * FG;
+
+  const p = [];
+
+  if (baseFret === 1) {
+    p.push(`<line x1="${LEFT}" y1="${TOP}" x2="${LEFT + W}" y2="${TOP}" stroke="${D.nut}" stroke-width="3" stroke-linecap="round"/>`);
+  } else {
+    p.push(`<text x="${LEFT - 5}" y="${TOP + FG * 0.55}" text-anchor="end" font-family="monospace" font-size="7.5" fill="${D.text}" dominant-baseline="middle">${baseFret}</text>`);
+  }
+
+  for (let s = 0; s < NS; s++) {
+    const x = sx(s);
+    p.push(`<line x1="${x}" y1="${TOP}" x2="${x}" y2="${TOP + H}" stroke="${D.string}" stroke-width="1.2"/>`);
+  }
+
+  for (let f = 1; f <= NF; f++) {
+    const y = TOP + f * FG;
+    p.push(`<line x1="${LEFT}" y1="${y}" x2="${LEFT + W}" y2="${y}" stroke="${D.fret}" stroke-width="0.8"/>`);
+  }
+
+  if (barre) {
+    const lf = barre.fret - baseFret + 1;
+    if (lf >= 1 && lf <= NF) {
+      const x1 = sx(barre.to), x2 = sx(barre.from), by = fy(lf);
+      p.push(`<rect x="${x1 - DR}" y="${by - DR}" width="${x2 - x1 + DR * 2}" height="${DR * 2}" rx="${DR}" fill="${D.barre}" opacity="0.88"/>`);
+    }
+  }
+
+  for (let s = 0; s < NS; s++) {
+    const f = frets[s], x = sx(s), y = TOP - 11;
+    if (f === -1) {
+      const d = 3.5;
+      p.push(
+        `<line x1="${x-d}" y1="${y-d}" x2="${x+d}" y2="${y+d}" stroke="${D.muted}" stroke-width="1.5" stroke-linecap="round"/>` +
+        `<line x1="${x+d}" y1="${y-d}" x2="${x-d}" y2="${y+d}" stroke="${D.muted}" stroke-width="1.5" stroke-linecap="round"/>`
+      );
+    } else if (f === 0) {
+      p.push(`<circle cx="${x}" cy="${y}" r="3.5" fill="none" stroke="${D.openCircle}" stroke-width="1.4"/>`);
+    }
+  }
+
+  for (let s = 0; s < NS; s++) {
+    const fretNum = frets[s], finger = fingers[s];
+    if (fretNum <= 0) continue;
+    const lf = fretNum - baseFret + 1;
+    if (lf < 1 || lf > NF) continue;
+    const x = sx(s), y = fy(lf);
+    const onBarre = barre && fretNum === barre.fret &&
+      s >= Math.min(barre.from, barre.to) && s <= Math.max(barre.from, barre.to);
+    if (!onBarre) {
+      p.push(`<circle cx="${x}" cy="${y}" r="${DR}" fill="${D.dot}"/>`);
+    }
+    if (finger && finger > 0) {
+      p.push(`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="7" fill="${D.dotText}" font-weight="700" pointer-events="none">${finger}</text>`);
+    }
+  }
+
+  // Tuning labels below diagram
+  const labels = ['A','E','C','G'];
+  for (let s = 0; s < NS; s++) {
+    const x = sx(s);
+    p.push(`<text x="${x}" y="${TOP + H + 12}" text-anchor="middle" font-family="monospace" font-size="6.5" fill="${D.text}">${labels[s]}</text>`);
+  }
+
+  return _wrapSVG(chordName, p, 82, 128);
+}
+
+// ── Piano SVG ─────────────────────────────────────────────────────────────
+// One octave C to B. White keys: C D E F G A B (7).
+// Black keys: C# D# F# G# A# (5).
+// Highlighted notes use amber glow.
+
+const PIANO_WHITE_KEYS = ['C','D','E','F','G','A','B'];
+const PIANO_BLACK_KEYS = {
+  'C#': { between: [0, 1] },
+  'D#': { between: [1, 2] },
+  'F#': { between: [3, 4] },
+  'G#': { between: [4, 5] },
+  'A#': { between: [5, 6] },
+};
+// Flat→sharp normalisation for rendering lookup
+const PIANO_FLAT_MAP = { 'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#' };
+
+function normPianoNote(n) { return PIANO_FLAT_MAP[n] || n; }
+
+function buildPianoSVG(chordName, shape) {
+  const W = 140, H = 80;
+  const WKW = W / 7;   // white key width ≈ 20
+  const WKH = H;
+  const BKW = WKW * 0.6;
+  const BKH = H * 0.58;
+
+  const highlighted = new Set((shape?.notes || []).map(normPianoNote));
+
+  const p = [];
+
+  // Background
+  p.push(`<rect x="0" y="0" width="${W}" height="${H}" rx="3" fill="#111009" stroke="rgba(200,150,42,.25)" stroke-width="1"/>`);
+
+  // White keys
+  PIANO_WHITE_KEYS.forEach((note, i) => {
+    const x   = i * WKW;
+    const lit = highlighted.has(note);
+    p.push(
+      `<rect x="${x + 0.8}" y="0" width="${WKW - 1.6}" height="${WKH - 1}" rx="2"` +
+      ` fill="${lit ? '#c8962a' : 'rgba(232,220,190,.88)'}"` +
+      ` stroke="${lit ? '#e0b050' : 'rgba(0,0,0,.4)'}"` +
+      ` stroke-width="${lit ? '1.5' : '0.6'}"` +
+      `${lit ? ' filter="url(#kglow)"' : ''}/>`
+    );
+    if (lit) {
+      p.push(
+        `<text x="${x + WKW / 2}" y="${WKH - 5}" text-anchor="middle"` +
+        ` font-family="monospace" font-size="6.5" font-weight="700"` +
+        ` fill="#fff" opacity="0.9">${note}</text>`
+      );
+    }
+  });
+
+  // Black keys (drawn over white)
+  Object.entries(PIANO_BLACK_KEYS).forEach(([note, { between }]) => {
+    const [l] = between;
+    const x   = (l + 1) * WKW - BKW / 2;
+    const lit = highlighted.has(note);
+    p.push(
+      `<rect x="${x}" y="0" width="${BKW}" height="${BKH}" rx="2"` +
+      ` fill="${lit ? '#c8962a' : '#0e0c08'}"` +
+      ` stroke="${lit ? '#e0b050' : 'rgba(200,150,42,.2)'}"` +
+      ` stroke-width="${lit ? '1.5' : '0.6'}"` +
+      `${lit ? ' filter="url(#kglow)"' : ''}/>`
+    );
+    if (lit) {
+      const label = note.replace('#', '♯');
+      p.push(
+        `<text x="${x + BKW / 2}" y="${BKH - 4}" text-anchor="middle"` +
+        ` font-family="monospace" font-size="5.5" font-weight="700"` +
+        ` fill="#fff" opacity="0.9">${label}</text>`
+      );
+    }
+  });
+
+  const defsBlock =
+    `<defs><filter id="kglow" x="-30%" y="-30%" width="160%" height="160%">` +
+    `<feGaussianBlur stdDeviation="2" result="blur"/>` +
+    `<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+    `</filter></defs>`;
+
   return (
-    `<svg width="100" height="120" viewBox="0 0 100 120"` +
+    `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"` +
     ` xmlns="http://www.w3.org/2000/svg"` +
-    ` aria-label="${esc(chordName)} chord diagram"` +
+    ` aria-label="${esc(chordName)} piano voicing"` +
+    ` class="chord-diagram-svg" role="img">` +
+    defsBlock + p.join('') +
+    `</svg>`
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function _wrapSVG(label, parts, w, h) {
+  return (
+    `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"` +
+    ` xmlns="http://www.w3.org/2000/svg"` +
+    ` aria-label="${esc(label)} chord diagram"` +
     ` class="chord-diagram-svg" role="img">` +
     parts.join('') +
     `</svg>`
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  TAB RENDERER — [G] notation → HTML with chord-above-lyric layout
-//
-//  The pipe `|` separator splits lines. Within a line, [ChordName] tokens
-//  are detected. We classify each line:
-//
-//    "chord-only" — the ENTIRE line (after stripping brackets) is made up
-//                   of chord tokens and whitespace with no lyric text.
-//    "mixed"      — the line has both chord tokens and lyric words
-//                   interleaved (like "Amazing [G]grace how [Em]sweet")
-//    "lyric-only" — plain text, no chord tokens
-//    "section"    — [Verse 1], [Chorus] etc that don't match chord regex
-//    "gap"        — empty line
-//
-//  For "mixed" lines we split into a chord row + a lyric row, using
-//  character-position alignment so chords sit above their syllables.
-//
-//  For "chord-only" lines followed by a "lyric-only" line, we pair them
-//  naturally into a .tab-pair block.
-// ─────────────────────────────────────────────────────────────────────────
-
-/** Regex: a valid chord token name (no surrounding brackets) */
-const CHORD_NAME_RE = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
-
-/**
- * Test whether a string is a valid chord name.
- */
-function isChordName(s) {
-  return CHORD_NAME_RE.test(s);
+function _noShapeSVG(label, strings) {
+  const w = strings === 4 ? 82 : 100, h = 122;
+  return (
+    `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"` +
+    ` xmlns="http://www.w3.org/2000/svg" aria-label="${esc(label)}" class="chord-diagram-svg">` +
+    `<text x="${w/2}" y="${h/2}" text-anchor="middle" font-family="monospace" font-size="9"` +
+    ` fill="rgba(200,170,100,.3)">No diagram</text>` +
+    `</svg>`
+  );
 }
 
-/**
- * Given a raw line string (may contain [Chord] tokens), split it into
- * an array of segments: { type: 'chord'|'text', value: string }.
- * Returns null if there are no chord tokens in the line.
- */
+// ── Build diagram SVG for a given instrument ──────────────────────────────
+function buildDiagramSVG(chordName, instrument) {
+  switch (instrument) {
+    case 'ukulele': return buildUkuleleSVG(chordName, UKULELE_SHAPES[chordName]);
+    case 'piano':   return buildPianoSVG(chordName, PIANO_SHAPES[chordName]);
+    default:        return buildGuitarSVG(chordName, GUITAR_SHAPES[chordName]);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  TAB RENDERER — [G] notation → chord-above-lyric HTML
+//  (logic unchanged from original; only esc references updated)
+// ─────────────────────────────────────────────────────────────────────────
+
+const CHORD_NAME_RE = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
+
+function isChordName(s) { return CHORD_NAME_RE.test(s); }
+
 function parseLineSegments(line) {
   const TOKEN_RE = /(\[[^\]]+\])/g;
   const parts    = line.split(TOKEN_RE);
-  if (parts.length === 1) return null; // no brackets at all
-
+  if (parts.length === 1) return null;
   let hasChord = false;
   const segs = parts.map(part => {
     const m = part.match(/^\[([^\]]+)\]$/);
-    if (m && isChordName(m[1])) {
-      hasChord = true;
-      return { type: 'chord', value: m[1] };
-    }
+    if (m && isChordName(m[1])) { hasChord = true; return { type: 'chord', value: m[1] }; }
     return { type: 'text', value: part };
   });
-
   return hasChord ? segs : null;
 }
 
-/**
- * Build the HTML for a chord token button.
- */
 function chordTokenHTML(chordName, semitones) {
   const transposed = transposeChord(chordName, semitones);
   return (
@@ -362,96 +465,41 @@ function chordTokenHTML(chordName, semitones) {
   );
 }
 
-/**
- * Convert raw tab content using [Chord] notation into HTML.
- *
- * Layout produced:
- *
- *   <div class="tab-section">
- *     <span class="tab-section-label">Verse 1</span>
- *     <div class="tab-pair">
- *       <span class="tab-chord-line">…chord tokens…</span>
- *       <span class="tab-lyric-line">…lyric text…</span>
- *     </div>
- *     …
- *   </div>
- *
- * For "mixed" lines (chord + lyric interleaved), we extract the chord
- * positions and lyrics separately, outputting them as two sibling spans.
- *
- * @param {string} raw       - raw Tab_Content string from sheet
- * @param {number} semitones - current transpose offset
- * @returns {string}         - HTML string for .tab-body innerHTML
- */
 function renderTab(raw, semitones = 0) {
   if (!raw) {
-    return '<span style="color:var(--muted-light);font-family:var(--mono);font-size:.85rem">No tab content available.</span>';
+    return '<span style="color:rgba(200,170,100,.3);font-family:var(--mono);font-size:.85rem">No tab content available.</span>';
   }
 
-  const lines = raw.split('|');
-
-  // Pre-parse all lines into typed objects
+  const lines  = raw.split('|');
   const parsed = lines.map(rawLine => {
     const trimmed = rawLine.trim();
-
-    // Empty — gap
     if (!trimmed) return { kind: 'gap' };
 
-    // Section label check: e.g. [Verse 1], [Chorus]
     const bracketMatch = trimmed.match(/^\[([^\]]+)\]$/);
     if (bracketMatch && !isChordName(bracketMatch[1])) {
       return { kind: 'section', label: bracketMatch[1] };
     }
 
-    // Try to parse chord tokens from the line
     const segs = parseLineSegments(rawLine);
+    if (!segs) return { kind: 'lyric', text: rawLine };
 
-    if (!segs) {
-      // Pure lyric / plain text line
-      return { kind: 'lyric', text: rawLine };
-    }
-
-    // Check if the line is chord-only (all non-empty text segments are whitespace)
-    const textContent = segs
-      .filter(s => s.type === 'text')
-      .map(s => s.value)
-      .join('');
-    const isChordOnly = textContent.trim() === '';
-
-    if (isChordOnly) {
-      return { kind: 'chord-only', segs };
-    }
-
-    // Mixed: chords interspersed with lyrics
+    const textContent = segs.filter(s => s.type === 'text').map(s => s.value).join('');
+    if (textContent.trim() === '') return { kind: 'chord-only', segs };
     return { kind: 'mixed', segs, rawLine };
   });
 
-  // Now group into sections and pairs
   const output = [];
-  let i = 0;
-  let inSection = false;
+  let i = 0, inSection = false;
 
-  function openSection() {
-    if (!inSection) {
-      output.push('<div class="tab-section">');
-      inSection = true;
-    }
-  }
-
-  function closeSection() {
-    if (inSection) {
-      output.push('</div>');
-      inSection = false;
-    }
-  }
+  const openSection  = () => { if (!inSection) { output.push('<div class="tab-section">'); inSection = true; } };
+  const closeSection = () => { if (inSection)  { output.push('</div>'); inSection = false; } };
 
   while (i < parsed.length) {
     const item = parsed[i];
 
     if (item.kind === 'gap') {
       if (inSection) output.push('<span class="tab-line-gap"></span>');
-      i++;
-      continue;
+      i++; continue;
     }
 
     if (item.kind === 'section') {
@@ -459,34 +507,25 @@ function renderTab(raw, semitones = 0) {
       output.push('<div class="tab-section">');
       output.push(`<span class="tab-section-label">${esc(item.label)}</span>`);
       inSection = true;
-      i++;
-      continue;
+      i++; continue;
     }
 
-    // chord-only line: peek ahead for a lyric line to pair with
     if (item.kind === 'chord-only') {
       openSection();
+      const chordLineHTML = item.segs.map(seg =>
+        seg.type === 'chord' ? chordTokenHTML(seg.value, semitones) : esc(seg.value)
+      ).join('');
 
-      // Build chord line HTML
-      const chordLineHTML = item.segs.map(seg => {
-        if (seg.type === 'chord') return chordTokenHTML(seg.value, semitones);
-        // preserve whitespace as-is
-        return esc(seg.value);
-      }).join('');
-
-      // Peek: is the next non-gap line a lyric?
       let j = i + 1;
       while (j < parsed.length && parsed[j].kind === 'gap') j++;
 
       if (j < parsed.length && parsed[j].kind === 'lyric') {
-        // Paired: chord line + lyric line
         output.push('<div class="tab-pair">');
         output.push(`<span class="tab-chord-line">${chordLineHTML}</span>`);
         output.push(`<span class="tab-lyric-line">${esc(parsed[j].text)}</span>`);
         output.push('</div>');
         i = j + 1;
       } else {
-        // Chord line with no paired lyric
         output.push('<div class="tab-pair">');
         output.push(`<span class="tab-chord-line">${chordLineHTML}</span>`);
         output.push('</div>');
@@ -495,43 +534,30 @@ function renderTab(raw, semitones = 0) {
       continue;
     }
 
-    // mixed line: split into chord line + lyric line
     if (item.kind === 'mixed') {
       openSection();
-
-      // Build chord line: replace chord tokens, replace text with spaces of same width
-      let chordLine = '';
-      let lyricLine = '';
-
+      let chordLine = '', lyricLine = '';
       item.segs.forEach(seg => {
         if (seg.type === 'chord') {
-          const transposed = transposeChord(seg.value, semitones);
-          // Chord token goes on chord line; equivalent space on lyric line
-          chordLine += `<button class="chord-token" data-chord="${esc(transposed)}" aria-label="${esc(transposed)} chord" type="button">${esc(transposed)}</button>`;
-          // Add non-breaking spaces on lyric line to keep alignment
-          // We use a span with the same min-width as the token
-          lyricLine += `<span style="display:inline-block;min-width:${Math.max(transposed.length, 2)}ch"> </span>`;
+          const t = transposeChord(seg.value, semitones);
+          chordLine += `<button class="chord-token" data-chord="${esc(t)}" aria-label="${esc(t)} chord" type="button">${esc(t)}</button>`;
+          lyricLine += `<span style="display:inline-block;min-width:${Math.max(t.length, 2)}ch"> </span>`;
         } else {
-          // Text segment: goes on lyric line; equivalent spaces on chord line
           chordLine += `<span style="display:inline-block;min-width:${seg.value.length}ch"> </span>`;
           lyricLine += esc(seg.value);
         }
       });
-
       output.push('<div class="tab-pair">');
       output.push(`<span class="tab-chord-line">${chordLine}</span>`);
       output.push(`<span class="tab-lyric-line">${lyricLine}</span>`);
       output.push('</div>');
-      i++;
-      continue;
+      i++; continue;
     }
 
-    // pure lyric line
     if (item.kind === 'lyric') {
       openSection();
       output.push(`<div class="tab-pair"><span class="tab-lyric-line">${esc(item.text)}</span></div>`);
-      i++;
-      continue;
+      i++; continue;
     }
 
     i++;
@@ -542,146 +568,193 @@ function renderTab(raw, semitones = 0) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  POPOVER MANAGER
+//  DIAGRAM DRAWER — replaces the old popover
+//  A fixed right-side slide-in panel on desktop, bottom sheet on mobile.
+//  Shows per-instrument tabs: Guitar | Ukulele | Piano
 // ─────────────────────────────────────────────────────────────────────────
 
-let _popover        = null;
-let _popoverTimeout = null;
-let _activeToken    = null;
+let _drawer     = null;
+let _backdrop   = null;
+let _activeChord = null;
+let _drawerInstr = 'guitar'; // currently displayed instrument in drawer
 
-function ensurePopover() {
-  if (_popover) return _popover;
-  _popover = document.createElement('div');
-  _popover.className = 'chord-popover';
-  _popover.id        = 'chordPopover';
-  _popover.setAttribute('role', 'tooltip');
-  _popover.setAttribute('aria-live', 'polite');
-  document.body.appendChild(_popover);
-  return _popover;
+/** Build or retrieve the singleton drawer element. */
+function ensureDrawer() {
+  if (_drawer) return _drawer;
+
+  // Backdrop
+  _backdrop = document.createElement('div');
+  _backdrop.className = 'cdd-backdrop';
+  _backdrop.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(_backdrop);
+
+  _backdrop.addEventListener('click', hideDrawer);
+
+  // Drawer panel
+  _drawer = document.createElement('div');
+  _drawer.className = 'chord-diagram-drawer';
+  _drawer.setAttribute('role', 'complementary');
+  _drawer.setAttribute('aria-label', 'Chord diagram');
+
+  _drawer.innerHTML =
+    `<div class="cdd-header">
+      <span class="cdd-chord-name" id="cddChordName">—</span>
+      <button class="cdd-close" id="cddClose" aria-label="Close chord diagram">✕</button>
+    </div>
+    <div class="cdd-instr-tabs" role="tablist" aria-label="Instrument">
+      <button class="cdd-tab active" data-instr="guitar" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8" aria-hidden="true">
+          <path d="M9 3L6 6M6 6L3 9M6 6C6 8.5 8 11 10.5 12M15 21L18 18M18 18L21 15M18 18C15.5 18 13 16 12 13.5M10.5 12C11.5 13.5 13 15.5 14.5 17L18 18M10.5 12L6 6"/>
+        </svg>
+        Guitar
+      </button>
+      <button class="cdd-tab" data-instr="ukulele" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8" aria-hidden="true">
+          <ellipse cx="12" cy="16" rx="5" ry="6"/>
+          <line x1="12" y1="10" x2="12" y2="4"/>
+          <line x1="10" y1="4" x2="14" y2="4"/>
+        </svg>
+        Uke
+      </button>
+      <button class="cdd-tab" data-instr="piano" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8" aria-hidden="true">
+          <rect x="2" y="4" width="20" height="16" rx="1"/>
+          <line x1="7" y1="4" x2="7" y2="14"/>
+          <line x1="12" y1="4" x2="12" y2="14"/>
+          <line x1="17" y1="4" x2="17" y2="14"/>
+          <rect x="5" y="4" width="3" height="9" rx="1" fill="currentColor" stroke="none"/>
+          <rect x="10" y="4" width="3" height="9" rx="1" fill="currentColor" stroke="none"/>
+          <rect x="15" y="4" width="3" height="9" rx="1" fill="currentColor" stroke="none"/>
+        </svg>
+        Piano
+      </button>
+    </div>
+    <div class="cdd-diagram-area" id="cddDiagramArea"></div>
+    <div class="cdd-quality-label" id="cddQualityLabel"></div>`;
+
+  document.body.appendChild(_drawer);
+
+  // Close button
+  _drawer.querySelector('#cddClose').addEventListener('click', hideDrawer);
+
+  // Instrument tabs
+  _drawer.querySelector('.cdd-instr-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.cdd-tab');
+    if (!btn) return;
+    const instr = btn.dataset.instr;
+    _drawerInstr = instr;
+    _drawer.querySelectorAll('.cdd-tab').forEach(b => {
+      const active = b.dataset.instr === instr;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', String(active));
+    });
+    if (_activeChord) _renderDrawerDiagram(_activeChord);
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _drawer.classList.contains('open')) hideDrawer();
+  });
+
+  return _drawer;
 }
 
-function showPopover(chordName, anchorEl) {
-  const pop        = ensurePopover();
-  const shape      = CHORD_SHAPES[chordName];
-  const diagramSVG = buildDiagramSVG(chordName, shape);
+function _renderDrawerDiagram(chordName) {
+  const area  = _drawer.querySelector('#cddDiagramArea');
+  const qLabel= _drawer.querySelector('#cddQualityLabel');
+  if (!area) return;
 
-  pop.innerHTML =
-    `<div class="chord-popover-name">${esc(chordName)}</div>` +
-    (shape
-      ? diagramSVG
-      : `<div class="chord-popover-unknown">No diagram</div>`);
+  area.innerHTML = buildDiagramSVG(chordName, _drawerInstr);
 
-  const isMobile = window.matchMedia('(hover: none)').matches;
-
-  if (!isMobile && anchorEl) {
-    pop.style.left       = '-9999px';
-    pop.style.top        = '-9999px';
-    pop.style.transform  = 'none';
-    pop.style.visibility = 'hidden';
-    pop.classList.add('visible');
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const popW = pop.offsetWidth  || 130;
-        const popH = pop.offsetHeight || 140;
-        const rect = anchorEl.getBoundingClientRect();
-
-        let left = rect.left + rect.width / 2 - popW / 2;
-        let top  = rect.top - popH - 10;
-
-        left = Math.max(8, Math.min(left, window.innerWidth  - popW - 8));
-        top  = Math.max(8, Math.min(top,  window.innerHeight - popH - 8));
-
-        if (rect.top - popH - 10 < 8) top = rect.bottom + 10;
-
-        pop.style.left       = `${Math.round(left)}px`;
-        pop.style.top        = `${Math.round(top)}px`;
-        pop.style.visibility = '';
-      });
-    });
+  // Quality label for piano
+  if (_drawerInstr === 'piano') {
+    const ps = PIANO_SHAPES[chordName];
+    qLabel.textContent = ps ? `${ps.notes.join(' – ')}` : '';
   } else {
-    pop.style.left       = '50%';
-    pop.style.top        = '50%';
-    pop.style.transform  = 'translate(-50%, -50%)';
-    pop.style.visibility = '';
-    pop.classList.add('visible');
+    qLabel.textContent = '';
   }
 }
 
-function hidePopover() {
-  if (_popover) _popover.classList.remove('visible');
-  _activeToken = null;
+function showDrawer(chordName) {
+  ensureDrawer();
+  _activeChord = chordName;
+
+  const nameEl = _drawer.querySelector('#cddChordName');
+  if (nameEl) nameEl.textContent = chordName;
+
+  _renderDrawerDiagram(chordName);
+
+  _drawer.classList.add('open');
+  _backdrop.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function hideDrawer() {
+  if (!_drawer) return;
+  _drawer.classList.remove('open');
+  _backdrop.classList.remove('visible');
+  document.body.style.overflow = '';
+  _activeChord = null;
 }
 
 /**
- * Attach popover events to all .chord-token elements inside `container`.
- * Desktop: mouseenter / mouseleave
- * Mobile:  click/tap to toggle
+ * Update the active instrument shown in the drawer.
+ * Called by the instrument switcher in the controls bar.
  */
-function attachPopoverEvents(container) {
-  const isTouchDevice = () => window.matchMedia('(hover: none)').matches;
-
-  container.addEventListener('mouseenter', e => {
-    if (isTouchDevice()) return;
-    const token = e.target.closest('.chord-token');
-    if (!token) return;
-    clearTimeout(_popoverTimeout);
-    showPopover(token.dataset.chord, token);
-    _activeToken = token;
-  }, true);
-
-  container.addEventListener('mouseleave', e => {
-    if (isTouchDevice()) return;
-    const token = e.target.closest('.chord-token');
-    if (!token) return;
-    _popoverTimeout = setTimeout(hidePopover, 120);
-  }, true);
-
-  // Tap to toggle on mobile
-  container.addEventListener('click', e => {
-    if (!isTouchDevice()) return;
-    const token = e.target.closest('.chord-token');
-    if (!token) return;
-    e.stopPropagation();
-    if (_activeToken === token && _popover?.classList.contains('visible')) {
-      hidePopover();
-    } else {
-      showPopover(token.dataset.chord, token);
-      _activeToken = token;
+function setDrawerInstrument(instr) {
+  _drawerInstr = instr;
+  // Sync drawer tab UI if drawer exists
+  if (_drawer) {
+    _drawer.querySelectorAll('.cdd-tab').forEach(b => {
+      const active = b.dataset.instr === instr;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', String(active));
+    });
+    if (_activeChord && _drawer.classList.contains('open')) {
+      _renderDrawerDiagram(_activeChord);
     }
-  });
+  }
+}
 
-  // Chord-used pills also trigger popover
+// ─────────────────────────────────────────────────────────────────────────
+//  CHORD TOKEN EVENT DELEGATION
+//  Attach to any container; clicks on .chord-token open the drawer.
+//  Chord-used pills also open the drawer.
+// ─────────────────────────────────────────────────────────────────────────
+
+function attachChordEvents(container) {
   container.addEventListener('click', e => {
+    const token = e.target.closest('.chord-token');
+    if (token) {
+      e.stopPropagation();
+      const chord = token.dataset.chord;
+      if (_activeChord === chord && _drawer?.classList.contains('open')) {
+        hideDrawer();
+      } else {
+        showDrawer(chord);
+      }
+      return;
+    }
+
     const pill = e.target.closest('.chord-used-pill');
-    if (!pill) return;
-    e.stopPropagation();
-    const name = pill.dataset.chord;
-    if (_activeToken === pill && _popover?.classList.contains('visible')) {
-      hidePopover();
-    } else {
-      showPopover(name, pill);
-      _activeToken = pill;
+    if (pill) {
+      e.stopPropagation();
+      const chord = pill.dataset.chord;
+      if (_activeChord === chord && _drawer?.classList.contains('open')) {
+        hideDrawer();
+      } else {
+        showDrawer(chord);
+      }
     }
   });
 }
-
-// Close popover on outside click
-document.addEventListener('click', e => {
-  if (_popover?.classList.contains('visible') &&
-      !e.target.closest('.chord-token') &&
-      !e.target.closest('.chord-used-pill') &&
-      !e.target.closest('#chordPopover')) {
-    hidePopover();
-  }
-});
 
 // ─────────────────────────────────────────────────────────────────────────
 //  FONT SIZE CONTROL
 // ─────────────────────────────────────────────────────────────────────────
 
 const FONT_SIZES       = ['.70rem','.76rem','.82rem','.88rem','.94rem','1.0rem','1.06rem','1.12rem','1.2rem'];
-const FONT_DEFAULT_IDX = 3; // '.88rem'
+const FONT_DEFAULT_IDX = 3;
 const LS_FONT_KEY      = 'sd5_tab_font_size';
 
 function getFontIdx() {
@@ -732,6 +805,24 @@ function startScroll(speed) {
 
 function stopScroll() {
   if (_scrollInterval) { clearInterval(_scrollInterval); _scrollInterval = null; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  INSTRUMENT PREFERENCE — localStorage
+// ─────────────────────────────────────────────────────────────────────────
+
+const LS_INSTR_KEY = 'sd5_chord_instrument';
+
+function getSavedInstrument() {
+  try {
+    const v = localStorage.getItem(LS_INSTR_KEY);
+    if (v === 'guitar' || v === 'ukulele' || v === 'piano') return v;
+  } catch {}
+  return 'guitar';
+}
+
+function saveInstrument(instr) {
+  try { localStorage.setItem(LS_INSTR_KEY, instr); } catch {}
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -889,17 +980,11 @@ function buildChordCard(row) {
 //  RECENTLY PLAYED STRIP BUILDER
 // ─────────────────────────────────────────────────────────────────────────
 
-/**
- * Build and insert the recently-played horizontal strip above `targetEl`.
- * `targetEl` is the featured section or the grid container.
- */
 function buildRecentStrip(container) {
   const recent = recentGet();
 
-  // Remove existing panel if present
   const existing = container.querySelector('.chords-recent');
   if (existing) existing.remove();
-
   if (!recent.length) return;
 
   const section = document.createElement('div');
@@ -925,12 +1010,8 @@ function buildRecentStrip(container) {
     card.setAttribute('aria-label', `${entry.title} by ${entry.artist}`);
 
     let meta = '';
-    if (entry.key) {
-      meta += `<span class="chord-recent-key-badge">Key ${esc(entry.key)}</span>`;
-    }
-    if (entry.difficulty) {
-      meta += `<span class="chord-recent-key-badge">${esc(entry.difficulty)}</span>`;
-    }
+    if (entry.key)        meta += `<span class="chord-recent-key-badge">Key ${esc(entry.key)}</span>`;
+    if (entry.difficulty) meta += `<span class="chord-recent-key-badge">${esc(entry.difficulty)}</span>`;
 
     card.innerHTML =
       `<div class="chord-recent-title">${esc(entry.title || '')}</div>` +
@@ -949,13 +1030,11 @@ function buildRecentStrip(container) {
 
   section.appendChild(row);
 
-  // Clear button
   heading.querySelector('.chords-recent-clear').addEventListener('click', () => {
     recentClear();
     section.remove();
   });
 
-  // Insert before the first child of container (before featured or grid)
   container.insertBefore(section, container.firstChild);
 }
 
@@ -1039,7 +1118,6 @@ function renderFilteredChords(grid, paginationEl, countEl) {
   slice.forEach(row => frag.appendChild(buildChordCard(row)));
   grid.appendChild(frag);
 
-  // Pagination
   if (paginationEl) {
     paginationEl.innerHTML = '';
     if (total > 1) {
@@ -1090,21 +1168,20 @@ export async function renderChords() {
 
   updateSEO({
     title: 'Chord Sheets',
-    desc:  'Guitar chord sheets with transpose, diagrams, and auto-scroll — curated by Suman Dangal.',
+    desc:  'Guitar, ukulele & piano chord sheets with transpose, diagrams, and auto-scroll — curated by Suman Dangal.',
     path:  '/chords',
   });
 
   const view = document.getElementById('view-chords');
   if (!view) return;
 
-  // Skeleton while loading
   view.innerHTML =
     `<div class="chords-hero">
       <div class="chords-hero-inner">
         <div class="chords-hero-eyebrow">Music</div>
         <h2 class="chords-hero-title">Chord Sheets</h2>
         <p class="chords-hero-sub">
-          Guitar chords with real-time transpose, diagrams on hover, and hands-free auto-scroll.
+          Guitar, ukulele &amp; piano chord diagrams with real-time transpose and hands-free auto-scroll.
           Built for players, not just readers.
         </p>
       </div>
@@ -1152,12 +1229,11 @@ function buildListUI(view, rows) {
     rows.some(r => (r.Difficulty || '').toLowerCase() === d)
   );
   const keys         = [...new Set(rows.map(r => r.Key).filter(Boolean))].sort();
-
-  const featured = rows.filter(r => (r.Featured || '').toLowerCase() === 'true');
+  const featured     = rows.filter(r => (r.Featured || '').toLowerCase() === 'true');
 
   const featuredHTML = featured.length
     ? `<div class="chords-featured" id="chordsFeatured">
-        <div class="chords-featured-heading">⭐ Featured</div>
+        <div class="chords-featured-heading">● Featured</div>
         <div class="chords-featured-grid" id="chordsFeaturedGrid"></div>
       </div>`
     : '';
@@ -1168,7 +1244,7 @@ function buildListUI(view, rows) {
         <div class="chords-hero-eyebrow">Music</div>
         <h2 class="chords-hero-title">Chord Sheets</h2>
         <p class="chords-hero-sub">
-          Guitar chords with real-time transpose, diagrams on hover, and hands-free auto-scroll.
+          Guitar, ukulele &amp; piano chord diagrams with real-time transpose and hands-free auto-scroll.
           Built for players, not just readers.
         </p>
       </div>
@@ -1207,11 +1283,10 @@ function buildListUI(view, rows) {
 
   const refresh = () => renderFilteredChords(grid, pagination, countEl);
 
-  if (categories.length)   buildFilterGroup(filterArea, 'Category:',  categories,   'category',   refresh);
-  if (difficulties.length) buildFilterGroup(filterArea, 'Difficulty:', difficulties, 'difficulty', refresh);
-  if (keys.length)         buildFilterGroup(filterArea, 'Key:',        keys,         'key',        refresh);
+  if (categories.length)   buildFilterGroup(filterArea, 'Category:',   categories,   'category',   refresh);
+  if (difficulties.length) buildFilterGroup(filterArea, 'Difficulty:',  difficulties, 'difficulty', refresh);
+  if (keys.length)         buildFilterGroup(filterArea, 'Key:',         keys,         'key',        refresh);
 
-  // Search
   let searchDebounce;
   const searchEl = document.getElementById('chordsSearch');
   if (searchEl) {
@@ -1225,7 +1300,6 @@ function buildListUI(view, rows) {
     });
   }
 
-  // Artist click — filter by that artist
   view.addEventListener('click', e => {
     const btn = e.target.closest('.chord-artist-link');
     if (!btn) return;
@@ -1237,7 +1311,6 @@ function buildListUI(view, rows) {
     refresh();
   });
 
-  // Sort
   const sortEl = document.getElementById('chordsSort');
   if (sortEl) {
     sortEl.addEventListener('change', e => {
@@ -1247,7 +1320,6 @@ function buildListUI(view, rows) {
     });
   }
 
-  // Featured strip
   const featGrid = document.getElementById('chordsFeaturedGrid');
   if (featGrid && featured.length) {
     const frag = document.createDocumentFragment();
@@ -1275,10 +1347,7 @@ function buildListUI(view, rows) {
     featGrid.appendChild(frag);
   }
 
-  // Build recently played strip in the section area
   buildRecentStrip(section);
-
-  // Initial render
   refresh();
   watchReveals();
 }
@@ -1294,7 +1363,6 @@ export async function renderChordDetail(slug) {
   const view = document.getElementById('view-chord-detail');
   if (!view) return;
 
-  // Skeleton
   view.innerHTML =
     `<div class="chord-detail-wrap">
       <div class="skel skel-line m" style="margin-bottom:1.5rem;width:80px;height:20px"></div>
@@ -1327,7 +1395,7 @@ export async function renderChordDetail(slug) {
     return;
   }
 
-  // ── Record this visit in recently played ─────────────────────────────
+  // Record visit
   recentPush({
     slug:       (post.Slug       || '').trim(),
     title:      (post.Title      || '').trim(),
@@ -1336,13 +1404,14 @@ export async function renderChordDetail(slug) {
     difficulty: (post.Difficulty || '').trim(),
   });
 
-  // ── State for this detail page ───────────────────────────────────────
+  // ── Page state ─────────────────────────────────────────────────────────
   let semitones   = 0;
   let fontIdx     = getFontIdx();
   let isScrolling = false;
   let scrollSpeed = getScrollSpeed();
+  let instrument  = getSavedInstrument();
 
-  // ── SEO ──────────────────────────────────────────────────────────────
+  // ── SEO ────────────────────────────────────────────────────────────────
   const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
   const imgUrl  = fixImgUrl(post.Image_URL || '');
 
@@ -1362,11 +1431,11 @@ export async function renderChordDetail(slug) {
     },
   });
 
-  // ── Chords used ───────────────────────────────────────────────────────
+  // ── Chords used ─────────────────────────────────────────────────────────
   const chordsUsed = (post.Chords_Used || '')
     .split(',').map(c => c.trim()).filter(Boolean);
 
-  // ── Build page HTML ───────────────────────────────────────────────────
+  // ── Build page HTML ─────────────────────────────────────────────────────
   const coverHTML = imgUrl
     ? `<img class="chord-detail-cover" src="${esc(imgUrl)}"
         alt="${esc(post.Image_Alt || post.Title + ' chord sheet cover')}"
@@ -1393,7 +1462,6 @@ export async function renderChordDetail(slug) {
   const introHTML = post.Intro_Text
     ? `<p class="chord-detail-intro">${esc(post.Intro_Text)}</p>` : '';
 
-  // Build meta cells with data-label for the ::before pseudo
   const metaCells = [
     post.Key            ? `<span data-label="Key"><strong id="currentKeyDisplay">${esc(post.Key)}</strong></span>` : '',
     post.Capo && post.Capo !== '0' ? `<span data-label="Capo"><strong>${esc(post.Capo)}</strong></span>` : '',
@@ -1402,6 +1470,13 @@ export async function renderChordDetail(slug) {
     post.Tuning         ? `<span data-label="Tuning"><strong>${esc(post.Tuning)}</strong></span>` : '',
     post.Date_Added     ? `<span data-label="Added"><strong>${esc(post.Date_Added)}</strong></span>` : '',
   ].filter(Boolean).join('');
+
+  // ── Instrument switcher icon helpers ────────────────────────────────────
+  const instrIcons = {
+    guitar:  `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3L6 6M6 6L3 9M6 6C6 8.5 8 11 10.5 12M15 21L18 18M18 18L21 15M18 18C15.5 18 13 16 12 13.5M10.5 12C11.5 13.5 13 15.5 14.5 17L18 18M10.5 12L6 6"/></svg>`,
+    ukulele: `<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="5" ry="6"/><line x1="12" y1="10" x2="12" y2="4"/><line x1="10" y1="4" x2="14" y2="4"/></svg>`,
+    piano:   `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="1"/><line x1="7" y1="4" x2="7" y2="14"/><line x1="12" y1="4" x2="12" y2="14"/><line x1="17" y1="4" x2="17" y2="14"/><rect x="5" y="4" width="3" height="9" rx="1" fill="currentColor" stroke="none"/><rect x="10" y="4" width="3" height="9" rx="1" fill="currentColor" stroke="none"/><rect x="15" y="4" width="3" height="9" rx="1" fill="currentColor" stroke="none"/></svg>`,
+  };
 
   view.innerHTML =
     `<div class="chord-detail-wrap" id="chordDetailWrap">
@@ -1429,23 +1504,39 @@ export async function renderChordDetail(slug) {
         <div class="chord-capo-suggestion" id="capoSuggestion" hidden aria-live="polite"></div>
       </div>
 
-      <!-- Controls bar -->
+      <!-- Controls bar — mixing desk style -->
       <div class="chord-controls" id="chordControls" role="toolbar" aria-label="Chord sheet controls">
 
         <!-- Transpose -->
         <div class="ctrl-group" role="group" aria-label="Transpose">
           <span class="ctrl-label">Transpose</span>
-          <button class="ctrl-btn" id="transposeDown" aria-label="Transpose down one semitone" title="Transpose down">−</button>
+          <button class="ctrl-btn" id="transposeDown" aria-label="Transpose down" title="Down one semitone">−</button>
           <span class="ctrl-transpose-display" id="transposeDisplay" aria-live="polite">0</span>
-          <button class="ctrl-btn" id="transposeUp"   aria-label="Transpose up one semitone"   title="Transpose up">+</button>
+          <button class="ctrl-btn" id="transposeUp"   aria-label="Transpose up"   title="Up one semitone">+</button>
+        </div>
+
+        <!-- Instrument switcher -->
+        <div class="ctrl-group" role="group" aria-label="Instrument">
+          <span class="ctrl-label">Instrument</span>
+          <div class="instr-switcher" role="radiogroup" aria-label="Choose instrument">
+            <button class="instr-btn${instrument === 'guitar'  ? ' active' : ''}" data-instr="guitar"  role="radio" aria-checked="${instrument === 'guitar'}"  aria-label="Guitar">
+              ${instrIcons.guitar} Guitar
+            </button>
+            <button class="instr-btn${instrument === 'ukulele' ? ' active' : ''}" data-instr="ukulele" role="radio" aria-checked="${instrument === 'ukulele'}" aria-label="Ukulele">
+              ${instrIcons.ukulele} Uke
+            </button>
+            <button class="instr-btn${instrument === 'piano'   ? ' active' : ''}" data-instr="piano"   role="radio" aria-checked="${instrument === 'piano'}"   aria-label="Piano">
+              ${instrIcons.piano} Piano
+            </button>
+          </div>
         </div>
 
         <!-- Font size -->
         <div class="ctrl-group" role="group" aria-label="Font size">
           <span class="ctrl-label">Size</span>
-          <button class="ctrl-btn" id="fontDown" aria-label="Decrease tab font size">A−</button>
+          <button class="ctrl-btn" id="fontDown" aria-label="Decrease font">A−</button>
           <span class="ctrl-fontsize-display" id="fontDisplay" aria-live="polite"></span>
-          <button class="ctrl-btn" id="fontUp"   aria-label="Increase tab font size">A+</button>
+          <button class="ctrl-btn" id="fontUp"   aria-label="Increase font">A+</button>
         </div>
 
         <!-- Auto-scroll -->
@@ -1457,15 +1548,16 @@ export async function renderChordDetail(slug) {
             <span class="ctrl-label">Speed</span>
             <input type="range" class="ctrl-speed" id="scrollSpeed"
               min="1" max="10" value="${scrollSpeed}"
-              aria-label="Scroll speed (1 slow, 10 fast)">
+              aria-label="Scroll speed">
           </div>
         </div>
 
         <!-- Actions -->
         <div class="ctrl-actions">
-          <button class="ctrl-action-btn" id="printBtn" aria-label="Print chord sheet">🖨 Print</button>
-          <button class="ctrl-action-btn" id="shareBtn" aria-label="Copy link to clipboard">🔗 Share</button>
+          <button class="ctrl-action-btn" id="printBtn" aria-label="Print">🖨 Print</button>
+          <button class="ctrl-action-btn" id="shareBtn" aria-label="Share">🔗 Share</button>
         </div>
+
       </div>
 
       <!-- Tab content -->
@@ -1478,7 +1570,7 @@ export async function renderChordDetail(slug) {
       </div>
     </div>`;
 
-  // ── Grab interactive elements ─────────────────────────────────────────
+  // ── DOM refs ───────────────────────────────────────────────────────────
   const tabBody       = document.getElementById('tabBody');
   const transposeDisp = document.getElementById('transposeDisplay');
   const keyDisp       = document.getElementById('currentKeyDisplay');
@@ -1495,8 +1587,10 @@ export async function renderChordDetail(slug) {
   const shareBtn      = document.getElementById('shareBtn');
   const chordBack     = document.getElementById('chordBack');
   const tabContainer  = document.getElementById('tabContainer');
+  const chordControls = document.getElementById('chordControls');
+  const wrap          = document.getElementById('chordDetailWrap');
 
-  // ── Tab refresh function ──────────────────────────────────────────────
+  // ── Tab refresh ─────────────────────────────────────────────────────────
   function refreshTab() {
     if (!tabBody) return;
     tabBody.innerHTML = renderTab(post.Tab_Content || '', semitones);
@@ -1505,21 +1599,16 @@ export async function renderChordDetail(slug) {
       ? transposeKey(post.Key || '', semitones)
       : (post.Key || '');
 
-    // Update key displays
     if (keyDisp)    keyDisp.textContent    = displayKey;
     if (tabKeyDisp) tabKeyDisp.textContent = displayKey ? `Key of ${displayKey}` : '';
 
-    // Transpose offset display
     if (transposeDisp) {
-      const sign = semitones > 0 ? '+' : '';
-      transposeDisp.textContent = semitones ? `${sign}${semitones}` : '0';
+      transposeDisp.textContent = semitones ? `${semitones > 0 ? '+' : ''}${semitones}` : '0';
     }
 
-    // Disable buttons at limits
     if (transposeDown) transposeDown.disabled = semitones <= -6;
     if (transposeUp)   transposeUp.disabled   = semitones >= 6;
 
-    // Capo suggestion
     if (capoSug) {
       const sug = capoSuggestion(post.Key || '', post.Capo || '0', semitones);
       if (sug) {
@@ -1533,21 +1622,23 @@ export async function renderChordDetail(slug) {
       }
     }
 
-    // Re-attach popover events to newly rendered tokens
-    if (tabContainer) attachPopoverEvents(tabContainer);
+    // Attach chord token events after new DOM is in place
+    if (tabContainer) attachChordEvents(tabContainer);
   }
 
-  // Apply stored font size
+  // Init font
   fontIdx = setFontIdx(tabBody, fontIdx, fontDisp);
 
-  // Initial tab render
+  // Sync drawer with saved instrument preference
+  setDrawerInstrument(instrument);
+
+  // Initial render
   refreshTab();
 
-  // Attach popover to chord-used pills
-  const wrap = document.getElementById('chordDetailWrap');
-  if (wrap) attachPopoverEvents(wrap);
+  // Attach chord-used pills
+  if (wrap) attachChordEvents(wrap);
 
-  // ── Transpose buttons ─────────────────────────────────────────────────
+  // ── Transpose ──────────────────────────────────────────────────────────
   transposeDown?.addEventListener('click', () => {
     if (semitones > -6) { semitones--; refreshTab(); }
   });
@@ -1555,7 +1646,25 @@ export async function renderChordDetail(slug) {
     if (semitones < 6)  { semitones++; refreshTab(); }
   });
 
-  // ── Font-size buttons ─────────────────────────────────────────────────
+  // ── Instrument switcher ────────────────────────────────────────────────
+  chordControls?.addEventListener('click', e => {
+    const btn = e.target.closest('.instr-btn');
+    if (!btn) return;
+    const instr = btn.dataset.instr;
+    if (instr === instrument) return;
+    instrument = instr;
+    saveInstrument(instr);
+    setDrawerInstrument(instr);
+
+    // Update button states
+    chordControls.querySelectorAll('.instr-btn').forEach(b => {
+      const active = b.dataset.instr === instr;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-checked', String(active));
+    });
+  });
+
+  // ── Font size ──────────────────────────────────────────────────────────
   fontDown?.addEventListener('click', () => {
     fontIdx = setFontIdx(tabBody, fontIdx - 1, fontDisp);
   });
@@ -1563,17 +1672,13 @@ export async function renderChordDetail(slug) {
     fontIdx = setFontIdx(tabBody, fontIdx + 1, fontDisp);
   });
 
-  // ── Auto-scroll ───────────────────────────────────────────────────────
+  // ── Auto-scroll ────────────────────────────────────────────────────────
   scrollToggle?.addEventListener('click', () => {
     isScrolling = !isScrolling;
     scrollToggle.classList.toggle('scrolling', isScrolling);
     scrollToggle.setAttribute('aria-pressed', String(isScrolling));
     scrollToggle.textContent = isScrolling ? '⏸ Scrolling…' : '▶ Auto-scroll';
-    if (isScrolling) {
-      startScroll(scrollSpeed);
-    } else {
-      stopScroll();
-    }
+    if (isScrolling) startScroll(scrollSpeed); else stopScroll();
   });
 
   scrollSpeedEl?.addEventListener('input', e => {
@@ -1586,10 +1691,10 @@ export async function renderChordDetail(slug) {
     if (document.hidden && isScrolling) stopScroll();
   }, { once: false });
 
-  // ── Print ─────────────────────────────────────────────────────────────
+  // ── Print ──────────────────────────────────────────────────────────────
   printBtn?.addEventListener('click', () => window.print());
 
-  // ── Share ─────────────────────────────────────────────────────────────
+  // ── Share ──────────────────────────────────────────────────────────────
   shareBtn?.addEventListener('click', async () => {
     const url = `${window.location.origin}/chords/${slug}`;
     try {
@@ -1606,13 +1711,14 @@ export async function renderChordDetail(slug) {
     }
   });
 
-  // ── Back button ───────────────────────────────────────────────────────
+  // ── Back ───────────────────────────────────────────────────────────────
   chordBack?.addEventListener('click', () => {
     stopScroll();
+    hideDrawer();
     import('../router.js').then(({ navigate }) => navigate('/chords'));
   });
 
-  window.addEventListener('popstate', stopScroll, { once: true });
+  window.addEventListener('popstate', () => { stopScroll(); hideDrawer(); }, { once: true });
 
   watchReveals();
 }

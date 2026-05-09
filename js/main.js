@@ -178,6 +178,7 @@ registerPrefix('/chords/', async ({ slug }) => {
 
 registerRoute('/back-lab', async () => {
   const { renderCMS } = await import('./views/cms.js');
+  updateSEO({ title: 'Content Studio', path: '/back-lab' });
   await renderCMS();
 });
 

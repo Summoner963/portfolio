@@ -72,7 +72,7 @@ function memSet(key, data) {
 // ─────────────────────────────────────────────────────────────────────────
 
 const RL_WINDOW_MS = 60_000;
-const RL_MAX       = 120;
+const RL_MAX       = 300;
 
 /** @type {Record<string, {count: number, windowStart: number}>} */
 const _rl = {};
@@ -387,6 +387,15 @@ export default {
     if (ROUTE_META[normPath]) {
       const resp    = await serveIndexWithMeta(env, request, normPath);
       const headers = applySecurityHeaders(new Headers(resp.headers));
+      return new Response(resp.body, { status: resp.status, headers });
+    }
+
+    // ── /back-lab — serve SPA shell with noindex ──────────────────────────
+    if (path === '/back-lab') {
+      const resp    = await serveIndex(env, request);
+      const headers = applySecurityHeaders(new Headers(resp.headers));
+      // Prevent search engines from indexing the admin CMS
+      headers.set('X-Robots-Tag', 'noindex, nofollow');
       return new Response(resp.body, { status: resp.status, headers });
     }
 

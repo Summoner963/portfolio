@@ -1,39 +1,92 @@
 /**
  * css/chords.css
  * Lazy-loaded by js/views/chords.js — never blocks other views.
- * All tokens come from base.css — never redefine :root here.
+ *
+ * Aesthetic: "Session Tape" — warm analog recording studio.
+ * Earthy amber/rust palette on near-black parchment.
+ * Chord tokens look like tape labels; the diagram panel
+ * slides in from the right edge like a patch bay drawer.
+ * Controls bar styled as a minimal mixing desk strip.
  *
  * Structure:
- *  1.  List page — hero
- *  2.  List page — toolbar
- *  3.  Featured strip
- *  4.  Chord list rows
- *  5.  Shared badge styles
- *  6.  Detail page — header card
- *  7.  Detail page — meta strip
- *  8.  Detail page — badges / chords-used / capo
- *  9.  Controls bar
- * 10.  Tab renderer
- * 11.  Chord token + popover + SVG
- * 12.  Related songs
- * 13.  Recent songs panel
- * 14.  Mobile overrides
- * 15.  Print styles
- * 16.  Reduced-motion overrides
+ *  1.  Design tokens (local scope — never overrides :root)
+ *  2.  List page — hero
+ *  3.  List page — toolbar
+ *  4.  Featured strip
+ *  5.  Chord list rows
+ *  6.  Shared badge styles
+ *  7.  Detail page — header card
+ *  8.  Detail page — meta strip
+ *  9.  Detail page — badges / chords-used / capo
+ * 10.  Controls bar (mixing-desk style)
+ * 11.  Instrument switcher
+ * 12.  Tab renderer
+ * 13.  Chord token (tape-label style)
+ * 14.  Diagram drawer (slide-in panel)
+ * 15.  Related songs
+ * 16.  Recent songs panel
+ * 17.  Mobile overrides
+ * 18.  Print styles
+ * 19.  Reduced-motion overrides
  */
 
 /* ═══════════════════════════════════════════════════════════
-   1. LIST PAGE — HERO
+   1. LOCAL DESIGN TOKENS
+   ═══════════════════════════════════════════════════════════ */
+
+.chords-hero,
+.chords-toolbar,
+.chords-section,
+.chord-detail-wrap,
+.chord-controls,
+.chord-diagram-drawer,
+.chord-feat-card,
+.chord-card,
+.chord-recent-card,
+.chord-related,
+.chords-recent {
+  /* Amber/rust on near-black parchment */
+  --tape-bg:         #1a1712;
+  --tape-surface:    #201e19;
+  --tape-card:       #252219;
+  --tape-border:     rgba(200,170,110,.14);
+  --tape-border-mid: rgba(200,170,110,.22);
+  --tape-amber:      #c8962a;
+  --tape-amber-lt:   #e0b050;
+  --tape-rust:       #b84f2e;
+  --tape-cream:      #e8dfc8;
+  --tape-muted:      #8a7f68;
+  --tape-muted-lt:   #5a5344;
+  --tape-red:        #c0392b;
+  --tape-green:      #2e7d52;
+
+  /* Tab typography */
+  --tab-font-size:   .88rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   2. LIST PAGE — HERO
    ═══════════════════════════════════════════════════════════ */
 
 .chords-hero {
   background:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px),
-    linear-gradient(160deg, #f0f7f2 0%, #ffffff 55%, #f7f8f6 100%);
-  background-size: 48px 48px, 48px 48px, 100% 100%;
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 47px,
+      rgba(200,170,110,.06) 47px,
+      rgba(200,170,110,.06) 48px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 47px,
+      rgba(200,170,110,.04) 47px,
+      rgba(200,170,110,.04) 48px
+    ),
+    linear-gradient(160deg, #1a1712 0%, #1e1b15 60%, #181510 100%);
   padding: 4rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--tape-border-mid);
 }
 
 .chords-hero-inner {
@@ -43,9 +96,9 @@
 
 .chords-hero-eyebrow {
   font-family: var(--mono);
-  font-size: .7rem;
-  color: var(--accent);
-  letter-spacing: .22em;
+  font-size: .65rem;
+  color: var(--tape-amber);
+  letter-spacing: .3em;
   text-transform: uppercase;
   display: flex;
   align-items: center;
@@ -54,31 +107,38 @@
   font-weight: 500;
 }
 
+.chords-hero-eyebrow::before {
+  content: '◈';
+  font-size: .5rem;
+}
+
 .chords-hero-eyebrow::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--border);
-  max-width: 64px;
+  background: linear-gradient(90deg, var(--tape-amber) 0%, transparent 100%);
+  max-width: 80px;
+  opacity: .4;
 }
 
 .chords-hero-title {
   font-family: var(--serif);
-  font-size: clamp(1.9rem, 3.5vw, 2.8rem);
-  line-height: 1.15;
-  color: var(--accent2);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.1;
+  color: var(--tape-cream);
   margin-bottom: .6rem;
+  text-shadow: 0 2px 24px rgba(200,150,42,.15);
 }
 
 .chords-hero-sub {
-  font-size: .9rem;
-  color: var(--muted);
+  font-size: .88rem;
+  color: var(--tape-muted);
   max-width: 520px;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   2. LIST PAGE — TOOLBAR
+   3. LIST PAGE — TOOLBAR
    ═══════════════════════════════════════════════════════════ */
 
 .chords-toolbar {
@@ -89,6 +149,7 @@
   flex-wrap: wrap;
   gap: .7rem;
   align-items: flex-start;
+  background: var(--surface);
 }
 
 .chords-search-wrap {
@@ -114,10 +175,10 @@
   height: 36px;
   padding: 0 .75rem 0 2.2rem;
   border: 1.5px solid var(--border);
-  border-radius: .4rem;
+  border-radius: .3rem;
   background: var(--card);
   color: var(--text);
-  font-family: var(--sans);
+  font-family: var(--mono);
   font-size: .82rem;
   outline: none;
   transition: border-color .2s;
@@ -126,7 +187,6 @@
 #chordsSearch::placeholder { color: var(--muted-light); }
 #chordsSearch:focus { border-color: var(--accent); }
 
-/* Filter area — each group on its own row */
 #chordsFilterArea {
   display: flex;
   flex-direction: column;
@@ -143,9 +203,9 @@
 
 .chords-filter-label {
   font-family: var(--mono);
-  font-size: .62rem;
+  font-size: .6rem;
   color: var(--muted);
-  letter-spacing: .08em;
+  letter-spacing: .1em;
   text-transform: uppercase;
   font-weight: 500;
   min-width: 72px;
@@ -155,7 +215,7 @@
   font-family: var(--mono);
   font-size: .68rem;
   padding: .28rem .75rem;
-  border-radius: 2rem;
+  border-radius: .25rem;
   border: 1.5px solid var(--border);
   background: var(--card);
   color: var(--muted);
@@ -185,14 +245,13 @@
   gap: .5rem;
   margin-left: auto;
   align-self: flex-start;
-  padding-top: 0;
 }
 
 #chordsSort {
   height: 36px;
   padding: 0 2rem 0 .75rem;
   border: 1.5px solid var(--border);
-  border-radius: .4rem;
+  border-radius: .3rem;
   background: var(--card);
   color: var(--text);
   font-family: var(--mono);
@@ -224,7 +283,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   3. FEATURED STRIP
+   4. FEATURED STRIP
    ═══════════════════════════════════════════════════════════ */
 
 .chords-featured {
@@ -235,47 +294,45 @@
 
 .chords-featured-heading {
   font-family: var(--mono);
-  font-size: .62rem;
+  font-size: .6rem;
   color: var(--accent);
-  letter-spacing: .16em;
+  letter-spacing: .2em;
   text-transform: uppercase;
   font-weight: 500;
-  margin-bottom: .6rem;
+  margin-bottom: .7rem;
 }
 
 .chords-featured-grid {
   display: flex;
   flex-direction: column;
-  border-radius: .6rem;
+  border-radius: .5rem;
   overflow: hidden;
-  border: 1.5px solid rgba(45,106,79,.2);
+  border: 1.5px solid var(--border);
 }
 
 .chord-feat-card {
   background: var(--accent-bg);
   border: none;
-  border-bottom: 1px solid rgba(45,106,79,.15);
+  border-bottom: 1px solid rgba(45,106,79,.12);
   border-radius: 0;
   padding: .65rem 1rem;
   cursor: pointer;
-  transition: background-color .15s var(--ease);
+  transition: background-color .15s;
   display: flex;
   align-items: center;
   gap: .8rem;
-  transform: none;
-  box-shadow: none;
 }
 
 .chord-feat-card:last-child { border-bottom: none; }
 
 .chord-feat-card::before {
-  content: '★';
-  font-size: .7rem;
+  content: '●';
+  font-size: .5rem;
   color: var(--accent);
   flex-shrink: 0;
 }
 
-.chord-feat-card:hover { background: rgba(45,106,79,.12); }
+.chord-feat-card:hover { background: rgba(45,106,79,.1); }
 
 .chord-feat-card:focus-visible {
   outline: 2px solid var(--accent);
@@ -286,7 +343,6 @@
   font-family: var(--serif);
   font-size: .92rem;
   color: var(--accent2);
-  line-height: 1.2;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -311,13 +367,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   4. CHORD LIST ROWS
+   5. CHORD LIST ROWS
    ═══════════════════════════════════════════════════════════ */
 
 .chords-grid {
   display: flex;
   flex-direction: column;
-  border-radius: .7rem;
+  border-radius: .5rem;
   overflow: hidden;
   border: 1.5px solid var(--border);
   background: var(--card);
@@ -327,15 +383,12 @@
   display: flex;
   align-items: center;
   gap: .9rem;
-  padding: .7rem 1rem;
+  padding: .75rem 1rem;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
   cursor: pointer;
-  transition: background-color .15s var(--ease);
+  transition: background-color .15s;
   background: var(--card);
-  box-shadow: none;
-  transform: none;
-  contain: layout style;
 }
 
 .chord-card:last-child { border-bottom: none; }
@@ -346,21 +399,18 @@
   outline-offset: -2px;
 }
 
-/* Chevron */
 .chord-card::after {
   content: '›';
   font-size: 1.1rem;
   color: var(--muted-light);
   flex-shrink: 0;
   margin-left: .2rem;
-  line-height: 1;
 }
 
-/* Square thumbnail */
 .chord-card-thumb {
   width: 40px;
   height: 40px;
-  border-radius: .4rem;
+  border-radius: .3rem;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -382,7 +432,6 @@
 .chord-card-body {
   flex: 1;
   min-width: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: .15rem;
@@ -394,7 +443,6 @@
   font-family: var(--serif);
   font-size: .97rem;
   color: var(--accent2);
-  line-height: 1.25;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -419,7 +467,6 @@
   letter-spacing: .03em;
   cursor: pointer;
   text-align: left;
-  line-height: inherit;
 }
 
 .chord-artist-link:hover {
@@ -463,15 +510,14 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   5. SHARED BADGE STYLES
-   Used by list rows, featured strip, AND detail page
+   6. SHARED BADGE STYLES
    ═══════════════════════════════════════════════════════════ */
 
 .chord-badge {
   font-family: var(--mono);
   font-size: .62rem;
   padding: .16rem .52rem;
-  border-radius: 1rem;
+  border-radius: .25rem;
   letter-spacing: .04em;
   font-weight: 500;
   white-space: nowrap;
@@ -510,7 +556,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   6. DETAIL PAGE — HEADER CARD
+   7. DETAIL PAGE — HEADER CARD
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-wrap {
@@ -538,17 +584,15 @@
 
 .chord-detail-back:hover { color: var(--accent); }
 
-/* The outer card */
 .chord-detail-header {
   border: 1.5px solid var(--border);
-  border-radius: .9rem;
+  border-radius: .7rem;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   margin-bottom: 1.4rem;
   background: var(--card);
 }
 
-/* Cover image — full width, no border-radius (card clips it) */
 .chord-detail-cover {
   width: 100%;
   height: 200px;
@@ -559,7 +603,6 @@
   margin: 0;
 }
 
-/* When no cover image, a placeholder gradient banner */
 .chord-detail-cover-placeholder {
   width: 100%;
   height: 80px;
@@ -569,11 +612,9 @@
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  color: var(--accent);
   opacity: .5;
 }
 
-/* Title + artist block */
 .chord-detail-title-wrap {
   padding: 1.1rem 1.3rem .9rem;
   border-bottom: 1px solid var(--border);
@@ -594,11 +635,10 @@
   color: var(--muted);
   letter-spacing: .04em;
   margin: 0;
-  line-height: 1.4;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   7. DETAIL PAGE — META STRIP
+   8. DETAIL PAGE — META STRIP
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-meta {
@@ -610,14 +650,10 @@
   border-bottom: 1px solid var(--border);
   margin: 0;
   padding: 0;
-  gap: 0;
-  letter-spacing: normal;
-  border-radius: 0;
 }
 
 .chord-detail-meta::-webkit-scrollbar { display: none; }
 
-/* Each cell */
 .chord-detail-meta > span {
   flex: 1 0 auto;
   min-width: 72px;
@@ -651,7 +687,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   8. DETAIL PAGE — BADGES / CHORDS-USED / INTRO / CAPO
+   9. DETAIL PAGE — BADGES / CHORDS-USED / CAPO
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-badges {
@@ -659,7 +695,6 @@
   flex-wrap: wrap;
   gap: .35rem;
   padding: .7rem 1.2rem;
-  margin: 0;
   background: var(--card);
   border-bottom: 1px solid var(--border);
 }
@@ -698,27 +733,30 @@
   white-space: nowrap;
 }
 
+/* Tape-label style pills */
 .chord-used-pill {
   font-family: var(--mono);
   font-size: .72rem;
-  padding: .28rem .7rem;
-  border-radius: 1rem;
-  background: var(--accent-bg);
-  border: 1.5px solid rgba(45,106,79,.25);
-  color: var(--accent);
+  padding: .25rem .65rem;
+  border-radius: .2rem;
+  background: linear-gradient(135deg, #2a1f0a 0%, #1e1600 100%);
+  border: 1.5px solid rgba(200,150,42,.35);
+  color: var(--tape-amber-lt, #e0b050);
   cursor: pointer;
-  transition: background-color .15s, color .15s;
+  transition: background .15s, color .15s, border-color .15s;
   min-height: 32px;
   display: inline-flex;
   align-items: center;
+  letter-spacing: .06em;
+  text-shadow: 0 0 12px rgba(200,150,42,.3);
 }
 
 .chord-used-pill:hover {
-  background: var(--accent);
-  color: #fff;
+  background: linear-gradient(135deg, #3a2b0d 0%, #2a1e00 100%);
+  border-color: rgba(200,150,42,.7);
+  color: #f0c860;
 }
 
-/* Capo suggestion */
 .chord-capo-suggestion {
   display: flex;
   align-items: center;
@@ -730,170 +768,196 @@
   padding: .6rem 1.2rem;
   margin: 0;
   letter-spacing: .04em;
-  border-top: 1px solid rgba(45,106,79,.12);
-  width: 100%;
-  border-radius: 0;
-  border: none;
   border-top: 1px solid rgba(45,106,79,.15);
 }
 
 .chord-capo-suggestion[hidden] { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
-   9. CONTROLS BAR
+   10. CONTROLS BAR — mixing-desk style
    ═══════════════════════════════════════════════════════════ */
 
 .chord-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .7rem 1.4rem;
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: .8rem;
-  padding: .85rem 1.3rem;
+  gap: 0;
+  background: #111009;
+  border: 1.5px solid rgba(200,170,100,.18);
+  border-radius: .6rem;
+  padding: 0;
   margin-bottom: 1.4rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(200,170,100,.08);
+  overflow: hidden;
 }
 
+/* Each group is a "channel strip" separated by a subtle divider */
 .ctrl-group {
   display: flex;
   align-items: center;
-  gap: .45rem;
+  gap: .5rem;
+  padding: .75rem 1.1rem;
+  border-right: 1px solid rgba(200,170,100,.1);
+  position: relative;
+}
+
+.ctrl-group:last-of-type { border-right: none; }
+
+/* Inset top accent line to give the "strip" look */
+.ctrl-group::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(200,150,42,.25), transparent);
+  pointer-events: none;
 }
 
 .ctrl-label {
   font-family: var(--mono);
-  font-size: .6rem;
-  color: var(--muted);
-  letter-spacing: .1em;
+  font-size: .54rem;
+  color: rgba(200,170,100,.45);
+  letter-spacing: .15em;
   text-transform: uppercase;
   font-weight: 500;
   white-space: nowrap;
 }
 
+/* Round "knob-like" buttons */
 .ctrl-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: .35rem;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(200,150,42,.3);
+  background: radial-gradient(circle at 35% 30%, #2a2318, #181410);
+  color: rgba(200,170,100,.8);
   font-family: var(--mono);
   font-size: .9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color .15s, background-color .15s, color .15s, transform .12s;
-  min-width: 44px;
-  min-height: 44px;
+  transition: border-color .15s, color .15s, box-shadow .15s, transform .1s;
+  min-width: 40px;
+  min-height: 40px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 .ctrl-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-bg);
+  border-color: rgba(200,150,42,.7);
+  color: #f0c860;
+  box-shadow: 0 0 10px rgba(200,150,42,.2), 0 2px 8px rgba(0,0,0,.4);
 }
 
-.ctrl-btn:active { transform: scale(.93); }
-.ctrl-btn:disabled { opacity: .35; cursor: not-allowed; }
+.ctrl-btn:active { transform: scale(.9); }
+.ctrl-btn:disabled { opacity: .3; cursor: not-allowed; }
 
 .ctrl-btn.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
+  border-color: var(--tape-amber);
+  background: radial-gradient(circle at 35% 30%, #3a2a00, #211900);
+  color: #f0c860;
+  box-shadow: 0 0 12px rgba(200,150,42,.35), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 .ctrl-transpose-display {
   font-family: var(--mono);
   font-size: .82rem;
-  font-weight: 600;
-  color: var(--accent2);
-  min-width: 44px;
+  font-weight: 700;
+  color: var(--tape-amber-lt, #e0b050);
+  min-width: 40px;
   text-align: center;
   letter-spacing: .04em;
+  text-shadow: 0 0 8px rgba(200,150,42,.4);
 }
 
 .ctrl-fontsize-display {
   font-family: var(--mono);
-  font-size: .72rem;
-  color: var(--muted);
+  font-size: .65rem;
+  color: rgba(200,170,100,.45);
   min-width: 28px;
   text-align: center;
 }
 
+/* Auto-scroll — a pill toggle like a transport button */
 .ctrl-scroll-toggle {
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
-  padding: .4rem .9rem;
-  border-radius: .35rem;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
+  gap: .4rem;
+  padding: .35rem .9rem;
+  border-radius: .3rem;
+  border: 1.5px solid rgba(200,150,42,.25);
+  background: radial-gradient(circle at 35% 30%, #1e1a10, #141209);
+  color: rgba(200,170,100,.55);
   font-family: var(--mono);
-  font-size: .7rem;
+  font-size: .68rem;
   cursor: pointer;
-  transition: border-color .15s, background-color .15s, color .15s;
-  min-height: 44px;
+  transition: border-color .15s, color .15s, background .15s;
+  min-height: 40px;
   font-weight: 500;
-  letter-spacing: .04em;
+  letter-spacing: .08em;
 }
 
 .ctrl-scroll-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-bg);
+  border-color: rgba(200,150,42,.55);
+  color: #e0b050;
 }
 
 .ctrl-scroll-toggle.scrolling {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
+  border-color: var(--tape-rust, #b84f2e);
+  background: radial-gradient(circle at 35% 30%, #2a1008, #1a0a04);
+  color: #f08060;
+  box-shadow: 0 0 10px rgba(184,79,46,.3);
+  animation: scroll-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes scroll-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(184,79,46,.25); }
+  50%       { box-shadow: 0 0 18px rgba(184,79,46,.45); }
 }
 
 .ctrl-speed-wrap {
   display: flex;
   align-items: center;
-  gap: .45rem;
+  gap: .5rem;
 }
 
+/* Tape-head style slider */
 .ctrl-speed {
   -webkit-appearance: none;
   appearance: none;
-  width: 80px;
-  height: 4px;
+  width: 70px;
+  height: 3px;
   border-radius: 2px;
-  background: var(--border);
+  background: linear-gradient(90deg, rgba(200,150,42,.6), rgba(200,150,42,.15));
   outline: none;
   cursor: pointer;
 }
 
 .ctrl-speed::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--tape-amber, #c8962a);
   cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px var(--accent);
+  border: 1px solid rgba(255,255,255,.15);
+  box-shadow: 0 0 6px rgba(200,150,42,.4);
 }
 
 .ctrl-speed::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--tape-amber, #c8962a);
   cursor: pointer;
-  border: 2px solid #fff;
+  border: 1px solid rgba(255,255,255,.15);
 }
 
 .ctrl-actions {
   display: flex;
   gap: .45rem;
+  padding: .75rem 1rem;
   margin-left: auto;
 }
 
@@ -901,62 +965,123 @@
   display: inline-flex;
   align-items: center;
   gap: .3rem;
-  padding: .4rem .85rem;
-  border-radius: .35rem;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
+  padding: .35rem .75rem;
+  border-radius: .3rem;
+  border: 1.5px solid rgba(200,170,100,.15);
+  background: transparent;
+  color: rgba(200,170,100,.45);
   font-family: var(--mono);
-  font-size: .68rem;
+  font-size: .65rem;
   cursor: pointer;
-  transition: border-color .15s, background-color .15s, color .15s;
-  min-height: 44px;
-  letter-spacing: .04em;
+  transition: border-color .15s, color .15s;
+  min-height: 40px;
+  letter-spacing: .06em;
 }
 
 .ctrl-action-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-bg);
+  border-color: rgba(200,150,42,.5);
+  color: #e0b050;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   10. TAB RENDERER
-   The key fix: chords render on their own line ABOVE lyrics.
-   Tab lines are grouped into .tab-pair blocks (chord-line + lyric-line).
+   11. INSTRUMENT SWITCHER
+   A segmented control that sits inside .ctrl-group
+   ═══════════════════════════════════════════════════════════ */
+
+.instr-switcher {
+  display: flex;
+  border: 1.5px solid rgba(200,150,42,.25);
+  border-radius: .35rem;
+  overflow: hidden;
+  background: #111009;
+}
+
+.instr-btn {
+  font-family: var(--mono);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .4rem .75rem;
+  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(200,150,42,.15);
+  color: rgba(200,170,100,.4);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  min-height: 40px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+.instr-btn:last-child { border-right: none; }
+
+.instr-btn:hover {
+  background: rgba(200,150,42,.07);
+  color: rgba(200,170,100,.75);
+}
+
+.instr-btn.active {
+  background: linear-gradient(135deg, #2a2008, #1a1600);
+  color: #e0b050;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.instr-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   12. TAB RENDERER
    ═══════════════════════════════════════════════════════════ */
 
 .tab-container {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: .8rem;
+  background: #13110d;
+  border: 1.5px solid rgba(200,170,100,.14);
+  border-radius: .6rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: var(--accent) var(--surface);
+  scrollbar-color: rgba(200,150,42,.3) #13110d;
+  position: relative;
+}
+
+/* Subtle tape reel texture in corner */
+.tab-container::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle at 100% 0%, rgba(200,150,42,.04) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .tab-container::-webkit-scrollbar { height: 4px; }
 .tab-container::-webkit-scrollbar-thumb {
-  background: var(--accent);
+  background: rgba(200,150,42,.3);
   border-radius: 2px;
 }
 
-/* Tab header strip */
 .tab-header-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: .65rem 1.4rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
+  padding: .6rem 1.4rem;
+  border-bottom: 1px solid rgba(200,170,100,.1);
+  background: rgba(0,0,0,.2);
 }
 
 .tab-header-label {
   font-family: var(--mono);
-  font-size: .6rem;
-  color: var(--muted);
-  letter-spacing: .12em;
+  font-size: .58rem;
+  color: rgba(200,170,100,.35);
+  letter-spacing: .18em;
   text-transform: uppercase;
   font-weight: 500;
 }
@@ -964,25 +1089,25 @@
 .tab-key-display {
   font-family: var(--mono);
   font-size: .68rem;
-  color: var(--accent);
-  letter-spacing: .06em;
-  font-weight: 500;
+  color: var(--tape-amber, #c8962a);
+  letter-spacing: .08em;
+  font-weight: 600;
 }
 
-/* Tab body wrapper — has padding */
+/* Tab body — uses local custom property for font-size control */
 .tab-body {
   font-family: var(--mono);
   font-size: var(--tab-font-size, .88rem);
   line-height: 1.6;
-  color: var(--text);
-  padding: 1.6rem 1.8rem 2rem;
+  color: rgba(232,223,200,.85);
+  padding: 1.8rem 2rem 2.2rem;
   min-width: 0;
   transition: font-size .15s;
 }
 
-/* ── Section label e.g. [Verse 1], [Chorus] ── */
+/* Section label e.g. [Verse 1] */
 .tab-section {
-  margin-top: 1.8rem;
+  margin-top: 2rem;
   margin-bottom: .8rem;
 }
 
@@ -990,157 +1115,295 @@
 
 .tab-section-label {
   font-family: var(--serif);
-  font-size: .95rem;
-  font-weight: 500;
-  color: var(--accent2);
-  letter-spacing: .02em;
+  font-size: .92rem;
+  font-weight: 400;
+  font-style: italic;
+  color: rgba(200,150,42,.7);
+  letter-spacing: .04em;
   display: block;
-  padding-bottom: .3rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: .6rem;
+  padding-bottom: .35rem;
+  border-bottom: 1px solid rgba(200,150,42,.12);
+  margin-bottom: .7rem;
 }
 
-/* ── Chord+lyric pair block ── */
+/* Chord+lyric pair */
 .tab-pair {
   display: block;
   margin-bottom: .1rem;
 }
 
-/* Chord line — sits above the lyric */
 .tab-chord-line {
   display: block;
   white-space: pre;
   line-height: 1.4;
   min-height: 1.3em;
-  margin-bottom: .05em;
+  margin-bottom: .06em;
 }
 
-/* Lyric line — below the chord line */
 .tab-lyric-line {
   display: block;
   white-space: pre;
-  line-height: 1.8;
+  line-height: 1.85;
   min-height: 1.4em;
-  color: var(--text);
+  color: rgba(232,223,200,.75);
+  letter-spacing: .01em;
 }
 
-/* Empty spacer between pairs */
 .tab-line-gap {
-  height: .7rem;
+  height: .8rem;
   display: block;
 }
 
-/* Legacy plain line — for lines that are just text with no chords */
 .tab-line {
   white-space: pre;
-  line-height: 1.8;
+  line-height: 1.85;
   min-height: 1.4em;
   display: block;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   11. CHORD TOKEN + POPOVER + SVG DIAGRAM
+   13. CHORD TOKEN — tape-label style
    ═══════════════════════════════════════════════════════════ */
 
 .chord-token {
   font-family: var(--mono);
   font-size: inherit;
-  font-weight: 600;
-  color: var(--accent);
+  font-weight: 700;
+  color: #e0b050;
   cursor: pointer;
   position: relative;
   display: inline-block;
-  padding: .05em .3em;
-  border-radius: .25em;
-  border: 1px solid rgba(45,106,79,.25);
-  background: var(--accent-bg);
-  transition: background-color .12s, color .12s, border-color .12s;
+  padding: .06em .35em;
+
+  /* The tape-label look: dark bg, amber border with slight notch */
+  background: linear-gradient(145deg, #211a06, #181300);
+  border: 1px solid rgba(200,150,42,.45);
+  border-radius: .2em;
+  box-shadow:
+    0 1px 4px rgba(0,0,0,.5),
+    inset 0 1px 0 rgba(200,150,42,.1);
+
+  transition: background .12s, color .12s, border-color .12s, box-shadow .12s;
   min-width: 2em;
   text-align: center;
   line-height: 1.2;
   vertical-align: middle;
+  letter-spacing: .05em;
+
+  /* Subtle "printed text" texture */
+  text-shadow: 0 0 8px rgba(200,150,42,.25);
 }
 
 .chord-token:hover,
 .chord-token.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-  border-radius: .3em;
+  background: linear-gradient(145deg, #2e2208, #201600);
+  color: #f5d070;
+  border-color: rgba(200,150,42,.8);
+  box-shadow:
+    0 0 10px rgba(200,150,42,.25),
+    0 1px 4px rgba(0,0,0,.5),
+    inset 0 1px 0 rgba(200,150,42,.15);
 }
 
-.chord-popover {
+/* ═══════════════════════════════════════════════════════════
+   14. DIAGRAM DRAWER — slide-in panel from right
+   Replaces the popover. Opens as a fixed right-edge panel
+   on desktop, bottom sheet on mobile.
+   ═══════════════════════════════════════════════════════════ */
+
+.chord-diagram-drawer {
   position: fixed;
-  z-index: 2000;
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: .7rem;
-  box-shadow: var(--shadow-md);
-  padding: .9rem .9rem .7rem;
+  z-index: 2200;
+  background: #19160f;
+  border-left: 1.5px solid rgba(200,150,42,.2);
+  box-shadow: -8px 0 40px rgba(0,0,0,.6);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: .4rem;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .18s;
-  min-width: 120px;
-  width: max-content;
+
+  /* Desktop: right-side panel */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 260px;
+
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
 }
 
-.chord-popover.visible {
+.chord-diagram-drawer.open {
+  transform: translateX(0);
+}
+
+/* Drawer header */
+.cdd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .8rem 1rem .7rem;
+  border-bottom: 1px solid rgba(200,150,42,.12);
+  background: rgba(0,0,0,.3);
+  flex-shrink: 0;
+}
+
+.cdd-chord-name {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e0b050;
+  letter-spacing: .08em;
+  text-shadow: 0 0 12px rgba(200,150,42,.35);
+}
+
+.cdd-close {
+  background: none;
+  border: 1px solid rgba(200,150,42,.2);
+  border-radius: .25rem;
+  color: rgba(200,170,100,.5);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .85rem;
+  transition: color .15s, border-color .15s;
+  line-height: 1;
+}
+
+.cdd-close:hover {
+  color: #e0b050;
+  border-color: rgba(200,150,42,.5);
+}
+
+/* Instrument tabs within drawer */
+.cdd-instr-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(200,150,42,.1);
+  flex-shrink: 0;
+}
+
+.cdd-tab {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: .45rem .5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(200,170,100,.35);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+
+.cdd-tab:hover { color: rgba(200,170,100,.7); }
+
+.cdd-tab.active {
+  color: #e0b050;
+  border-bottom-color: var(--tape-amber, #c8962a);
+}
+
+/* Diagram area */
+.cdd-diagram-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem 1rem;
+  overflow: hidden;
+}
+
+.cdd-unknown {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: rgba(200,170,100,.3);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* Chord quality label below diagram */
+.cdd-quality-label {
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: rgba(200,170,100,.3);
+  letter-spacing: .1em;
+  text-align: center;
+  padding: 0 1rem .8rem;
+  flex-shrink: 0;
+}
+
+/* Drawer backdrop overlay (mobile) */
+.cdd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2190;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .28s;
+}
+
+.cdd-backdrop.visible {
   opacity: 1;
   pointer-events: auto;
 }
 
-@media (hover: none) {
-  .chord-popover.visible {
-    position: fixed;
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
+/* Mobile: bottom sheet */
+@media (max-width: 768px) {
+  .chord-diagram-drawer {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 360px;
+    border-left: none;
+    border-top: 1.5px solid rgba(200,150,42,.25);
+    border-radius: 1rem 1rem 0 0;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.6);
+    transform: translateY(100%);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .chord-diagram-drawer.open {
+    transform: translateY(0);
+  }
+
+  .cdd-diagram-area {
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
   }
 }
 
-.chord-popover-name {
-  font-family: var(--mono);
-  font-size: .72rem;
-  font-weight: 500;
-  color: var(--accent2);
-  letter-spacing: .06em;
-  text-align: center;
-}
-
-.chord-popover-unknown {
-  font-family: var(--mono);
-  font-size: .65rem;
-  color: var(--muted-light);
-  text-align: center;
-  padding: .4rem 0;
-}
-
+/* SVG diagrams within the drawer */
 .chord-diagram-svg {
   display: block;
   overflow: visible;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   12. RELATED SONGS
+   15. RELATED SONGS
    ═══════════════════════════════════════════════════════════ */
 
 .chord-related {
   margin-top: 2.2rem;
   border: 1.5px solid var(--border);
-  border-radius: .8rem;
+  border-radius: .6rem;
   overflow: hidden;
   background: var(--card);
 }
 
 .chord-related-heading {
   font-family: var(--mono);
-  font-size: .6rem;
+  font-size: .58rem;
   color: var(--muted-light);
-  letter-spacing: .12em;
+  letter-spacing: .14em;
   text-transform: uppercase;
   padding: .6rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -1156,7 +1419,7 @@
   padding: .6rem 1rem;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
-  transition: background-color .15s var(--ease);
+  transition: background-color .15s;
 }
 
 .chord-related-row:last-child { border-bottom: none; }
@@ -1172,7 +1435,7 @@
 .chord-related-icon {
   width: 34px;
   height: 34px;
-  border-radius: .35rem;
+  border-radius: .3rem;
   background: var(--surface);
   border: 1px solid var(--border);
   display: flex;
@@ -1186,7 +1449,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: .3rem;
+  border-radius: .25rem;
 }
 
 .chord-related-main { flex: 1; min-width: 0; }
@@ -1198,7 +1461,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.3;
 }
 
 .chord-related-artist {
@@ -1211,10 +1473,7 @@
 .chord-related-badges { display: flex; gap: .3rem; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════
-   13. RECENTLY PLAYED PANEL
-   Shown on the list page above the chord grid.
-   Stored in localStorage as an array of {slug,title,artist,key,diff}
-   Max 10 entries, most-recently-played first.
+   16. RECENTLY PLAYED PANEL
    ═══════════════════════════════════════════════════════════ */
 
 .chords-recent {
@@ -1259,24 +1518,22 @@
   background: var(--accent-bg);
 }
 
-/* Horizontal scrolling row of cards */
 .chords-recent-row {
   display: flex;
   gap: .7rem;
   overflow-x: auto;
   scrollbar-width: none;
-  padding-bottom: 2px; /* prevent border clip */
+  padding-bottom: 2px;
 }
 
 .chords-recent-row::-webkit-scrollbar { display: none; }
 
-/* Individual recent card — compact vertical layout */
 .chord-recent-card {
   flex: 0 0 auto;
   width: 140px;
   background: var(--card);
   border: 1.5px solid var(--border);
-  border-radius: .6rem;
+  border-radius: .5rem;
   padding: .75rem .85rem;
   cursor: pointer;
   transition: border-color .15s, background-color .15s, transform .15s;
@@ -1291,8 +1548,8 @@
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 2.5px;
-  background: var(--accent);
+  height: 2px;
+  background: linear-gradient(90deg, var(--tape-amber, #c8962a), transparent);
   opacity: 0;
   transition: opacity .15s;
 }
@@ -1303,9 +1560,7 @@
   transform: translateY(-1px);
 }
 
-.chord-recent-card:hover::before {
-  opacity: 1;
-}
+.chord-recent-card:hover::before { opacity: 1; }
 
 .chord-recent-card:focus-visible {
   outline: 2px solid var(--accent);
@@ -1335,7 +1590,6 @@
 .chord-recent-meta {
   display: flex;
   gap: .3rem;
-  align-items: center;
   flex-wrap: wrap;
   margin-top: .1rem;
 }
@@ -1353,19 +1607,19 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   14. MOBILE OVERRIDES
+   17. MOBILE OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-
-  /* List page */
   .chords-hero    { padding: 2.5rem 1.4rem; }
+
   .chords-toolbar {
     padding: 1rem 1.4rem 0;
     flex-direction: column;
     align-items: stretch;
     gap: .6rem;
   }
+
   .chords-search-wrap { width: 100%; }
   .chords-sort-wrap   { margin-left: 0; align-self: flex-start; }
   .chords-section     { padding: 1.6rem 1.4rem 10rem; }
@@ -1374,45 +1628,46 @@
   .chord-card-badges  { display: none; }
   .chord-card         { padding: .6rem .85rem; gap: .7rem; }
   .chord-feat-card    { padding: .6rem .85rem; }
+  .chord-recent-card  { width: 120px; }
 
-  /* Recent panel on mobile */
-  .chord-recent-card { width: 120px; }
-
-  /* Detail page */
   .chord-detail-wrap  { padding: 2rem 1.2rem 10rem; }
   .chord-detail-cover { height: 140px; }
   .chord-detail-meta > span { min-width: 60px; padding: .5rem .7rem; }
 
-  /* Tab body — allow horizontal scroll */
   .tab-body {
     padding: 1.2rem 1rem 1.6rem;
     min-width: max-content;
   }
 
-  /* Controls: fixed bottom bar */
+  /* Controls: fixed bottom mixing-desk bar */
   .chord-controls {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     z-index: 900;
     border-radius: 0;
     border-left: none; border-right: none; border-bottom: none;
-    border-top: 1.5px solid var(--border);
+    border-top: 1.5px solid rgba(200,150,42,.2);
     margin-bottom: 0;
-    padding: .65rem 1rem;
-    padding-bottom: calc(.65rem + env(safe-area-inset-bottom));
-    gap: .5rem .9rem;
+    padding: 0;
+    padding-bottom: env(safe-area-inset-bottom);
     overflow-x: auto;
     scrollbar-width: none;
     flex-wrap: nowrap;
-    background: rgba(255,255,255,.97);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 -2px 16px rgba(0,0,0,.08);
+    background: rgba(17,16,9,.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 -2px 20px rgba(0,0,0,.7);
   }
 
   .chord-controls::-webkit-scrollbar { display: none; }
-  .ctrl-label   { font-size: .58rem; }
-  .ctrl-speed   { width: 60px; }
+
+  .ctrl-group {
+    padding: .65rem .85rem;
+    flex-shrink: 0;
+  }
+
+  .ctrl-label   { font-size: .5rem; }
+  .ctrl-speed   { width: 55px; }
   .ctrl-actions { margin-left: 0; }
 }
 
@@ -1422,26 +1677,28 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   15. PRINT STYLES
+   18. PRINT STYLES
    ═══════════════════════════════════════════════════════════ */
 
 @media print {
   .chord-controls,
   .chord-detail-back,
   .chord-capo-suggestion,
-  .chord-popover,
+  .chord-diagram-drawer,
+  .cdd-backdrop,
   .chord-related,
   .chords-recent,
   nav, footer { display: none !important; }
 
   .chord-detail-wrap  { padding: 1rem; max-width: 100%; }
   .chord-detail-header { border: 1px solid #ccc; box-shadow: none; border-radius: 0; }
-  .chord-detail-cover { height: 80px; }
+  .chord-detail-cover  { height: 80px; }
 
   .tab-container {
     border: 1px solid #ccc;
     border-radius: 0;
     overflow: visible;
+    background: #fff;
   }
 
   .tab-body {
@@ -1449,37 +1706,42 @@
     line-height: 1.8;
     padding: 1rem;
     min-width: 0;
+    color: #000;
   }
 
   .tab-chord-line,
   .tab-lyric-line,
   .tab-line { white-space: pre-wrap; word-break: break-all; }
 
+  .tab-section-label { color: #333; border-bottom-color: #ccc; }
+
   .chord-token {
     color: #000;
     font-weight: 700;
-    background: none !important;
-    border: none !important;
+    background: #f5f5f5 !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 
   .chord-detail-title { font-size: 1.4rem; color: #000; }
-  .chord-detail-meta,
-  .chord-detail-badges,
-  .chord-used-row { display: flex; }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   16. REDUCED-MOTION OVERRIDES
+   19. REDUCED-MOTION OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
   .chord-card,
   .chord-feat-card,
   .chord-recent-card,
-  .chord-popover,
+  .chord-diagram-drawer,
+  .cdd-backdrop,
   .chord-token,
-  .chord-card-thumb img {
+  .ctrl-scroll-toggle.scrolling {
     transition: none !important;
     animation: none !important;
   }
+
+  .chord-diagram-drawer { transition: transform 0s !important; }
 }

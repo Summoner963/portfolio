@@ -1068,9 +1068,13 @@ const CALLOUT_TYPES = ['note','tip','warning','important','info'];
 
 // Special chars
 const SPECIAL_CHARS = [
-  '—','–','…','"','"',''',''','«','»',
-  '©','®','™','→','←','↑','↓',
-  '✓','✗','•','·','°','№','₹','€','£',
+  '\u2014','\u2013','\u2026',
+  '\u201C','\u201D','\u2018','\u2019','\u00AB','\u00BB',
+  '\u00A9','\u00AE','\u2122',
+  '\u2192','\u2190','\u2191','\u2193',
+  '\u2713','\u2717',
+  '\u2022','\u00B7','\u00B0',
+  '\u2116','\u20B9','\u20AC','\u00A3',
 ];
 
 function buildMarkdownToolbar(toolbar, textarea, preview) {
@@ -1298,9 +1302,11 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   toolbar.appendChild(specialWrap);
 
   // ── Global click to close all popups ─────────────────────────────────
-  document.addEventListener('click', function() {
-    closeAllPopups(toolbar);
-  });
+    if (toolbar._closeHandler) {
+        document.removeEventListener('click', toolbar._closeHandler);
+    }
+    toolbar._closeHandler = function() { closeAllPopups(toolbar); };
+    document.addEventListener('click', toolbar._closeHandler);
 }
 
 function closeAllPopups(toolbar) {
