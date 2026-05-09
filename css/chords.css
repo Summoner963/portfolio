@@ -1,74 +1,34 @@
 /**
  * css/chords.css
- * Lazy-loaded by js/views/chords.js — never blocks other views.
+ * Lazy-loaded by js/views/chords.js
  *
- * Aesthetic: "Session Tape" — warm analog recording studio.
- * Earthy amber/rust palette on near-black parchment.
- * Chord tokens look like tape labels; the diagram panel
- * slides in from the right edge like a patch bay drawer.
- * Controls bar styled as a minimal mixing desk strip.
+ * Palette: matches site identity — white surfaces, forest-green accent,
+ * warm cream text, light borders. Zero amber/rust/black "tape" theming.
  *
  * Structure:
- *  1.  Design tokens (local scope — never overrides :root)
- *  2.  List page — hero
- *  3.  List page — toolbar
- *  4.  Featured strip
- *  5.  Chord list rows
- *  6.  Shared badge styles
- *  7.  Detail page — header card
- *  8.  Detail page — meta strip
- *  9.  Detail page — badges / chords-used / capo
- * 10.  Controls bar (mixing-desk style)
- * 11.  Instrument switcher
- * 12.  Tab renderer
- * 13.  Chord token (tape-label style)
- * 14.  Diagram drawer (slide-in panel)
- * 15.  Chord Dock — pinned chord reference bar
- * 16.  Dock flight animation clone
- * 17.  Related songs
- * 18.  Recent songs panel
- * 19.  Mobile overrides
- * 20.  Print styles
- * 21.  Reduced-motion overrides
+ *  1.  List page — hero
+ *  2.  List page — toolbar
+ *  3.  Featured strip
+ *  4.  Chord list rows
+ *  5.  Shared badge styles
+ *  6.  Detail page — header card
+ *  7.  Detail page — meta strip
+ *  8.  Detail page — badges / chords-used / capo
+ *  9.  Controls bar
+ * 10.  Instrument switcher
+ * 11.  Tab renderer
+ * 12.  Chord token (green pill)
+ * 13.  Chord popup (inline tooltip card)
+ * 14.  Pinned chords row (inline, above tab)
+ * 15.  Related songs
+ * 16.  Recent songs panel
+ * 17.  Mobile overrides
+ * 18.  Print styles
+ * 19.  Reduced-motion overrides
  */
 
 /* ═══════════════════════════════════════════════════════════
-   1. LOCAL DESIGN TOKENS
-   ═══════════════════════════════════════════════════════════ */
-
-.chords-hero,
-.chords-toolbar,
-.chords-section,
-.chord-detail-wrap,
-.chord-controls,
-.chord-diagram-drawer,
-.chord-feat-card,
-.chord-card,
-.chord-recent-card,
-.chord-related,
-.chords-recent,
-.chord-dock {
-  /* Amber/rust on near-black parchment — detail page only */
-  --tape-bg:         #1a1712;
-  --tape-surface:    #201e19;
-  --tape-card:       #252219;
-  --tape-border:     rgba(200,170,110,.14);
-  --tape-border-mid: rgba(200,170,110,.22);
-  --tape-amber:      #c8962a;
-  --tape-amber-lt:   #e0b050;
-  --tape-rust:       #b84f2e;
-  --tape-cream:      #e8dfc8;
-  --tape-muted:      #8a7f68;
-  --tape-muted-lt:   #5a5344;
-  --tape-red:        #c0392b;
-  --tape-green:      #2e7d52;
-
-  /* Tab typography */
-  --tab-font-size:   .88rem;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   2. LIST PAGE — HERO
+   1. LIST PAGE — HERO
    ═══════════════════════════════════════════════════════════ */
 
 .chords-hero {
@@ -77,19 +37,19 @@
       0deg,
       transparent,
       transparent 47px,
-      rgba(200,170,110,.06) 47px,
-      rgba(200,170,110,.06) 48px
+      rgba(45,106,79,.04) 47px,
+      rgba(45,106,79,.04) 48px
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
       transparent 47px,
-      rgba(200,170,110,.04) 47px,
-      rgba(200,170,110,.04) 48px
+      rgba(45,106,79,.03) 47px,
+      rgba(45,106,79,.03) 48px
     ),
-    linear-gradient(160deg, #1a1712 0%, #1e1b15 60%, #181510 100%);
+    linear-gradient(160deg, #1a2e1f 0%, #1e3424 60%, #162619 100%);
   padding: 4rem;
-  border-bottom: 1px solid var(--tape-border-mid);
+  border-bottom: 1px solid rgba(45,106,79,.25);
 }
 
 .chords-hero-inner {
@@ -100,7 +60,7 @@
 .chords-hero-eyebrow {
   font-family: var(--mono);
   font-size: .65rem;
-  color: var(--tape-amber);
+  color: #6fcf97;
   letter-spacing: .3em;
   text-transform: uppercase;
   display: flex;
@@ -119,7 +79,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, var(--tape-amber) 0%, transparent 100%);
+  background: linear-gradient(90deg, #6fcf97 0%, transparent 100%);
   max-width: 80px;
   opacity: .4;
 }
@@ -128,20 +88,20 @@
   font-family: var(--serif);
   font-size: clamp(2rem, 3.5vw, 3rem);
   line-height: 1.1;
-  color: var(--tape-cream);
+  color: #f0f7f2;
   margin-bottom: .6rem;
-  text-shadow: 0 2px 24px rgba(200,150,42,.15);
+  text-shadow: 0 2px 24px rgba(45,106,79,.3);
 }
 
 .chords-hero-sub {
   font-size: .88rem;
-  color: var(--tape-muted);
+  color: rgba(200,225,210,.7);
   max-width: 520px;
   line-height: 1.7;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   3. LIST PAGE — TOOLBAR
+   2. LIST PAGE — TOOLBAR
    ═══════════════════════════════════════════════════════════ */
 
 .chords-toolbar {
@@ -286,7 +246,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   4. FEATURED STRIP
+   3. FEATURED STRIP
    ═══════════════════════════════════════════════════════════ */
 
 .chords-featured {
@@ -370,7 +330,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   5. CHORD LIST ROWS
+   4. CHORD LIST ROWS
    ═══════════════════════════════════════════════════════════ */
 
 .chords-grid {
@@ -513,7 +473,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   6. SHARED BADGE STYLES
+   5. SHARED BADGE STYLES
    ═══════════════════════════════════════════════════════════ */
 
 .chord-badge {
@@ -559,7 +519,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   7. DETAIL PAGE — HEADER CARD
+   6. DETAIL PAGE — HEADER CARD
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-wrap {
@@ -641,7 +601,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   8. DETAIL PAGE — META STRIP
+   7. DETAIL PAGE — META STRIP
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-meta {
@@ -690,7 +650,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   9. DETAIL PAGE — BADGES / CHORDS-USED / CAPO
+   8. DETAIL PAGE — BADGES / CHORDS-USED / CAPO
    ═══════════════════════════════════════════════════════════ */
 
 .chord-detail-badges {
@@ -736,28 +696,29 @@
   white-space: nowrap;
 }
 
-/* Tape-label style pills */
+/* Chords-used pills — site green style */
 .chord-used-pill {
   font-family: var(--mono);
   font-size: .72rem;
   padding: .25rem .65rem;
-  border-radius: .2rem;
-  background: linear-gradient(135deg, #2a1f0a 0%, #1e1600 100%);
-  border: 1.5px solid rgba(200,150,42,.35);
-  color: var(--tape-amber-lt, #e0b050);
+  border-radius: .25rem;
+  background: var(--accent-bg);
+  border: 1.5px solid rgba(45,106,79,.3);
+  color: var(--accent);
   cursor: pointer;
   transition: background .15s, color .15s, border-color .15s;
   min-height: 32px;
   display: inline-flex;
   align-items: center;
-  letter-spacing: .06em;
-  text-shadow: 0 0 12px rgba(200,150,42,.3);
+  letter-spacing: .04em;
+  font-weight: 600;
 }
 
-.chord-used-pill:hover {
-  background: linear-gradient(135deg, #3a2b0d 0%, #2a1e00 100%);
-  border-color: rgba(200,150,42,.7);
-  color: #f0c860;
+.chord-used-pill:hover,
+.chord-used-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .chord-capo-suggestion {
@@ -777,7 +738,7 @@
 .chord-capo-suggestion[hidden] { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
-   10. CONTROLS BAR — mixing-desk style
+   9. CONTROLS BAR
    ═══════════════════════════════════════════════════════════ */
 
 .chord-controls {
@@ -785,12 +746,12 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0;
-  background: #111009;
-  border: 1.5px solid rgba(200,170,100,.18);
+  background: var(--card);
+  border: 1.5px solid var(--border);
   border-radius: .6rem;
   padding: 0;
   margin-bottom: 1.4rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(200,170,100,.08);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -798,26 +759,17 @@
   display: flex;
   align-items: center;
   gap: .5rem;
-  padding: .75rem 1.1rem;
-  border-right: 1px solid rgba(200,170,100,.1);
+  padding: .65rem 1rem;
+  border-right: 1px solid var(--border);
   position: relative;
 }
 
 .ctrl-group:last-of-type { border-right: none; }
 
-.ctrl-group::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 16px; right: 16px;
-  height: 1.5px;
-  background: linear-gradient(90deg, transparent, rgba(200,150,42,.25), transparent);
-  pointer-events: none;
-}
-
 .ctrl-label {
   font-family: var(--mono);
   font-size: .54rem;
-  color: rgba(200,170,100,.45);
+  color: var(--muted-light);
   letter-spacing: .15em;
   text-transform: uppercase;
   font-weight: 500;
@@ -828,53 +780,50 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(200,150,42,.3);
-  background: radial-gradient(circle at 35% 30%, #2a2318, #181410);
-  color: rgba(200,170,100,.8);
+  width: 30px;
+  height: 30px;
+  border-radius: .3rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
   font-family: var(--mono);
-  font-size: .9rem;
+  font-size: .82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color .15s, color .15s, box-shadow .15s, transform .1s;
-  min-width: 40px;
-  min-height: 40px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05);
+  transition: border-color .15s, color .15s, background .15s;
+  min-width: 36px;
+  min-height: 36px;
 }
 
 .ctrl-btn:hover {
-  border-color: rgba(200,150,42,.7);
-  color: #f0c860;
-  box-shadow: 0 0 10px rgba(200,150,42,.2), 0 2px 8px rgba(0,0,0,.4);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
 }
 
-.ctrl-btn:active { transform: scale(.9); }
+.ctrl-btn:active { transform: scale(.94); }
 .ctrl-btn:disabled { opacity: .3; cursor: not-allowed; }
 
 .ctrl-btn.active {
-  border-color: var(--tape-amber);
-  background: radial-gradient(circle at 35% 30%, #3a2a00, #211900);
-  color: #f0c860;
-  box-shadow: 0 0 12px rgba(200,150,42,.35), inset 0 1px 0 rgba(255,255,255,.05);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .ctrl-transpose-display {
   font-family: var(--mono);
   font-size: .82rem;
   font-weight: 700;
-  color: var(--tape-amber-lt, #e0b050);
-  min-width: 40px;
+  color: var(--accent);
+  min-width: 36px;
   text-align: center;
   letter-spacing: .04em;
-  text-shadow: 0 0 8px rgba(200,150,42,.4);
 }
 
 .ctrl-fontsize-display {
   font-family: var(--mono);
   font-size: .65rem;
-  color: rgba(200,170,100,.45);
+  color: var(--muted-light);
   min-width: 28px;
   text-align: center;
 }
@@ -883,36 +832,36 @@
   display: inline-flex;
   align-items: center;
   gap: .4rem;
-  padding: .35rem .9rem;
+  padding: .3rem .85rem;
   border-radius: .3rem;
-  border: 1.5px solid rgba(200,150,42,.25);
-  background: radial-gradient(circle at 35% 30%, #1e1a10, #141209);
-  color: rgba(200,170,100,.55);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
   font-family: var(--mono);
   font-size: .68rem;
   cursor: pointer;
   transition: border-color .15s, color .15s, background .15s;
-  min-height: 40px;
+  min-height: 36px;
   font-weight: 500;
-  letter-spacing: .08em;
+  letter-spacing: .06em;
 }
 
 .ctrl-scroll-toggle:hover {
-  border-color: rgba(200,150,42,.55);
-  color: #e0b050;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
 }
 
 .ctrl-scroll-toggle.scrolling {
-  border-color: var(--tape-rust, #b84f2e);
-  background: radial-gradient(circle at 35% 30%, #2a1008, #1a0a04);
-  color: #f08060;
-  box-shadow: 0 0 10px rgba(184,79,46,.3);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
   animation: scroll-pulse 1.8s ease-in-out infinite;
 }
 
 @keyframes scroll-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(184,79,46,.25); }
-  50%       { box-shadow: 0 0 18px rgba(184,79,46,.45); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(45,106,79,.3); }
+  50%       { box-shadow: 0 0 0 5px rgba(45,106,79,0); }
 }
 
 .ctrl-speed-wrap {
@@ -927,7 +876,7 @@
   width: 70px;
   height: 3px;
   border-radius: 2px;
-  background: linear-gradient(90deg, rgba(200,150,42,.6), rgba(200,150,42,.15));
+  background: linear-gradient(90deg, var(--accent), rgba(45,106,79,.15));
   outline: none;
   cursor: pointer;
 }
@@ -936,26 +885,26 @@
   -webkit-appearance: none;
   width: 14px;
   height: 14px;
-  border-radius: 2px;
-  background: var(--tape-amber, #c8962a);
+  border-radius: 3px;
+  background: var(--accent);
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,.15);
-  box-shadow: 0 0 6px rgba(200,150,42,.4);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(45,106,79,.35);
 }
 
 .ctrl-speed::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  border-radius: 2px;
-  background: var(--tape-amber, #c8962a);
+  border-radius: 3px;
+  background: var(--accent);
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,.15);
+  border: 2px solid #fff;
 }
 
 .ctrl-actions {
   display: flex;
-  gap: .45rem;
-  padding: .75rem 1rem;
+  gap: .4rem;
+  padding: .65rem .9rem;
   margin-left: auto;
 }
 
@@ -963,49 +912,50 @@
   display: inline-flex;
   align-items: center;
   gap: .3rem;
-  padding: .35rem .75rem;
+  padding: .3rem .65rem;
   border-radius: .3rem;
-  border: 1.5px solid rgba(200,170,100,.15);
+  border: 1.5px solid var(--border);
   background: transparent;
-  color: rgba(200,170,100,.45);
+  color: var(--muted);
   font-family: var(--mono);
   font-size: .65rem;
   cursor: pointer;
-  transition: border-color .15s, color .15s;
-  min-height: 40px;
-  letter-spacing: .06em;
+  transition: border-color .15s, color .15s, background .15s;
+  min-height: 36px;
+  letter-spacing: .04em;
 }
 
 .ctrl-action-btn:hover {
-  border-color: rgba(200,150,42,.5);
-  color: #e0b050;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   11. INSTRUMENT SWITCHER
+   10. INSTRUMENT SWITCHER
    ═══════════════════════════════════════════════════════════ */
 
 .instr-switcher {
   display: flex;
-  border: 1.5px solid rgba(200,150,42,.25);
+  border: 1.5px solid var(--border);
   border-radius: .35rem;
   overflow: hidden;
-  background: #111009;
+  background: var(--surface);
 }
 
 .instr-btn {
   font-family: var(--mono);
   font-size: .64rem;
-  letter-spacing: .1em;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  padding: .4rem .75rem;
+  padding: .35rem .7rem;
   background: transparent;
   border: none;
-  border-right: 1px solid rgba(200,150,42,.15);
-  color: rgba(200,170,100,.4);
+  border-right: 1px solid var(--border);
+  color: var(--muted);
   cursor: pointer;
   transition: background .15s, color .15s;
-  min-height: 40px;
+  min-height: 36px;
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -1015,52 +965,41 @@
 .instr-btn:last-child { border-right: none; }
 
 .instr-btn:hover {
-  background: rgba(200,150,42,.07);
-  color: rgba(200,170,100,.75);
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 .instr-btn.active {
-  background: linear-gradient(135deg, #2a2008, #1a1600);
-  color: #e0b050;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  background: var(--accent);
+  color: #fff;
 }
 
 .instr-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   stroke: currentColor;
   fill: none;
   flex-shrink: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   12. TAB RENDERER
+   11. TAB RENDERER
    ═══════════════════════════════════════════════════════════ */
 
 .tab-container {
-  background: #13110d;
-  border: 1.5px solid rgba(200,170,100,.14);
+  background: var(--card);
+  border: 1.5px solid var(--border);
   border-radius: .6rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(200,150,42,.3) #13110d;
+  scrollbar-color: var(--border) transparent;
   position: relative;
-}
-
-.tab-container::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle at 100% 0%, rgba(200,150,42,.04) 0%, transparent 70%);
-  pointer-events: none;
 }
 
 .tab-container::-webkit-scrollbar { height: 4px; }
 .tab-container::-webkit-scrollbar-thumb {
-  background: rgba(200,150,42,.3);
+  background: var(--border);
   border-radius: 2px;
 }
 
@@ -1069,14 +1008,14 @@
   align-items: center;
   justify-content: space-between;
   padding: .6rem 1.4rem;
-  border-bottom: 1px solid rgba(200,170,100,.1);
-  background: rgba(0,0,0,.2);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .tab-header-label {
   font-family: var(--mono);
   font-size: .58rem;
-  color: rgba(200,170,100,.35);
+  color: var(--muted-light);
   letter-spacing: .18em;
   text-transform: uppercase;
   font-weight: 500;
@@ -1085,7 +1024,7 @@
 .tab-key-display {
   font-family: var(--mono);
   font-size: .68rem;
-  color: var(--tape-amber, #c8962a);
+  color: var(--accent);
   letter-spacing: .08em;
   font-weight: 600;
 }
@@ -1094,7 +1033,7 @@
   font-family: var(--mono);
   font-size: var(--tab-font-size, .88rem);
   line-height: 1.6;
-  color: rgba(232,223,200,.85);
+  color: var(--text);
   padding: 1.8rem 2rem 2.2rem;
   min-width: 0;
   transition: font-size .15s;
@@ -1112,11 +1051,11 @@
   font-size: .92rem;
   font-weight: 400;
   font-style: italic;
-  color: rgba(200,150,42,.7);
+  color: var(--accent);
   letter-spacing: .04em;
   display: block;
   padding-bottom: .35rem;
-  border-bottom: 1px solid rgba(200,150,42,.12);
+  border-bottom: 1px solid rgba(45,106,79,.15);
   margin-bottom: .7rem;
 }
 
@@ -1138,7 +1077,7 @@
   white-space: pre;
   line-height: 1.85;
   min-height: 1.4em;
-  color: rgba(232,223,200,.75);
+  color: var(--text);
   letter-spacing: .01em;
 }
 
@@ -1155,642 +1094,414 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   13. CHORD TOKEN — tape-label style
+   12. CHORD TOKEN — green pill (site-matched)
    ═══════════════════════════════════════════════════════════ */
 
 .chord-token {
   font-family: var(--mono);
   font-size: inherit;
   font-weight: 700;
-  color: #e0b050;
+  color: var(--accent);
   cursor: pointer;
   position: relative;
   display: inline-block;
-  padding: .06em .35em;
+  padding: .05em .32em;
 
-  background: linear-gradient(145deg, #211a06, #181300);
-  border: 1px solid rgba(200,150,42,.45);
+  background: var(--accent-bg);
+  border: 1.5px solid rgba(45,106,79,.35);
   border-radius: .2em;
-  box-shadow:
-    0 1px 4px rgba(0,0,0,.5),
-    inset 0 1px 0 rgba(200,150,42,.1);
+  box-shadow: none;
 
-  transition: background .12s, color .12s, border-color .12s, box-shadow .12s;
-  min-width: 2em;
+  transition: background .12s, color .12s, border-color .12s;
+  min-width: 1.8em;
   text-align: center;
   line-height: 1.2;
   vertical-align: middle;
-  letter-spacing: .05em;
-  text-shadow: 0 0 8px rgba(200,150,42,.25);
+  letter-spacing: .03em;
 }
 
 .chord-token:hover,
 .chord-token.active {
-  background: linear-gradient(145deg, #2e2208, #201600);
-  color: #f5d070;
-  border-color: rgba(200,150,42,.8);
-  box-shadow:
-    0 0 10px rgba(200,150,42,.25),
-    0 1px 4px rgba(0,0,0,.5),
-    inset 0 1px 0 rgba(200,150,42,.15);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   14. DIAGRAM DRAWER — slide-in panel from right
+   13. CHORD POPUP — inline tooltip card (UG style)
+   Positioned absolutely relative to the token's parent
    ═══════════════════════════════════════════════════════════ */
 
-.chord-diagram-drawer {
-  position: fixed;
-  z-index: 2200;
-  background: #19160f;
-  border-left: 1.5px solid rgba(200,150,42,.2);
-  box-shadow: -8px 0 40px rgba(0,0,0,.6);
-  display: flex;
-  flex-direction: column;
-
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 260px;
-
-  transform: translateX(100%);
-  transition: transform .28s cubic-bezier(.4,0,.2,1);
-  will-change: transform;
+.chord-popup-anchor {
+  position: relative;
+  display: inline-block;
 }
 
-.chord-diagram-drawer.open {
-  transform: translateX(0);
+.chord-popup {
+  position: absolute;
+  z-index: 1200;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  pointer-events: none;
+
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: .6rem;
+  box-shadow:
+    0 4px 6px -1px rgba(0,0,0,.07),
+    0 10px 28px -4px rgba(0,0,0,.12),
+    0 0 0 1px rgba(45,106,79,.06);
+  padding: .9rem .9rem .75rem;
+  min-width: 140px;
+  text-align: center;
+
+  transition: opacity .16s ease, transform .16s ease;
+  will-change: opacity, transform;
 }
 
-/* Preview-only hover mode: slightly narrower visual */
-.chord-diagram-drawer.drawer-preview {
-  opacity: .92;
+/* Arrow pointing down */
+.chord-popup::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
 }
 
-.cdd-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: .8rem 1rem .7rem;
-  border-bottom: 1px solid rgba(200,150,42,.12);
-  background: rgba(0,0,0,.3);
-  flex-shrink: 0;
+.chord-popup.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
 }
 
-.cdd-chord-name {
+/* Flip to below when near top of viewport */
+.chord-popup.popup-below {
+  bottom: auto;
+  top: calc(100% + 8px);
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.chord-popup.popup-below.open {
+  transform: translateX(-50%) translateY(0);
+}
+
+.chord-popup.popup-below::after {
+  bottom: auto;
+  top: -7px;
+  border-right: none;
+  border-bottom: none;
+  border-left: 1.5px solid var(--border);
+  border-top: 1.5px solid var(--border);
+}
+
+/* Popup header */
+.chord-popup-name {
   font-family: var(--mono);
-  font-size: 1.05rem;
+  font-size: .82rem;
   font-weight: 700;
-  color: #e0b050;
-  letter-spacing: .08em;
-  text-shadow: 0 0 12px rgba(200,150,42,.35);
+  color: var(--accent2);
+  letter-spacing: .06em;
+  margin-bottom: .55rem;
+  display: block;
 }
 
-.cdd-pin-btn {
-  background: none;
-  border: 1px solid rgba(200,150,42,.2);
-  border-radius: .25rem;
-  color: rgba(200,170,100,.5);
-  cursor: pointer;
-  width: 28px;
-  height: 28px;
+/* Popup instrument tabs */
+.chord-popup-tabs {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .85rem;
-  transition: color .15s, border-color .15s, background .15s;
-  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: .3rem;
+  overflow: hidden;
+  margin-bottom: .7rem;
 }
 
-.cdd-pin-btn:hover {
-  color: #e0b050;
-  border-color: rgba(200,150,42,.5);
-  background: rgba(200,150,42,.08);
-}
-
-.cdd-close {
-  background: none;
-  border: 1px solid rgba(200,150,42,.2);
-  border-radius: .25rem;
-  color: rgba(200,170,100,.5);
-  cursor: pointer;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .85rem;
-  transition: color .15s, border-color .15s;
-  line-height: 1;
-}
-
-.cdd-close:hover {
-  color: #e0b050;
-  border-color: rgba(200,150,42,.5);
-}
-
-.cdd-instr-tabs {
-  display: flex;
-  border-bottom: 1px solid rgba(200,150,42,.1);
-  flex-shrink: 0;
-}
-
-.cdd-tab {
+.chord-popup-tab {
   flex: 1;
   font-family: var(--mono);
-  font-size: .6rem;
-  letter-spacing: .12em;
+  font-size: .55rem;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  padding: .45rem .5rem;
-  background: transparent;
+  padding: .25rem .3rem;
+  background: var(--surface);
   border: none;
-  border-bottom: 2px solid transparent;
-  color: rgba(200,170,100,.35);
+  border-right: 1px solid var(--border);
+  color: var(--muted);
   cursor: pointer;
-  transition: color .15s, border-color .15s;
-}
-
-.cdd-tab:hover { color: rgba(200,170,100,.7); }
-
-.cdd-tab.active {
-  color: #e0b050;
-  border-bottom-color: var(--tape-amber, #c8962a);
-}
-
-.cdd-diagram-area {
-  flex: 1;
+  transition: background .12s, color .12s;
+  min-height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.2rem 1rem;
+}
+
+.chord-popup-tab:last-child { border-right: none; }
+.chord-popup-tab:hover { color: var(--accent); background: var(--accent-bg); }
+.chord-popup-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Diagram area */
+.chord-popup-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: .65rem;
+  min-height: 100px;
+}
+
+/* Popup action row */
+.chord-popup-actions {
+  display: flex;
+  gap: .4rem;
+  justify-content: center;
+}
+
+.chord-popup-pin {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: .62rem;
+  padding: .28rem .5rem;
+  border-radius: .25rem;
+  border: 1.5px solid rgba(45,106,79,.3);
+  background: var(--accent-bg);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background .14s, color .14s, border-color .14s;
+  letter-spacing: .04em;
+  font-weight: 600;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+}
+
+.chord-popup-pin:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.chord-popup-pin.pinned {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.chord-popup-close {
+  font-family: var(--mono);
+  font-size: .62rem;
+  padding: .28rem .6rem;
+  border-radius: .25rem;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color .14s, color .14s;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chord-popup-close:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   14. PINNED CHORDS ROW — inline section above tab
+   ═══════════════════════════════════════════════════════════ */
+
+.pinned-chords-wrap {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .6rem;
+  margin-bottom: 1.2rem;
   overflow: hidden;
 }
 
-.cdd-unknown {
-  font-family: var(--mono);
-  font-size: .72rem;
-  color: rgba(200,170,100,.3);
-  text-align: center;
-  line-height: 1.6;
-}
-
-.cdd-quality-label {
-  font-family: var(--mono);
-  font-size: .6rem;
-  color: rgba(200,170,100,.3);
-  letter-spacing: .1em;
-  text-align: center;
-  padding: 0 1rem .8rem;
-  flex-shrink: 0;
-}
-
-.cdd-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 2190;
-  background: rgba(0,0,0,.55);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .28s;
-}
-
-.cdd-backdrop.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-@media (max-width: 768px) {
-  .chord-diagram-drawer {
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 360px;
-    border-left: none;
-    border-top: 1.5px solid rgba(200,150,42,.25);
-    border-radius: 1rem 1rem 0 0;
-    box-shadow: 0 -8px 40px rgba(0,0,0,.6);
-    transform: translateY(100%);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .chord-diagram-drawer.open {
-    transform: translateY(0);
-  }
-
-  .cdd-diagram-area {
-    flex-direction: row;
-    gap: 1.5rem;
-    align-items: center;
-    justify-content: center;
-  }
-}
-
-.chord-diagram-svg {
-  display: block;
-  overflow: visible;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   15. CHORD DOCK — pinned chord reference bar
-   Matches the light green + white site identity.
-   No amber / no dark — this is a light surface element.
-   ═══════════════════════════════════════════════════════════ */
-
-.chord-dock {
-  position: fixed;
-  z-index: 1800;
-  left: 0;
-  right: 0;
-
-  /* Default position: bottom, sits above the mobile controls bar */
-  bottom: 0;
-
-  /* Glassmorphism over --card at 85% opacity */
-  background: rgba(255,255,255,.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1.5px solid var(--border);
-  box-shadow: 0 -4px 24px rgba(0,0,0,.08), 0 -1px 0 rgba(45,106,79,.06);
-
-  /* Transitions */
-  transition:
-    transform .28s cubic-bezier(.4,0,.2,1),
-    opacity .2s ease;
-  will-change: transform, opacity;
-}
-
-/* Position variants */
-.chord-dock.dock-pos-bottom {
-  bottom: 0;
-  top: auto;
-  left: 0;
-  right: 0;
-  width: 100%;
-  border-top: 1.5px solid var(--border);
-  border-bottom: none;
-  border-left: none;
-  border-right: none;
-  border-radius: 0;
-  box-shadow: 0 -4px 24px rgba(0,0,0,.08);
-}
-
-.chord-dock.dock-pos-top {
-  top: 0;
-  bottom: auto;
-  left: 0;
-  right: 0;
-  width: 100%;
-  border-top: none;
-  border-bottom: 1.5px solid var(--border);
-  border-left: none;
-  border-right: none;
-  border-radius: 0;
-  box-shadow: 0 4px 24px rgba(0,0,0,.07);
-}
-
-.chord-dock.dock-pos-sidebar {
-  top: 50%;
-  bottom: auto;
-  left: auto;
-  right: 0;
-  width: 200px;
-  transform: translateY(-50%);
-  border-top: 1.5px solid var(--border);
-  border-bottom: 1.5px solid var(--border);
-  border-left: 1.5px solid var(--border);
-  border-right: none;
-  border-radius: .7rem 0 0 .7rem;
-  box-shadow: -4px 0 24px rgba(0,0,0,.08);
-}
-
-/* Minimized: collapse to a compact badge chip */
-.chord-dock.dock-minimized .dock-body { display: none; }
-.chord-dock.dock-minimized .dock-toolbar-btns { display: none; }
-.chord-dock.dock-minimized .dock-badge {
-  font-size: .72rem;
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-bg);
-  cursor: pointer;
-  padding: .28rem .85rem;
-}
-
-/* Expanded: tall mode to show diagrams */
-.chord-dock.dock-expanded {
-  /* Bottom position: expand upward */
-  /* Height is managed by content; dock-card-diagram becomes visible */
-}
-
-.chord-dock.dock-expanded .dock-card-diagram { display: flex; }
-
-/* Ghost while actively scrolling */
-.chord-dock.dock-ghosted {
-  opacity: .4;
-  pointer-events: none;
-}
-
-/* Auto-hide on scroll down */
-.chord-dock.dock-autohide.dock-pos-bottom  { transform: translateY(100%); }
-.chord-dock.dock-autohide.dock-pos-top     { transform: translateY(-100%); }
-.chord-dock.dock-autohide.dock-pos-sidebar { transform: translateY(-50%) translateX(100%); }
-
-/* Restore from ghost after scroll stops */
-.chord-dock:not(.dock-ghosted) {
-  opacity: 1;
-  pointer-events: auto;
-  transition:
-    transform .28s cubic-bezier(.4,0,.2,1),
-    opacity .2s ease;
-}
-
-/* ── Dock inner layout ──────────────────────────────────── */
-
-.dock-inner {
-  display: flex;
-  flex-direction: column;
-  max-height: 180px;
-}
-
-.dock-pos-sidebar .dock-inner {
-  max-height: 70vh;
-  max-width: 200px;
-}
-
-/* ── Dock controls bar ──────────────────────────────────── */
-
-.dock-controls-bar {
+.pinned-chords-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: .3rem .75rem .25rem;
+  padding: .5rem 1rem .5rem 1.1rem;
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  min-height: 32px;
-  gap: .5rem;
+  background: var(--surface);
+  gap: .75rem;
 }
 
-.dock-pos-sidebar .dock-controls-bar {
-  flex-direction: column;
-  align-items: stretch;
-  padding: .5rem .6rem .4rem;
-}
-
-/* Badge (count indicator + restore button) */
-.dock-badge {
+.pinned-chords-label {
   font-family: var(--mono);
-  font-size: .6rem;
+  font-size: .58rem;
   color: var(--muted);
-  letter-spacing: .08em;
+  letter-spacing: .14em;
+  text-transform: uppercase;
   font-weight: 600;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 1rem;
-  cursor: default;
-  padding: .15rem .5rem;
-  white-space: nowrap;
-  transition: color .15s, border-color .15s, background .15s;
-  pointer-events: none;
-}
-
-/* When minimized the badge becomes clickable (see .dock-minimized rule) */
-.dock-minimized .dock-badge { pointer-events: auto; }
-
-/* Toolbar buttons row */
-.dock-toolbar-btns {
   display: flex;
   align-items: center;
-  gap: .3rem;
+  gap: .4rem;
+}
+
+.pinned-chords-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
   flex-shrink: 0;
 }
 
-.dock-pos-sidebar .dock-toolbar-btns {
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.pinned-chords-count {
+  font-family: var(--mono);
+  font-size: .55rem;
+  color: var(--muted-light);
+  letter-spacing: .06em;
 }
 
-/* Small icon buttons in the dock toolbar */
-.dock-expand-btn,
-.dock-pos-btn,
-.dock-min-btn,
-.dock-clear-btn {
+.pinned-chords-clear {
   font-family: var(--mono);
-  font-size: .6rem;
-  color: var(--muted);
+  font-size: .58rem;
+  color: var(--muted-light);
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: .25rem;
   cursor: pointer;
   padding: .18rem .45rem;
-  line-height: 1.4;
-  white-space: nowrap;
-  transition: color .15s, border-color .15s, background .15s;
+  transition: color .14s, border-color .14s, background .14s;
+  letter-spacing: .04em;
   min-height: 24px;
   display: inline-flex;
   align-items: center;
-  letter-spacing: .04em;
 }
 
-.dock-expand-btn:hover,
-.dock-pos-btn:hover,
-.dock-min-btn:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-bg);
-}
-
-.dock-clear-btn {
-  color: var(--muted-light);
-  border-color: transparent;
-}
-
-.dock-clear-btn:hover {
+.pinned-chords-clear:hover {
   color: #991b1b;
   border-color: #fca5a5;
   background: #fef2f2;
 }
 
-/* ── Dock body ──────────────────────────────────────────── */
-
-.dock-body {
+/* Scrollable chord cards row */
+.pinned-chords-body {
+  display: flex;
+  gap: .6rem;
+  padding: .75rem 1rem;
   overflow-x: auto;
-  overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
-  padding: .4rem .6rem .45rem;
-  display: flex;
-  align-items: flex-start;
-  flex: 1;
+  align-items: stretch;
 }
 
-.dock-pos-sidebar .dock-body {
-  overflow-x: hidden;
-  overflow-y: auto;
-  flex-direction: column;
-  padding: .4rem .5rem .5rem;
-}
-
-.dock-body::-webkit-scrollbar { height: 3px; width: 3px; }
-.dock-body::-webkit-scrollbar-thumb {
+.pinned-chords-body::-webkit-scrollbar { height: 3px; }
+.pinned-chords-body::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 2px;
 }
 
 /* Empty state */
-.dock-empty {
-  font-family: var(--mono);
-  font-size: .65rem;
-  color: var(--muted-light);
+.pinned-chords-empty {
+  width: 100%;
   text-align: center;
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--muted-light);
   padding: .4rem 1rem;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  letter-spacing: .02em;
+  letter-spacing: .03em;
 }
 
-/* Chord list horizontal scroll */
-.dock-chord-list {
-  display: flex;
-  gap: .45rem;
-  align-items: flex-start;
-  flex-shrink: 0;
-  min-height: 52px;
-}
-
-.dock-pos-sidebar .dock-chord-list {
-  flex-direction: column;
-  align-items: stretch;
-  min-height: auto;
-  width: 100%;
-}
-
-/* ── Dock chord card ────────────────────────────────────── */
-
-.dock-chord-card {
+/* Individual pinned chord card */
+.pinned-chord-card {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: .2rem;
-  background: var(--card);
+  gap: .3rem;
+  background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: .4rem;
-  padding: .35rem .5rem .3rem;
+  border-radius: .45rem;
+  padding: .6rem .65rem .5rem;
   cursor: pointer;
-  min-width: 52px;
-  flex-shrink: 0;
+  min-width: 60px;
   position: relative;
   transition: border-color .15s, box-shadow .15s, transform .15s;
   user-select: none;
+
+  /* Entrance animation */
   opacity: 0;
-  transform: scale(.85) translateY(4px);
+  transform: scale(.88) translateY(3px);
 }
 
-.dock-chord-card.dock-card-enter {
+.pinned-chord-card.card-enter {
   opacity: 1;
   transform: scale(1) translateY(0);
-  transition: opacity .22s ease, transform .22s cubic-bezier(.34,1.56,.64,1);
+  transition:
+    opacity .2s ease,
+    transform .2s cubic-bezier(.34,1.56,.64,1),
+    border-color .15s,
+    box-shadow .15s;
 }
 
-.dock-chord-card:hover {
+.pinned-chord-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 2px 12px rgba(45,106,79,.15);
+  box-shadow: 0 2px 10px rgba(45,106,79,.12);
   transform: translateY(-2px);
-  z-index: 1;
+  z-index: 2;
 }
 
-.dock-chord-card:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.dock-pos-sidebar .dock-chord-card {
-  flex-direction: row;
-  min-width: auto;
-  width: 100%;
-  padding: .3rem .5rem;
-  gap: .5rem;
-}
-
-/* Diagram in dock — hidden in collapsed mode, shown in expanded */
-.dock-card-diagram {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.dock-chord-card.dock-expanded .dock-card-diagram,
-.chord-dock.dock-expanded .dock-card-diagram {
-  display: flex;
-}
-
-/* Scale down the SVG for the dock */
-.dock-card-diagram svg {
-  transform-origin: top left;
-  transform: scale(0.38);
-  display: block;
-  flex-shrink: 0;
-}
-
-/* Piano is wider, needs extra care */
-.dock-card-diagram svg[aria-label$="piano voicing"] {
-  transform: scale(0.28);
-}
-
-/* Wrapper to contain the scaled SVG (avoids overflow) */
-.dock-card-diagram {
-  width: 40px;
-  height: 48px;
+/* Diagram inside pinned card */
+.pinned-chord-diagram {
+  width: 48px;
+  height: 58px;
   overflow: hidden;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.dock-card-diagram svg {
+.pinned-chord-diagram svg {
   position: absolute;
   top: 0;
   left: 0;
+  transform-origin: top left;
+  transform: scale(0.46);
 }
 
-.dock-pos-sidebar .dock-card-diagram {
-  width: 36px;
-  height: 42px;
+/* Piano diagrams are wider */
+.pinned-chord-diagram svg[aria-label$="piano voicing"] {
+  transform: scale(0.32);
+  left: -2px;
 }
 
-/* Chord name label */
-.dock-card-name {
+.pinned-chord-name {
   font-family: var(--mono);
   font-size: .65rem;
   font-weight: 700;
   color: var(--accent2);
-  letter-spacing: .06em;
+  letter-spacing: .05em;
   text-align: center;
-  line-height: 1;
   white-space: nowrap;
 }
 
-.dock-pos-sidebar .dock-card-name {
-  flex: 1;
-  text-align: left;
-  font-size: .68rem;
-}
-
 /* Unpin × button */
-.dock-card-unpin {
+.pinned-chord-unpin {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -6px;
+  right: -6px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: 1.5px solid var(--border);
   color: var(--muted);
   font-size: .6rem;
   display: flex;
@@ -1798,71 +1509,40 @@
   justify-content: center;
   cursor: pointer;
   opacity: 0;
-  transition: opacity .15s, color .15s, background .15s, border-color .15s;
-  line-height: 1;
+  transition: opacity .15s, background .15s, border-color .15s, color .15s;
   padding: 0;
-  z-index: 2;
+  z-index: 3;
+  line-height: 1;
 }
 
-.dock-chord-card:hover .dock-card-unpin { opacity: 1; }
+.pinned-chord-card:hover .pinned-chord-unpin { opacity: 1; }
 
-.dock-card-unpin:hover {
+.pinned-chord-unpin:hover {
   background: #fef2f2;
   border-color: #fca5a5;
   color: #991b1b;
 }
 
-.dock-pos-sidebar .dock-card-unpin {
-  position: static;
-  opacity: 1;
-  flex-shrink: 0;
-}
-
-/* Flash animation when already-pinned chord is clicked */
-@keyframes dock-card-flash {
+/* Flash animation when already-pinned chord is re-triggered */
+@keyframes pinned-flash {
   0%, 100% { border-color: var(--border); }
-  50%       { border-color: var(--accent); box-shadow: 0 0 10px rgba(45,106,79,.25); }
+  50%       { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,.15); }
 }
 
-.dock-chord-card.dock-card-flash {
-  animation: dock-card-flash .6s ease;
+.pinned-chord-card.card-flash {
+  animation: pinned-flash .55s ease;
 }
 
 /* Exit animation */
-.dock-chord-card.dock-card-exit {
+.pinned-chord-card.card-exit {
   opacity: 0;
-  transform: scale(.8);
-  transition: opacity .24s ease, transform .24s ease;
+  transform: scale(.82);
+  transition: opacity .2s ease, transform .2s ease;
   pointer-events: none;
 }
 
-/* ── Dock body spacing to clear other fixed elements ──── */
-/* On mobile, dock is above the controls bar (≈56px tall) */
-@media (max-width: 768px) {
-  .chord-dock.dock-pos-bottom {
-    bottom: 56px; /* clear the fixed controls bar */
-    padding-bottom: 0;
-  }
-
-  .chord-dock.dock-pos-top {
-    /* clear any site nav */
-  }
-}
-
 /* ═══════════════════════════════════════════════════════════
-   16. DOCK FLIGHT ANIMATION CLONE
-   The .dock-flight-clone is created inline by JS with
-   position:fixed — these styles add just the base.
-   The actual animation transform is applied via JS.
-   ═══════════════════════════════════════════════════════════ */
-
-.dock-flight-clone {
-  pointer-events: none;
-  user-select: none;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   17. RELATED SONGS
+   15. RELATED SONGS
    ═══════════════════════════════════════════════════════════ */
 
 .chord-related {
@@ -1947,7 +1627,7 @@
 .chord-related-badges { display: flex; gap: .3rem; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════
-   18. RECENTLY PLAYED PANEL
+   16. RECENTLY PLAYED PANEL
    ═══════════════════════════════════════════════════════════ */
 
 .chords-recent {
@@ -2081,7 +1761,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   19. MOBILE OVERRIDES
+   17. MOBILE OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
@@ -2096,7 +1776,7 @@
 
   .chords-search-wrap { width: 100%; }
   .chords-sort-wrap   { margin-left: 0; align-self: flex-start; }
-  .chords-section     { padding: 1.6rem 1.4rem 10rem; }
+  .chords-section     { padding: 1.6rem 1.4rem 5rem; }
 
   .chord-feat-badges  { display: none; }
   .chord-card-badges  { display: none; }
@@ -2104,7 +1784,7 @@
   .chord-feat-card    { padding: .6rem .85rem; }
   .chord-recent-card  { width: 120px; }
 
-  .chord-detail-wrap  { padding: 2rem 1.2rem 10rem; }
+  .chord-detail-wrap  { padding: 2rem 1.2rem 6rem; }
   .chord-detail-cover { height: 140px; }
   .chord-detail-meta > span { min-width: 60px; padding: .5rem .7rem; }
 
@@ -2113,30 +1793,30 @@
     min-width: max-content;
   }
 
-  /* Controls: fixed bottom mixing-desk bar */
+  /* Controls: fixed bottom bar on mobile */
   .chord-controls {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     z-index: 900;
     border-radius: 0;
     border-left: none; border-right: none; border-bottom: none;
-    border-top: 1.5px solid rgba(200,150,42,.2);
+    border-top: 1.5px solid var(--border);
     margin-bottom: 0;
     padding: 0;
     padding-bottom: env(safe-area-inset-bottom);
     overflow-x: auto;
     scrollbar-width: none;
     flex-wrap: nowrap;
-    background: rgba(17,16,9,.97);
+    background: rgba(255,255,255,.97);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 -2px 20px rgba(0,0,0,.7);
+    box-shadow: 0 -2px 16px rgba(0,0,0,.08);
   }
 
   .chord-controls::-webkit-scrollbar { display: none; }
 
   .ctrl-group {
-    padding: .65rem .85rem;
+    padding: .6rem .8rem;
     flex-shrink: 0;
   }
 
@@ -2144,27 +1824,31 @@
   .ctrl-speed   { width: 55px; }
   .ctrl-actions { margin-left: 0; }
 
-  /* Dock adjustments for mobile */
-  .chord-dock.dock-pos-bottom {
-    bottom: 56px; /* sit above the fixed controls bar */
-  }
-
-  .chord-dock.dock-pos-sidebar {
-    /* On mobile, sidebar snaps to full-width bottom */
-    top: auto;
-    bottom: 56px;
+  /* Popup: on mobile snap to full-width bottom-of-viewport */
+  .chord-popup {
+    position: fixed;
+    bottom: 0;
     left: 0;
     right: 0;
-    width: 100%;
-    transform: none;
-    border-radius: 0;
-    border-left: none;
-    border-top: 1.5px solid var(--border);
+    top: auto;
+    transform: translateY(4px);
+    border-radius: 1rem 1rem 0 0;
+    border-bottom: none;
+    min-width: 0;
+    padding: 1.1rem 1.2rem calc(1rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 24px rgba(0,0,0,.12);
   }
 
-  .chord-dock.dock-autohide.dock-pos-sidebar {
-    transform: translateY(100%);
-  }
+  .chord-popup.open { transform: translateY(0); }
+  .chord-popup.popup-below { top: auto; bottom: 0; transform: translateY(4px); }
+  .chord-popup.popup-below.open { transform: translateY(0); }
+  .chord-popup::after { display: none; }
+
+  .chord-popup-diagram { flex-direction: row; gap: 1.5rem; }
+
+  /* Pinned row adjustments */
+  .pinned-chords-body { padding: .65rem .85rem; }
+  .pinned-chord-card  { min-width: 52px; }
 }
 
 @media (max-width: 480px) {
@@ -2173,18 +1857,17 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   20. PRINT STYLES
+   18. PRINT STYLES
    ═══════════════════════════════════════════════════════════ */
 
 @media print {
   .chord-controls,
   .chord-detail-back,
   .chord-capo-suggestion,
-  .chord-diagram-drawer,
-  .cdd-backdrop,
+  .chord-popup,
+  .pinned-chords-wrap,
   .chord-related,
   .chords-recent,
-  .chord-dock,
   nav, footer { display: none !important; }
 
   .chord-detail-wrap  { padding: 1rem; max-width: 100%; }
@@ -2213,38 +1896,33 @@
   .tab-section-label { color: #333; border-bottom-color: #ccc; }
 
   .chord-token {
-    color: #000;
+    color: #000 !important;
     font-weight: 700;
     background: #f5f5f5 !important;
     border: 1px solid #ccc !important;
     box-shadow: none !important;
-    text-shadow: none !important;
   }
 
   .chord-detail-title { font-size: 1.4rem; color: #000; }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   21. REDUCED-MOTION OVERRIDES
+   19. REDUCED-MOTION OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
   .chord-card,
   .chord-feat-card,
   .chord-recent-card,
-  .chord-diagram-drawer,
-  .cdd-backdrop,
+  .chord-popup,
   .chord-token,
   .ctrl-scroll-toggle.scrolling,
-  .chord-dock,
-  .dock-chord-card,
-  .dock-chord-card.dock-card-enter,
-  .dock-chord-card.dock-card-exit {
+  .pinned-chord-card,
+  .pinned-chord-card.card-enter,
+  .pinned-chord-card.card-exit {
     transition: none !important;
     animation: none !important;
   }
 
-  .chord-diagram-drawer { transition: transform 0s !important; }
-  .chord-dock { transition: none !important; }
-  .dock-chord-card { opacity: 1 !important; transform: none !important; }
+  .pinned-chord-card { opacity: 1 !important; transform: none !important; }
 }
