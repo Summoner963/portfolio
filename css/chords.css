@@ -23,11 +23,13 @@
  * 12.  Tab renderer
  * 13.  Chord token (tape-label style)
  * 14.  Diagram drawer (slide-in panel)
- * 15.  Related songs
- * 16.  Recent songs panel
- * 17.  Mobile overrides
- * 18.  Print styles
- * 19.  Reduced-motion overrides
+ * 15.  Chord Dock — pinned chord reference bar
+ * 16.  Dock flight animation clone
+ * 17.  Related songs
+ * 18.  Recent songs panel
+ * 19.  Mobile overrides
+ * 20.  Print styles
+ * 21.  Reduced-motion overrides
  */
 
 /* ═══════════════════════════════════════════════════════════
@@ -44,8 +46,9 @@
 .chord-card,
 .chord-recent-card,
 .chord-related,
-.chords-recent {
-  /* Amber/rust on near-black parchment */
+.chords-recent,
+.chord-dock {
+  /* Amber/rust on near-black parchment — detail page only */
   --tape-bg:         #1a1712;
   --tape-surface:    #201e19;
   --tape-card:       #252219;
@@ -791,7 +794,6 @@
   overflow: hidden;
 }
 
-/* Each group is a "channel strip" separated by a subtle divider */
 .ctrl-group {
   display: flex;
   align-items: center;
@@ -803,7 +805,6 @@
 
 .ctrl-group:last-of-type { border-right: none; }
 
-/* Inset top accent line to give the "strip" look */
 .ctrl-group::before {
   content: '';
   position: absolute;
@@ -823,7 +824,6 @@
   white-space: nowrap;
 }
 
-/* Round "knob-like" buttons */
 .ctrl-btn {
   display: inline-flex;
   align-items: center;
@@ -879,7 +879,6 @@
   text-align: center;
 }
 
-/* Auto-scroll — a pill toggle like a transport button */
 .ctrl-scroll-toggle {
   display: inline-flex;
   align-items: center;
@@ -922,7 +921,6 @@
   gap: .5rem;
 }
 
-/* Tape-head style slider */
 .ctrl-speed {
   -webkit-appearance: none;
   appearance: none;
@@ -985,7 +983,6 @@
 
 /* ═══════════════════════════════════════════════════════════
    11. INSTRUMENT SWITCHER
-   A segmented control that sits inside .ctrl-group
    ═══════════════════════════════════════════════════════════ */
 
 .instr-switcher {
@@ -1051,7 +1048,6 @@
   position: relative;
 }
 
-/* Subtle tape reel texture in corner */
 .tab-container::before {
   content: '';
   position: absolute;
@@ -1094,7 +1090,6 @@
   font-weight: 600;
 }
 
-/* Tab body — uses local custom property for font-size control */
 .tab-body {
   font-family: var(--mono);
   font-size: var(--tab-font-size, .88rem);
@@ -1105,7 +1100,6 @@
   transition: font-size .15s;
 }
 
-/* Section label e.g. [Verse 1] */
 .tab-section {
   margin-top: 2rem;
   margin-bottom: .8rem;
@@ -1126,7 +1120,6 @@
   margin-bottom: .7rem;
 }
 
-/* Chord+lyric pair */
 .tab-pair {
   display: block;
   margin-bottom: .1rem;
@@ -1175,7 +1168,6 @@
   display: inline-block;
   padding: .06em .35em;
 
-  /* The tape-label look: dark bg, amber border with slight notch */
   background: linear-gradient(145deg, #211a06, #181300);
   border: 1px solid rgba(200,150,42,.45);
   border-radius: .2em;
@@ -1189,8 +1181,6 @@
   line-height: 1.2;
   vertical-align: middle;
   letter-spacing: .05em;
-
-  /* Subtle "printed text" texture */
   text-shadow: 0 0 8px rgba(200,150,42,.25);
 }
 
@@ -1207,8 +1197,6 @@
 
 /* ═══════════════════════════════════════════════════════════
    14. DIAGRAM DRAWER — slide-in panel from right
-   Replaces the popover. Opens as a fixed right-edge panel
-   on desktop, bottom sheet on mobile.
    ═══════════════════════════════════════════════════════════ */
 
 .chord-diagram-drawer {
@@ -1220,7 +1208,6 @@
   display: flex;
   flex-direction: column;
 
-  /* Desktop: right-side panel */
   top: 0;
   right: 0;
   bottom: 0;
@@ -1235,7 +1222,11 @@
   transform: translateX(0);
 }
 
-/* Drawer header */
+/* Preview-only hover mode: slightly narrower visual */
+.chord-diagram-drawer.drawer-preview {
+  opacity: .92;
+}
+
 .cdd-header {
   display: flex;
   align-items: center;
@@ -1253,6 +1244,28 @@
   color: #e0b050;
   letter-spacing: .08em;
   text-shadow: 0 0 12px rgba(200,150,42,.35);
+}
+
+.cdd-pin-btn {
+  background: none;
+  border: 1px solid rgba(200,150,42,.2);
+  border-radius: .25rem;
+  color: rgba(200,170,100,.5);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .85rem;
+  transition: color .15s, border-color .15s, background .15s;
+  line-height: 1;
+}
+
+.cdd-pin-btn:hover {
+  color: #e0b050;
+  border-color: rgba(200,150,42,.5);
+  background: rgba(200,150,42,.08);
 }
 
 .cdd-close {
@@ -1276,7 +1289,6 @@
   border-color: rgba(200,150,42,.5);
 }
 
-/* Instrument tabs within drawer */
 .cdd-instr-tabs {
   display: flex;
   border-bottom: 1px solid rgba(200,150,42,.1);
@@ -1305,7 +1317,6 @@
   border-bottom-color: var(--tape-amber, #c8962a);
 }
 
-/* Diagram area */
 .cdd-diagram-area {
   flex: 1;
   display: flex;
@@ -1323,7 +1334,6 @@
   line-height: 1.6;
 }
 
-/* Chord quality label below diagram */
 .cdd-quality-label {
   font-family: var(--mono);
   font-size: .6rem;
@@ -1334,7 +1344,6 @@
   flex-shrink: 0;
 }
 
-/* Drawer backdrop overlay (mobile) */
 .cdd-backdrop {
   position: fixed;
   inset: 0;
@@ -1352,7 +1361,6 @@
   pointer-events: auto;
 }
 
-/* Mobile: bottom sheet */
 @media (max-width: 768px) {
   .chord-diagram-drawer {
     top: auto;
@@ -1381,14 +1389,480 @@
   }
 }
 
-/* SVG diagrams within the drawer */
 .chord-diagram-svg {
   display: block;
   overflow: visible;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   15. RELATED SONGS
+   15. CHORD DOCK — pinned chord reference bar
+   Matches the light green + white site identity.
+   No amber / no dark — this is a light surface element.
+   ═══════════════════════════════════════════════════════════ */
+
+.chord-dock {
+  position: fixed;
+  z-index: 1800;
+  left: 0;
+  right: 0;
+
+  /* Default position: bottom, sits above the mobile controls bar */
+  bottom: 0;
+
+  /* Glassmorphism over --card at 85% opacity */
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1.5px solid var(--border);
+  box-shadow: 0 -4px 24px rgba(0,0,0,.08), 0 -1px 0 rgba(45,106,79,.06);
+
+  /* Transitions */
+  transition:
+    transform .28s cubic-bezier(.4,0,.2,1),
+    opacity .2s ease;
+  will-change: transform, opacity;
+}
+
+/* Position variants */
+.chord-dock.dock-pos-bottom {
+  bottom: 0;
+  top: auto;
+  left: 0;
+  right: 0;
+  width: 100%;
+  border-top: 1.5px solid var(--border);
+  border-bottom: none;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,.08);
+}
+
+.chord-dock.dock-pos-top {
+  top: 0;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: 100%;
+  border-top: none;
+  border-bottom: 1.5px solid var(--border);
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  box-shadow: 0 4px 24px rgba(0,0,0,.07);
+}
+
+.chord-dock.dock-pos-sidebar {
+  top: 50%;
+  bottom: auto;
+  left: auto;
+  right: 0;
+  width: 200px;
+  transform: translateY(-50%);
+  border-top: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  border-left: 1.5px solid var(--border);
+  border-right: none;
+  border-radius: .7rem 0 0 .7rem;
+  box-shadow: -4px 0 24px rgba(0,0,0,.08);
+}
+
+/* Minimized: collapse to a compact badge chip */
+.chord-dock.dock-minimized .dock-body { display: none; }
+.chord-dock.dock-minimized .dock-toolbar-btns { display: none; }
+.chord-dock.dock-minimized .dock-badge {
+  font-size: .72rem;
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  cursor: pointer;
+  padding: .28rem .85rem;
+}
+
+/* Expanded: tall mode to show diagrams */
+.chord-dock.dock-expanded {
+  /* Bottom position: expand upward */
+  /* Height is managed by content; dock-card-diagram becomes visible */
+}
+
+.chord-dock.dock-expanded .dock-card-diagram { display: flex; }
+
+/* Ghost while actively scrolling */
+.chord-dock.dock-ghosted {
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* Auto-hide on scroll down */
+.chord-dock.dock-autohide.dock-pos-bottom  { transform: translateY(100%); }
+.chord-dock.dock-autohide.dock-pos-top     { transform: translateY(-100%); }
+.chord-dock.dock-autohide.dock-pos-sidebar { transform: translateY(-50%) translateX(100%); }
+
+/* Restore from ghost after scroll stops */
+.chord-dock:not(.dock-ghosted) {
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    transform .28s cubic-bezier(.4,0,.2,1),
+    opacity .2s ease;
+}
+
+/* ── Dock inner layout ──────────────────────────────────── */
+
+.dock-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+}
+
+.dock-pos-sidebar .dock-inner {
+  max-height: 70vh;
+  max-width: 200px;
+}
+
+/* ── Dock controls bar ──────────────────────────────────── */
+
+.dock-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .3rem .75rem .25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 32px;
+  gap: .5rem;
+}
+
+.dock-pos-sidebar .dock-controls-bar {
+  flex-direction: column;
+  align-items: stretch;
+  padding: .5rem .6rem .4rem;
+}
+
+/* Badge (count indicator + restore button) */
+.dock-badge {
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: var(--muted);
+  letter-spacing: .08em;
+  font-weight: 600;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  cursor: default;
+  padding: .15rem .5rem;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s, background .15s;
+  pointer-events: none;
+}
+
+/* When minimized the badge becomes clickable (see .dock-minimized rule) */
+.dock-minimized .dock-badge { pointer-events: auto; }
+
+/* Toolbar buttons row */
+.dock-toolbar-btns {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  flex-shrink: 0;
+}
+
+.dock-pos-sidebar .dock-toolbar-btns {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Small icon buttons in the dock toolbar */
+.dock-expand-btn,
+.dock-pos-btn,
+.dock-min-btn,
+.dock-clear-btn {
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: .25rem;
+  cursor: pointer;
+  padding: .18rem .45rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s, background .15s;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: .04em;
+}
+
+.dock-expand-btn:hover,
+.dock-pos-btn:hover,
+.dock-min-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.dock-clear-btn {
+  color: var(--muted-light);
+  border-color: transparent;
+}
+
+.dock-clear-btn:hover {
+  color: #991b1b;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+/* ── Dock body ──────────────────────────────────────────── */
+
+.dock-body {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding: .4rem .6rem .45rem;
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.dock-pos-sidebar .dock-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex-direction: column;
+  padding: .4rem .5rem .5rem;
+}
+
+.dock-body::-webkit-scrollbar { height: 3px; width: 3px; }
+.dock-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* Empty state */
+.dock-empty {
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--muted-light);
+  text-align: center;
+  padding: .4rem 1rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+
+/* Chord list horizontal scroll */
+.dock-chord-list {
+  display: flex;
+  gap: .45rem;
+  align-items: flex-start;
+  flex-shrink: 0;
+  min-height: 52px;
+}
+
+.dock-pos-sidebar .dock-chord-list {
+  flex-direction: column;
+  align-items: stretch;
+  min-height: auto;
+  width: 100%;
+}
+
+/* ── Dock chord card ────────────────────────────────────── */
+
+.dock-chord-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: .4rem;
+  padding: .35rem .5rem .3rem;
+  cursor: pointer;
+  min-width: 52px;
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+  user-select: none;
+  opacity: 0;
+  transform: scale(.85) translateY(4px);
+}
+
+.dock-chord-card.dock-card-enter {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity .22s ease, transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+
+.dock-chord-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 12px rgba(45,106,79,.15);
+  transform: translateY(-2px);
+  z-index: 1;
+}
+
+.dock-chord-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dock-pos-sidebar .dock-chord-card {
+  flex-direction: row;
+  min-width: auto;
+  width: 100%;
+  padding: .3rem .5rem;
+  gap: .5rem;
+}
+
+/* Diagram in dock — hidden in collapsed mode, shown in expanded */
+.dock-card-diagram {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dock-chord-card.dock-expanded .dock-card-diagram,
+.chord-dock.dock-expanded .dock-card-diagram {
+  display: flex;
+}
+
+/* Scale down the SVG for the dock */
+.dock-card-diagram svg {
+  transform-origin: top left;
+  transform: scale(0.38);
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Piano is wider, needs extra care */
+.dock-card-diagram svg[aria-label$="piano voicing"] {
+  transform: scale(0.28);
+}
+
+/* Wrapper to contain the scaled SVG (avoids overflow) */
+.dock-card-diagram {
+  width: 40px;
+  height: 48px;
+  overflow: hidden;
+  position: relative;
+}
+
+.dock-card-diagram svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.dock-pos-sidebar .dock-card-diagram {
+  width: 36px;
+  height: 42px;
+}
+
+/* Chord name label */
+.dock-card-name {
+  font-family: var(--mono);
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--accent2);
+  letter-spacing: .06em;
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dock-pos-sidebar .dock-card-name {
+  flex: 1;
+  text-align: left;
+  font-size: .68rem;
+}
+
+/* Unpin × button */
+.dock-card-unpin {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: .6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, color .15s, background .15s, border-color .15s;
+  line-height: 1;
+  padding: 0;
+  z-index: 2;
+}
+
+.dock-chord-card:hover .dock-card-unpin { opacity: 1; }
+
+.dock-card-unpin:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.dock-pos-sidebar .dock-card-unpin {
+  position: static;
+  opacity: 1;
+  flex-shrink: 0;
+}
+
+/* Flash animation when already-pinned chord is clicked */
+@keyframes dock-card-flash {
+  0%, 100% { border-color: var(--border); }
+  50%       { border-color: var(--accent); box-shadow: 0 0 10px rgba(45,106,79,.25); }
+}
+
+.dock-chord-card.dock-card-flash {
+  animation: dock-card-flash .6s ease;
+}
+
+/* Exit animation */
+.dock-chord-card.dock-card-exit {
+  opacity: 0;
+  transform: scale(.8);
+  transition: opacity .24s ease, transform .24s ease;
+  pointer-events: none;
+}
+
+/* ── Dock body spacing to clear other fixed elements ──── */
+/* On mobile, dock is above the controls bar (≈56px tall) */
+@media (max-width: 768px) {
+  .chord-dock.dock-pos-bottom {
+    bottom: 56px; /* clear the fixed controls bar */
+    padding-bottom: 0;
+  }
+
+  .chord-dock.dock-pos-top {
+    /* clear any site nav */
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   16. DOCK FLIGHT ANIMATION CLONE
+   The .dock-flight-clone is created inline by JS with
+   position:fixed — these styles add just the base.
+   The actual animation transform is applied via JS.
+   ═══════════════════════════════════════════════════════════ */
+
+.dock-flight-clone {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   17. RELATED SONGS
    ═══════════════════════════════════════════════════════════ */
 
 .chord-related {
@@ -1473,7 +1947,7 @@
 .chord-related-badges { display: flex; gap: .3rem; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════
-   16. RECENTLY PLAYED PANEL
+   18. RECENTLY PLAYED PANEL
    ═══════════════════════════════════════════════════════════ */
 
 .chords-recent {
@@ -1549,7 +2023,7 @@
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--tape-amber, #c8962a), transparent);
+  background: linear-gradient(90deg, var(--accent), transparent);
   opacity: 0;
   transition: opacity .15s;
 }
@@ -1607,7 +2081,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   17. MOBILE OVERRIDES
+   19. MOBILE OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
@@ -1669,6 +2143,28 @@
   .ctrl-label   { font-size: .5rem; }
   .ctrl-speed   { width: 55px; }
   .ctrl-actions { margin-left: 0; }
+
+  /* Dock adjustments for mobile */
+  .chord-dock.dock-pos-bottom {
+    bottom: 56px; /* sit above the fixed controls bar */
+  }
+
+  .chord-dock.dock-pos-sidebar {
+    /* On mobile, sidebar snaps to full-width bottom */
+    top: auto;
+    bottom: 56px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    transform: none;
+    border-radius: 0;
+    border-left: none;
+    border-top: 1.5px solid var(--border);
+  }
+
+  .chord-dock.dock-autohide.dock-pos-sidebar {
+    transform: translateY(100%);
+  }
 }
 
 @media (max-width: 480px) {
@@ -1677,7 +2173,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   18. PRINT STYLES
+   20. PRINT STYLES
    ═══════════════════════════════════════════════════════════ */
 
 @media print {
@@ -1688,6 +2184,7 @@
   .cdd-backdrop,
   .chord-related,
   .chords-recent,
+  .chord-dock,
   nav, footer { display: none !important; }
 
   .chord-detail-wrap  { padding: 1rem; max-width: 100%; }
@@ -1728,7 +2225,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   19. REDUCED-MOTION OVERRIDES
+   21. REDUCED-MOTION OVERRIDES
    ═══════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1738,10 +2235,16 @@
   .chord-diagram-drawer,
   .cdd-backdrop,
   .chord-token,
-  .ctrl-scroll-toggle.scrolling {
+  .ctrl-scroll-toggle.scrolling,
+  .chord-dock,
+  .dock-chord-card,
+  .dock-chord-card.dock-card-enter,
+  .dock-chord-card.dock-card-exit {
     transition: none !important;
     animation: none !important;
   }
 
   .chord-diagram-drawer { transition: transform 0s !important; }
+  .chord-dock { transition: none !important; }
+  .dock-chord-card { opacity: 1 !important; transform: none !important; }
 }

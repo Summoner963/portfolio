@@ -21,6 +21,8 @@
  *     · Piano: 1-octave keyboard SVG with highlighted keys
  *   - Diagram Drawer: right-side slide-in panel (desktop), bottom sheet (mobile)
  *     with per-instrument tabs — replaces the old popover
+ *   - Chord Dock: pinned chord reference bar with flight animation, position cycling,
+ *     minimize/expand, auto-hide on scroll, ghost on active scroll, localStorage persist
  *   - Chord-above-lyric layout: chords rendered on their own line above lyrics
  *   - Font-size A−/A+ with localStorage persistence
  *   - Auto-scroll toggle with speed slider (localStorage persistence)
@@ -80,7 +82,7 @@ function recentClear() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  CHROMATIC / TRANSPOSE ENGINE  (unchanged from original)
+//  CHROMATIC / TRANSPOSE ENGINE
 // ─────────────────────────────────────────────────────────────────────────
 
 const SHARPS    = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -139,7 +141,6 @@ function capoSuggestion(originalKey, originalCapo, semitones) {
 //  SVG DIAGRAM GENERATORS
 // ─────────────────────────────────────────────────────────────────────────
 
-// ── Shared palette (tape-label aesthetic) ─────────────────────────────────
 const D = {
   bg:         '#19160f',
   string:     'rgba(200,170,100,.35)',
@@ -171,26 +172,22 @@ function buildGuitarSVG(chordName, shape) {
 
   const p = [];
 
-  // Nut or fret number label
   if (baseFret === 1) {
     p.push(`<line x1="${LEFT}" y1="${TOP}" x2="${LEFT + W}" y2="${TOP}" stroke="${D.nut}" stroke-width="3" stroke-linecap="round"/>`);
   } else {
     p.push(`<text x="${LEFT - 5}" y="${TOP + FG * 0.55}" text-anchor="end" font-family="monospace" font-size="7.5" fill="${D.text}" dominant-baseline="middle">${baseFret}</text>`);
   }
 
-  // Strings
   for (let s = 0; s < NS; s++) {
     const x = sx(s);
     p.push(`<line x1="${x}" y1="${TOP}" x2="${x}" y2="${TOP + H}" stroke="${D.string}" stroke-width="1.2"/>`);
   }
 
-  // Fret lines
   for (let f = 1; f <= NF; f++) {
     const y = TOP + f * FG;
     p.push(`<line x1="${LEFT}" y1="${y}" x2="${LEFT + W}" y2="${y}" stroke="${D.fret}" stroke-width="0.8"/>`);
   }
 
-  // Barre arc
   if (barre) {
     const lf = barre.fret - baseFret + 1;
     if (lf >= 1 && lf <= NF) {
@@ -199,7 +196,6 @@ function buildGuitarSVG(chordName, shape) {
     }
   }
 
-  // Open / muted above nut
   for (let s = 0; s < NS; s++) {
     const f = frets[s], x = sx(s), y = TOP - 11;
     if (f === -1) {
@@ -213,7 +209,6 @@ function buildGuitarSVG(chordName, shape) {
     }
   }
 
-  // Finger dots
   for (let s = 0; s < NS; s++) {
     const fretNum = frets[s], finger = fingers[s];
     if (fretNum <= 0) continue;
@@ -303,7 +298,6 @@ function buildUkuleleSVG(chordName, shape) {
     }
   }
 
-  // Tuning labels below diagram
   const labels = ['A','E','C','G'];
   for (let s = 0; s < NS; s++) {
     const x = sx(s);
@@ -314,10 +308,6 @@ function buildUkuleleSVG(chordName, shape) {
 }
 
 // ── Piano SVG ─────────────────────────────────────────────────────────────
-// One octave C to B. White keys: C D E F G A B (7).
-// Black keys: C# D# F# G# A# (5).
-// Highlighted notes use amber glow.
-
 const PIANO_WHITE_KEYS = ['C','D','E','F','G','A','B'];
 const PIANO_BLACK_KEYS = {
   'C#': { between: [0, 1] },
@@ -326,14 +316,13 @@ const PIANO_BLACK_KEYS = {
   'G#': { between: [4, 5] },
   'A#': { between: [5, 6] },
 };
-// Flat→sharp normalisation for rendering lookup
 const PIANO_FLAT_MAP = { 'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#' };
 
 function normPianoNote(n) { return PIANO_FLAT_MAP[n] || n; }
 
 function buildPianoSVG(chordName, shape) {
   const W = 140, H = 80;
-  const WKW = W / 7;   // white key width ≈ 20
+  const WKW = W / 7;
   const WKH = H;
   const BKW = WKW * 0.6;
   const BKH = H * 0.58;
@@ -342,10 +331,8 @@ function buildPianoSVG(chordName, shape) {
 
   const p = [];
 
-  // Background
   p.push(`<rect x="0" y="0" width="${W}" height="${H}" rx="3" fill="#111009" stroke="rgba(200,150,42,.25)" stroke-width="1"/>`);
 
-  // White keys
   PIANO_WHITE_KEYS.forEach((note, i) => {
     const x   = i * WKW;
     const lit = highlighted.has(note);
@@ -365,7 +352,6 @@ function buildPianoSVG(chordName, shape) {
     }
   });
 
-  // Black keys (drawn over white)
   Object.entries(PIANO_BLACK_KEYS).forEach(([note, { between }]) => {
     const [l] = between;
     const x   = (l + 1) * WKW - BKW / 2;
@@ -426,7 +412,6 @@ function _noShapeSVG(label, strings) {
   );
 }
 
-// ── Build diagram SVG for a given instrument ──────────────────────────────
 function buildDiagramSVG(chordName, instrument) {
   switch (instrument) {
     case 'ukulele': return buildUkuleleSVG(chordName, UKULELE_SHAPES[chordName]);
@@ -435,9 +420,14 @@ function buildDiagramSVG(chordName, instrument) {
   }
 }
 
+// ── Mini diagram for dock (scaled down) ──────────────────────────────────
+function buildMiniDiagramSVG(chordName, instrument) {
+  // Returns the same SVG but wrapped in a scaled container for the dock
+  return buildDiagramSVG(chordName, instrument);
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  TAB RENDERER — [G] notation → chord-above-lyric HTML
-//  (logic unchanged from original; only esc references updated)
 // ─────────────────────────────────────────────────────────────────────────
 
 const CHORD_NAME_RE = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
@@ -467,7 +457,7 @@ function chordTokenHTML(chordName, semitones) {
 
 function renderTab(raw, semitones = 0) {
   if (!raw) {
-    return '<span style="color:rgba(200,170,100,.3);font-family:var(--mono);font-size:.85rem">No tab content available.</span>';
+    return '<span style="color:var(--muted);font-family:var(--mono);font-size:.85rem">No tab content available.</span>';
   }
 
   const lines  = raw.split('|');
@@ -568,21 +558,17 @@ function renderTab(raw, semitones = 0) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  DIAGRAM DRAWER — replaces the old popover
-//  A fixed right-side slide-in panel on desktop, bottom sheet on mobile.
-//  Shows per-instrument tabs: Guitar | Ukulele | Piano
+//  DIAGRAM DRAWER — slide-in panel
 // ─────────────────────────────────────────────────────────────────────────
 
 let _drawer     = null;
 let _backdrop   = null;
 let _activeChord = null;
-let _drawerInstr = 'guitar'; // currently displayed instrument in drawer
+let _drawerInstr = 'guitar';
 
-/** Build or retrieve the singleton drawer element. */
 function ensureDrawer() {
   if (_drawer) return _drawer;
 
-  // Backdrop
   _backdrop = document.createElement('div');
   _backdrop.className = 'cdd-backdrop';
   _backdrop.setAttribute('aria-hidden', 'true');
@@ -590,7 +576,6 @@ function ensureDrawer() {
 
   _backdrop.addEventListener('click', hideDrawer);
 
-  // Drawer panel
   _drawer = document.createElement('div');
   _drawer.className = 'chord-diagram-drawer';
   _drawer.setAttribute('role', 'complementary');
@@ -599,7 +584,10 @@ function ensureDrawer() {
   _drawer.innerHTML =
     `<div class="cdd-header">
       <span class="cdd-chord-name" id="cddChordName">—</span>
-      <button class="cdd-close" id="cddClose" aria-label="Close chord diagram">✕</button>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <button class="cdd-pin-btn" id="cddPinBtn" aria-label="Pin chord to dock" title="Pin to dock">📌</button>
+        <button class="cdd-close" id="cddClose" aria-label="Close chord diagram">✕</button>
+      </div>
     </div>
     <div class="cdd-instr-tabs" role="tablist" aria-label="Instrument">
       <button class="cdd-tab active" data-instr="guitar" role="tab" aria-selected="true">
@@ -634,10 +622,13 @@ function ensureDrawer() {
 
   document.body.appendChild(_drawer);
 
-  // Close button
   _drawer.querySelector('#cddClose').addEventListener('click', hideDrawer);
 
-  // Instrument tabs
+  // Pin button in drawer
+  _drawer.querySelector('#cddPinBtn').addEventListener('click', () => {
+    if (_activeChord) dockPinChord(_activeChord);
+  });
+
   _drawer.querySelector('.cdd-instr-tabs').addEventListener('click', e => {
     const btn = e.target.closest('.cdd-tab');
     if (!btn) return;
@@ -651,7 +642,6 @@ function ensureDrawer() {
     if (_activeChord) _renderDrawerDiagram(_activeChord);
   });
 
-  // Close on Escape
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && _drawer.classList.contains('open')) hideDrawer();
   });
@@ -666,16 +656,23 @@ function _renderDrawerDiagram(chordName) {
 
   area.innerHTML = buildDiagramSVG(chordName, _drawerInstr);
 
-  // Quality label for piano
   if (_drawerInstr === 'piano') {
     const ps = PIANO_SHAPES[chordName];
     qLabel.textContent = ps ? `${ps.notes.join(' – ')}` : '';
   } else {
     qLabel.textContent = '';
   }
+
+  // Update pin button state
+  const pinBtn = _drawer.querySelector('#cddPinBtn');
+  if (pinBtn) {
+    const isPinned = dockIsPinned(chordName);
+    pinBtn.textContent = isPinned ? '📍' : '📌';
+    pinBtn.title = isPinned ? 'Already pinned' : 'Pin to dock';
+  }
 }
 
-function showDrawer(chordName) {
+function showDrawer(chordName, originElement) {
   ensureDrawer();
   _activeChord = chordName;
 
@@ -697,13 +694,8 @@ function hideDrawer() {
   _activeChord = null;
 }
 
-/**
- * Update the active instrument shown in the drawer.
- * Called by the instrument switcher in the controls bar.
- */
 function setDrawerInstrument(instr) {
   _drawerInstr = instr;
-  // Sync drawer tab UI if drawer exists
   if (_drawer) {
     _drawer.querySelectorAll('.cdd-tab').forEach(b => {
       const active = b.dataset.instr === instr;
@@ -716,22 +708,423 @@ function setDrawerInstrument(instr) {
   }
 }
 
+function destroyDrawer() {
+  hideDrawer();
+  if (_drawer)   { _drawer.remove();   _drawer   = null; }
+  if (_backdrop) { _backdrop.remove(); _backdrop = null; }
+  _activeChord = null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  CHORD DOCK — pinning system
+// ─────────────────────────────────────────────────────────────────────────
+
+const LS_DOCK_KEY    = 'sd5_chord_dock';
+const DOCK_MAX_PINS  = 18;
+
+// Position cycle: 'bottom' → 'top' → 'sidebar' → 'bottom'
+const DOCK_POSITIONS = ['bottom', 'top', 'sidebar'];
+
+let _dock            = null;       // The dock DOM element
+let _dockPinned      = [];         // Array of chord name strings (FIFO, newest first)
+let _dockPosition    = 'bottom';   // Current position
+let _dockMinimized   = false;      // Collapsed to badge
+let _dockExpanded    = false;      // Show diagrams (tall mode)
+let _dockInstr       = 'guitar';   // Mirrors page instrument
+let _dockScrollY     = 0;          // Last known scroll Y
+let _dockScrollDir   = 0;          // +1 down, -1 up
+let _dockScrollTimer = null;
+let _dockHidden      = false;      // Auto-hidden (scrolled down)
+let _dockGhosted     = false;
+let _dockScrolling   = false;
+
+function dockLoad() {
+  try {
+    const raw = localStorage.getItem(LS_DOCK_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, DOCK_MAX_PINS) : [];
+  } catch { return []; }
+}
+
+function dockSave() {
+  try { localStorage.setItem(LS_DOCK_KEY, JSON.stringify(_dockPinned)); } catch {}
+}
+
+function dockIsPinned(chordName) {
+  return _dockPinned.includes(chordName);
+}
+
+/**
+ * Pin a chord. Animates a "flight" clone from the token to the dock.
+ * @param {string} chordName
+ * @param {Element|null} originEl — source element for flight animation origin
+ */
+function dockPinChord(chordName, originEl) {
+  if (!_dock) return;
+
+  if (dockIsPinned(chordName)) {
+    // Already pinned — just flash the card
+    const existing = _dock.querySelector(`.dock-chord-card[data-chord="${CSS.escape(chordName)}"]`);
+    if (existing) {
+      existing.classList.add('dock-card-flash');
+      setTimeout(() => existing.classList.remove('dock-card-flash'), 600);
+    }
+    return;
+  }
+
+  // FIFO: remove oldest if at limit
+  if (_dockPinned.length >= DOCK_MAX_PINS) {
+    const removed = _dockPinned.pop();
+    const removedEl = _dock.querySelector(`.dock-chord-card[data-chord="${CSS.escape(removed)}"]`);
+    if (removedEl) removedEl.remove();
+  }
+
+  _dockPinned.unshift(chordName);
+  dockSave();
+
+  // Flight animation
+  if (originEl) {
+    _dockFlightAnimate(chordName, originEl);
+  }
+
+  // Add card to dock
+  const card = _dockBuildCard(chordName);
+  const list = _dock.querySelector('.dock-chord-list');
+  if (list) {
+    list.insertBefore(card, list.firstChild);
+    // Entrance animation
+    requestAnimationFrame(() => card.classList.add('dock-card-enter'));
+  }
+
+  _dockUpdateBadge();
+  _dockUpdatePinBtn(chordName);
+
+  // Show dock if minimized
+  if (_dockMinimized) dockRestore();
+}
+
+function dockUnpinChord(chordName) {
+  _dockPinned = _dockPinned.filter(c => c !== chordName);
+  dockSave();
+
+  const card = _dock?.querySelector(`.dock-chord-card[data-chord="${CSS.escape(chordName)}"]`);
+  if (card) {
+    card.classList.add('dock-card-exit');
+    setTimeout(() => card.remove(), 240);
+  }
+
+  _dockUpdateBadge();
+  _dockUpdatePinBtn(chordName);
+}
+
+function _dockUpdatePinBtn(chordName) {
+  // Update drawer pin button if open for this chord
+  if (_drawer && _activeChord === chordName) {
+    const pinBtn = _drawer.querySelector('#cddPinBtn');
+    if (pinBtn) {
+      const isPinned = dockIsPinned(chordName);
+      pinBtn.textContent = isPinned ? '📍' : '📌';
+      pinBtn.title = isPinned ? 'Already pinned' : 'Pin to dock';
+    }
+  }
+}
+
+function _dockFlightAnimate(chordName, originEl) {
+  if (!originEl || !_dock) return;
+
+  const srcRect  = originEl.getBoundingClientRect();
+  const dockRect = _dock.getBoundingClientRect();
+
+  // Destination: dock's list area (approximate)
+  const destX = dockRect.left + 16;
+  const destY = dockRect.top  + dockRect.height / 2;
+
+  const clone = document.createElement('div');
+  clone.className = 'dock-flight-clone';
+  clone.textContent = chordName;
+  clone.style.cssText = `
+    position: fixed;
+    z-index: 9999;
+    left: ${srcRect.left}px;
+    top: ${srcRect.top}px;
+    width: ${srcRect.width}px;
+    height: ${srcRect.height}px;
+    font-family: var(--mono);
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--card);
+    border: 1.5px solid var(--accent);
+    border-radius: .25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+    transition: transform 320ms cubic-bezier(.4,0,.2,1), opacity 320ms cubic-bezier(.4,0,.2,1);
+    will-change: transform, opacity;
+  `;
+
+  document.body.appendChild(clone);
+
+  const tx = destX - srcRect.left;
+  const ty = destY - srcRect.top;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      clone.style.transform = `translate(${tx}px, ${ty}px) scale(0.6)`;
+      clone.style.opacity   = '0';
+    });
+  });
+
+  setTimeout(() => clone.remove(), 360);
+}
+
+function _dockBuildCard(chordName) {
+  const card = document.createElement('div');
+  card.className = 'dock-chord-card';
+  card.dataset.chord = chordName;
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('aria-label', `${chordName} chord — pinned`);
+
+  const diagramWrap = document.createElement('div');
+  diagramWrap.className = 'dock-card-diagram';
+  diagramWrap.innerHTML = buildMiniDiagramSVG(chordName, _dockInstr);
+
+  const nameEl = document.createElement('div');
+  nameEl.className   = 'dock-card-name';
+  nameEl.textContent = chordName;
+
+  const unpinBtn = document.createElement('button');
+  unpinBtn.className  = 'dock-card-unpin';
+  unpinBtn.type       = 'button';
+  unpinBtn.setAttribute('aria-label', `Unpin ${chordName}`);
+  unpinBtn.textContent = '×';
+  unpinBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    dockUnpinChord(chordName);
+  });
+
+  card.appendChild(diagramWrap);
+  card.appendChild(nameEl);
+  card.appendChild(unpinBtn);
+
+  // Click card → show drawer
+  card.addEventListener('click', () => {
+    showDrawer(chordName, card);
+  });
+  card.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDrawer(chordName, card); }
+  });
+
+  return card;
+}
+
+function _dockUpdateBadge() {
+  if (!_dock) return;
+  const badge = _dock.querySelector('.dock-badge');
+  if (badge) badge.textContent = `${_dockPinned.length} chord${_dockPinned.length !== 1 ? 's' : ''}`;
+
+  const emptyMsg = _dock.querySelector('.dock-empty');
+  const list     = _dock.querySelector('.dock-chord-list');
+  if (emptyMsg) emptyMsg.hidden = _dockPinned.length > 0;
+  if (list)     list.hidden     = _dockPinned.length === 0;
+}
+
+function _dockRebuildAllCards() {
+  if (!_dock) return;
+  const list = _dock.querySelector('.dock-chord-list');
+  if (!list) return;
+  list.innerHTML = '';
+  _dockPinned.forEach(chordName => {
+    list.appendChild(_dockBuildCard(chordName));
+  });
+  _dockUpdateBadge();
+}
+
+/** Update all diagram SVGs when instrument changes */
+function dockSetInstrument(instr) {
+  _dockInstr = instr;
+  if (!_dock) return;
+  _dock.querySelectorAll('.dock-chord-card').forEach(card => {
+    const chordName = card.dataset.chord;
+    const diagramWrap = card.querySelector('.dock-card-diagram');
+    if (diagramWrap && chordName) {
+      diagramWrap.innerHTML = buildMiniDiagramSVG(chordName, instr);
+    }
+  });
+}
+
+function _dockCyclePosition() {
+  const idx = DOCK_POSITIONS.indexOf(_dockPosition);
+  _dockPosition = DOCK_POSITIONS[(idx + 1) % DOCK_POSITIONS.length];
+  _dockApplyPosition();
+}
+
+function _dockApplyPosition() {
+  if (!_dock) return;
+  DOCK_POSITIONS.forEach(p => _dock.classList.remove(`dock-pos-${p}`));
+  _dock.classList.add(`dock-pos-${_dockPosition}`);
+
+  const posBtn = _dock.querySelector('.dock-pos-btn');
+  const posLabels = { bottom: '⬆ Move to top', top: '➡ Move to sidebar', sidebar: '⬇ Move to bottom' };
+  if (posBtn) posBtn.title = posLabels[_dockPosition] || 'Change position';
+}
+
+function dockMinimize() {
+  if (!_dock) return;
+  _dockMinimized = true;
+  _dock.classList.add('dock-minimized');
+}
+
+function dockRestore() {
+  if (!_dock) return;
+  _dockMinimized = false;
+  _dock.classList.remove('dock-minimized');
+}
+
+function dockToggleExpanded() {
+  if (!_dock) return;
+  _dockExpanded = !_dockExpanded;
+  _dock.classList.toggle('dock-expanded', _dockExpanded);
+  const expBtn = _dock.querySelector('.dock-expand-btn');
+  if (expBtn) expBtn.textContent = _dockExpanded ? '▾' : '▸';
+}
+
+/** Build and attach the dock to the body */
+function ensureDock() {
+  if (_dock) return _dock;
+
+  _dock = document.createElement('div');
+  _dock.className = 'chord-dock';
+  _dock.setAttribute('role', 'complementary');
+  _dock.setAttribute('aria-label', 'Pinned chords dock');
+
+  _dock.innerHTML =
+    `<div class="dock-inner">
+      <div class="dock-controls-bar">
+        <button class="dock-badge" type="button" aria-label="Restore dock">0 chords</button>
+        <div class="dock-toolbar-btns">
+          <button class="dock-expand-btn" type="button" aria-label="Toggle expanded view" title="Show/hide diagrams">▸</button>
+          <button class="dock-pos-btn"    type="button" aria-label="Cycle dock position"  title="Change position">⤢</button>
+          <button class="dock-min-btn"    type="button" aria-label="Minimize dock"        title="Minimize">⌃</button>
+          <button class="dock-clear-btn"  type="button" aria-label="Clear all pins"       title="Clear all">✕ Clear</button>
+        </div>
+      </div>
+      <div class="dock-body">
+        <div class="dock-empty" hidden>
+          <span>Click any chord to pin it here for quick reference</span>
+        </div>
+        <div class="dock-chord-list" role="list" hidden></div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(_dock);
+
+  // Controls
+  _dock.querySelector('.dock-badge').addEventListener('click', dockRestore);
+  _dock.querySelector('.dock-min-btn').addEventListener('click', dockMinimize);
+  _dock.querySelector('.dock-expand-btn').addEventListener('click', dockToggleExpanded);
+  _dock.querySelector('.dock-pos-btn').addEventListener('click', _dockCyclePosition);
+  _dock.querySelector('.dock-clear-btn').addEventListener('click', () => {
+    _dockPinned = [];
+    dockSave();
+    _dockRebuildAllCards();
+  });
+
+  _dockApplyPosition();
+
+  // Scroll behaviour
+  _dockScrollY = window.scrollY;
+  const onScroll = () => {
+    const y   = window.scrollY;
+    const dy  = y - _dockScrollY;
+    _dockScrollDir = dy > 0 ? 1 : dy < 0 ? -1 : 0;
+    _dockScrollY   = y;
+
+    // Ghost while scrolling
+    if (!_dockScrolling) {
+      _dockScrolling = true;
+      _dock.classList.add('dock-ghosted');
+    }
+
+    // Auto-hide: down >60px → hide; any up → show
+    if (_dockScrollDir > 0 && y > 60) {
+      if (!_dockHidden) {
+        _dockHidden = true;
+        _dock.classList.add('dock-autohide');
+      }
+    } else if (_dockScrollDir < 0) {
+      if (_dockHidden) {
+        _dockHidden = false;
+        _dock.classList.remove('dock-autohide');
+      }
+    }
+
+    // Reset scroll timer
+    clearTimeout(_dockScrollTimer);
+    _dockScrollTimer = setTimeout(() => {
+      _dockScrolling = false;
+      _dock.classList.remove('dock-ghosted');
+    }, 800);
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  _dock._scrollHandler = onScroll;
+
+  return _dock;
+}
+
+/** Clean up dock completely (called on route change) */
+function destroyDock() {
+  if (!_dock) return;
+  if (_dock._scrollHandler) {
+    window.removeEventListener('scroll', _dock._scrollHandler);
+  }
+  clearTimeout(_dockScrollTimer);
+  _dock.remove();
+  _dock = null;
+  _dockPinned   = [];
+  _dockMinimized = false;
+  _dockExpanded  = false;
+  _dockHidden    = false;
+  _dockScrolling = false;
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  CHORD TOKEN EVENT DELEGATION
-//  Attach to any container; clicks on .chord-token open the drawer.
-//  Chord-used pills also open the drawer.
 // ─────────────────────────────────────────────────────────────────────────
 
 function attachChordEvents(container) {
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
   container.addEventListener('click', e => {
     const token = e.target.closest('.chord-token');
     if (token) {
       e.stopPropagation();
       const chord = token.dataset.chord;
-      if (_activeChord === chord && _drawer?.classList.contains('open')) {
-        hideDrawer();
+
+      if (isMobile()) {
+        // Mobile: tap pins directly; already-pinned tap opens drawer
+        if (dockIsPinned(chord)) {
+          if (_activeChord === chord && _drawer?.classList.contains('open')) {
+            hideDrawer();
+          } else {
+            showDrawer(chord, token);
+          }
+        } else {
+          dockPinChord(chord, token);
+        }
       } else {
-        showDrawer(chord);
+        // Desktop: click pins chord (drawer already shown on hover via mouseenter)
+        dockPinChord(chord, token);
+        if (_activeChord === chord && _drawer?.classList.contains('open')) {
+          hideDrawer();
+        } else {
+          showDrawer(chord, token);
+        }
       }
       return;
     }
@@ -740,13 +1133,56 @@ function attachChordEvents(container) {
     if (pill) {
       e.stopPropagation();
       const chord = pill.dataset.chord;
-      if (_activeChord === chord && _drawer?.classList.contains('open')) {
-        hideDrawer();
+      if (isMobile()) {
+        if (dockIsPinned(chord)) {
+          if (_activeChord === chord && _drawer?.classList.contains('open')) hideDrawer();
+          else showDrawer(chord, pill);
+        } else {
+          dockPinChord(chord, pill);
+        }
       } else {
-        showDrawer(chord);
+        dockPinChord(chord, pill);
+        if (_activeChord === chord && _drawer?.classList.contains('open')) hideDrawer();
+        else showDrawer(chord, pill);
       }
     }
   });
+
+  // Desktop hover → preview in drawer (no pinning)
+  if (!isMobile()) {
+    container.addEventListener('mouseenter', e => {
+      const token = e.target.closest('.chord-token, .chord-used-pill');
+      if (!token) return;
+      const chord = token.dataset.chord;
+      if (!chord) return;
+      // Only preview if drawer is already open or chord is different
+      if (!_drawer?.classList.contains('open') || _activeChord !== chord) {
+        ensureDrawer();
+        const nameEl = _drawer.querySelector('#cddChordName');
+        if (nameEl) nameEl.textContent = chord;
+        _activeChord = chord;
+        _renderDrawerDiagram(chord);
+        if (!_drawer.classList.contains('open')) {
+          _drawer.classList.add('open', 'drawer-preview');
+          // Don't lock scroll for preview-only hover
+        }
+      }
+    }, true);
+
+    container.addEventListener('mouseleave', e => {
+      const token = e.target.closest('.chord-token, .chord-used-pill');
+      if (!token) return;
+      // If drawer is in preview mode (not pinned-open), close after short delay
+      if (_drawer?.classList.contains('drawer-preview')) {
+        setTimeout(() => {
+          if (_drawer?.classList.contains('drawer-preview')) {
+            _drawer.classList.remove('open', 'drawer-preview');
+            _activeChord = null;
+          }
+        }, 300);
+      }
+    }, true);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1166,6 +1602,9 @@ export async function renderChords() {
   await ensureCSS();
   removeSchemas();
 
+  // Clean up dock from any previous detail page
+  destroyDock();
+
   updateSEO({
     title: 'Chord Sheets',
     desc:  'Guitar, ukulele & piano chord sheets with transpose, diagrams, and auto-scroll — curated by Suman Dangal.',
@@ -1471,7 +1910,6 @@ export async function renderChordDetail(slug) {
     post.Date_Added     ? `<span data-label="Added"><strong>${esc(post.Date_Added)}</strong></span>` : '',
   ].filter(Boolean).join('');
 
-  // ── Instrument switcher icon helpers ────────────────────────────────────
   const instrIcons = {
     guitar:  `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3L6 6M6 6L3 9M6 6C6 8.5 8 11 10.5 12M15 21L18 18M18 18L21 15M18 18C15.5 18 13 16 12 13.5M10.5 12C11.5 13.5 13 15.5 14.5 17L18 18M10.5 12L6 6"/></svg>`,
     ukulele: `<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="5" ry="6"/><line x1="12" y1="10" x2="12" y2="4"/><line x1="10" y1="4" x2="14" y2="4"/></svg>`,
@@ -1504,7 +1942,7 @@ export async function renderChordDetail(slug) {
         <div class="chord-capo-suggestion" id="capoSuggestion" hidden aria-live="polite"></div>
       </div>
 
-      <!-- Controls bar — mixing desk style -->
+      <!-- Controls bar -->
       <div class="chord-controls" id="chordControls" role="toolbar" aria-label="Chord sheet controls">
 
         <!-- Transpose -->
@@ -1590,6 +2028,12 @@ export async function renderChordDetail(slug) {
   const chordControls = document.getElementById('chordControls');
   const wrap          = document.getElementById('chordDetailWrap');
 
+  // ── Set up Chord Dock ──────────────────────────────────────────────────
+  _dockPinned  = dockLoad();
+  _dockInstr   = instrument;
+  ensureDock();
+  _dockRebuildAllCards();
+
   // ── Tab refresh ─────────────────────────────────────────────────────────
   function refreshTab() {
     if (!tabBody) return;
@@ -1622,7 +2066,6 @@ export async function renderChordDetail(slug) {
       }
     }
 
-    // Attach chord token events after new DOM is in place
     if (tabContainer) attachChordEvents(tabContainer);
   }
 
@@ -1655,8 +2098,8 @@ export async function renderChordDetail(slug) {
     instrument = instr;
     saveInstrument(instr);
     setDrawerInstrument(instr);
+    dockSetInstrument(instr);
 
-    // Update button states
     chordControls.querySelectorAll('.instr-btn').forEach(b => {
       const active = b.dataset.instr === instr;
       b.classList.toggle('active', active);
@@ -1711,14 +2154,19 @@ export async function renderChordDetail(slug) {
     }
   });
 
-  // ── Back ───────────────────────────────────────────────────────────────
-  chordBack?.addEventListener('click', () => {
+  // ── Back — cleanup ─────────────────────────────────────────────────────
+  const cleanup = () => {
     stopScroll();
     hideDrawer();
+    destroyDock();
+  };
+
+  chordBack?.addEventListener('click', () => {
+    cleanup();
     import('../router.js').then(({ navigate }) => navigate('/chords'));
   });
 
-  window.addEventListener('popstate', () => { stopScroll(); hideDrawer(); }, { once: true });
+  window.addEventListener('popstate', cleanup, { once: true });
 
   watchReveals();
 }
