@@ -169,8 +169,6 @@ export async function renderHome() {
   // 2. Inject home-specific structured data (Person + Org + WebSite)
   buildHomeSchemas();
 
-  // 3. Patch hero CTAs with Chord Sheets button
-  patchHeroCTAs();
 
   // 4. Render featured posts (non-blocking — doesn't delay hero paint)
   //    Fire-and-forget; errors are caught internally.

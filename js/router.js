@@ -240,27 +240,25 @@ export async function navigate(rawPath, push = true) {
     }
   }
 
-  if (handler) {
+if (handler) {
+    // Show view BEFORE fetching — eliminates white screen
+    const viewId = _getViewIdForPath(path);
+    if (viewId) showView(viewId);
     try {
       await handler(ctx);
     } catch (err) {
       console.error('[router] handler error for', path, err);
     }
-    // Show the appropriate view based on the route
-    const viewId = _getViewIdForPath(path);
-    if (viewId) showView(viewId);
     _currentPath = fullKey;
     watchReveals();
   } else {
     // 404 — show home view with overlay (matches existing pattern)
+    showView('view-home');
     const homeHandler = _exactRoutes.get('/');
     if (homeHandler) {
-      try { 
+      try {
         await homeHandler(ctx);
-        showView('view-home');
       } catch {}
-    } else {
-      showView('view-home');
     }
     _show404(path);
     _currentPath = fullKey;

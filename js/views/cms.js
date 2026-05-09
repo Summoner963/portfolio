@@ -99,6 +99,13 @@ function pipesToLines(raw) {
   return raw.split('|').join('\n');
 }
 
+function toInputDate(val) {
+  if (!val) return today();
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return today();
+  return d.toISOString().split('T')[0];
+}
+
 // ── Main entry point ──────────────────────────────────────────────────────
 
 export async function renderCMS() {
@@ -378,7 +385,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
       <div class="cms-row">
         <div class="cms-field">
           <label class="cms-label">Date</label>
-          <input class="cms-input" id="bDate" type="date" value="${esc(r.Date || today())}" />
+          <input class="cms-input" id="bDate" type="date" value="${esc(toInputDate(r.Date))}" />
         </div>
         <div class="cms-field">
           <label class="cms-label">Category</label>
@@ -645,7 +652,355 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   });
 }
 
+// ── CHORD LIST ─────────────────────────────────────────────────────────────
 
+async function renderChordList(panel, view) {
+  panel.innerHTML = `
+    <div class="cms-list-wrap">
+      <div class="cms-list-header">
+        <h3 class="cms-form-title">Chord Sheets</h3>
+        <button class="cms-btn cms-btn-primary" id="chordAddNew">+ Add New Chord Sheet</button>
+      </div>
+      <div class="cms-list-toolbar">
+        <input class="cms-input cms-list-search" id="chordListSearch"
+          type="search" placeholder="Search songs, artists\u2026" autocomplete="off" />
+        <select class="cms-input cms-select cms-list-sort" id="chordListSort">
+          <option value="newest">Newest first</option>
+          <option value="az">Title A\u2013Z</option>
+          <option value="artist">By artist</option>
+        </select>
+        <select class="cms-input cms-select" id="chordListDiff">
+          <option value="">All difficulties</option>
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
+        </select>
+      </div>
+      <div class="cms-list-body" id="chordListBody">
+        <div class="cms-list-loading">Loading chord sheets\u2026</div>
+      </div>
+    </div>`;
+
+  document.getElementById('chordAddNew').addEventListener('click', function() {
+    renderChordForm(panel, view, null);
+  });
+
+  let rows = [];
+  try {
+    const result = await apiRead('chords');
+    if (result.ok) {
+      rows = result.rows || [];
+    } else {
+      document.getElementById('chordListBody').innerHTML =
+        '<div class="cms-list-empty">Error loading chord sheets: ' + esc(result.error || 'Unknown error') + '</div>';
+      return;
+    }
+  } catch (e) {
+    document.getElementById('chordListBody').innerHTML =
+      '<div class="cms-list-empty">Network error loading chord sheets.</div>';
+    return;
+  }
+
+  function renderList() {
+    const search = (document.getElementById('chordListSearch') ? document.getElementById('chordListSearch').value : '').toLowerCase();
+    const sort   = document.getElementById('chordListSort')   ? document.getElementById('chordListSort').value   : 'newest';
+    const diff   = (document.getElementById('chordListDiff')  ? document.getElementById('chordListDiff').value   : '').toLowerCase();
+
+    let filtered = rows.filter(function(r) {
+      return (!search ||
+        (r.Title  || '').toLowerCase().includes(search) ||
+        (r.Artist || '').toLowerCase().includes(search)) &&
+        (!diff || (r.Difficulty || '').toLowerCase() === diff);
+    });
+
+    filtered.sort(function(a, b) {
+      if (sort === 'newest') return new Date(b.Date_Added || 0) - new Date(a.Date_Added || 0);
+      if (sort === 'az')     return (a.Title  || '').localeCompare(b.Title  || '');
+      if (sort === 'artist') return (a.Artist || '').localeCompare(b.Artist || '');
+      return 0;
+    });
+
+    const body = document.getElementById('chordListBody');
+    if (!body) return;
+
+    if (!filtered.length) {
+      body.innerHTML = '<div class="cms-list-empty">' +
+        (rows.length ? 'No chord sheets match your search.' : 'No chord sheets yet. Click "Add New" to create one.') +
+        '</div>';
+      return;
+    }
+
+    body.innerHTML = '';
+    filtered.forEach(function(row) {
+      const item = document.createElement('div');
+      item.className = 'cms-list-item';
+      item.innerHTML =
+        '<div class="cms-list-item-main">' +
+          '<span class="cms-list-item-title">' + esc(row.Title || '(no title)') + '</span>' +
+          '<span class="cms-list-item-meta">' +
+            '<span class="cms-list-badge">' + esc(row.Artist || '') + '</span>' +
+            (row.Key        ? '<span class="cms-list-badge">Key ' + esc(row.Key) + '</span>' : '') +
+            (row.Difficulty ? '<span class="cms-list-badge">' + esc(row.Difficulty) + '</span>' : '') +
+            (row.Date_Added ? '<span class="cms-list-date">' + esc(row.Date_Added) + '</span>' : '') +
+          '</span>' +
+        '</div>' +
+        '<div class="cms-list-item-actions">' +
+          '<button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="edit">Edit</button>' +
+          '<button class="cms-btn cms-btn-danger cms-btn-sm" data-action="delete">Delete</button>' +
+        '</div>';
+
+      item.querySelector('[data-action="edit"]').addEventListener('click', function() {
+        renderChordForm(panel, view, row);
+      });
+
+      item.querySelector('[data-action="delete"]').addEventListener('click', async function() {
+        if (!confirm('Delete "' + row.Title + '"? This cannot be undone.')) return;
+        const res = await apiDelete('chords', row.Slug);
+        if (res.ok) {
+          showToast('Chord sheet deleted');
+          rows = rows.filter(function(x) { return x.Slug !== row.Slug; });
+          renderList();
+        } else {
+          showToast(res.error || 'Delete failed', 'error');
+        }
+      });
+
+      body.appendChild(item);
+    });
+  }
+
+  document.getElementById('chordListSearch').addEventListener('input', renderList);
+  document.getElementById('chordListSort').addEventListener('change', renderList);
+  document.getElementById('chordListDiff').addEventListener('change', renderList);
+  renderList();
+}
+
+// ── CHORD FORM ─────────────────────────────────────────────────────────────
+
+function renderChordForm(panel, view, existingRow) {
+  const isEdit = !!existingRow;
+  const r      = existingRow || {};
+
+  const keys = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
+                 'Cm','Dm','Em','Am','Fm','Gm'];
+
+  function selOpt(val, opt) { return val === opt ? ' selected' : ''; }
+
+  const keyOptions = '<option value="">-- select --</option>' +
+    keys.map(function(k) {
+      return '<option value="' + esc(k) + '"' + (r.Key === k ? ' selected' : '') + '>' + esc(k) + '</option>';
+    }).join('');
+
+  panel.innerHTML = `
+    <div class="cms-form-wrap">
+      <div class="cms-form-topbar">
+        <button class="cms-btn cms-btn-ghost cms-btn-sm" id="chordBackToList">\u2190 All Chord Sheets</button>
+        <h3 class="cms-form-title">${isEdit ? 'Edit Chord Sheet' : 'New Chord Sheet'}</h3>
+      </div>
+      <div class="cms-row">
+        <div class="cms-field cms-field-wide">
+          <label class="cms-label">Song Title *</label>
+          <input class="cms-input" id="cTitle" type="text"
+            value="${esc(r.Title || '')}" placeholder="Timi Bina" required />
+        </div>
+        <div class="cms-field">
+          <label class="cms-label">Slug</label>
+          <input class="cms-input" id="cSlug" type="text"
+            value="${esc(r.Slug || '')}" placeholder="auto-generated"
+            ${isEdit ? 'readonly style="opacity:.6;cursor:not-allowed"' : ''} />
+        </div>
+      </div>
+      <div class="cms-row">
+        <div class="cms-field">
+          <label class="cms-label">Artist *</label>
+          <input class="cms-input" id="cArtist" type="text"
+            value="${esc(r.Artist || '')}" placeholder="The Axe Band" />
+        </div>
+        <div class="cms-field">
+          <label class="cms-label">Key</label>
+          <select class="cms-input cms-select" id="cKey">${keyOptions}</select>
+        </div>
+        <div class="cms-field">
+          <label class="cms-label">Capo</label>
+          <input class="cms-input" id="cCapo" type="number"
+            min="0" max="12" value="${esc(r.Capo || '0')}" />
+        </div>
+      </div>
+      <div class="cms-row">
+        <div class="cms-field">
+          <label class="cms-label">Difficulty</label>
+          <select class="cms-input cms-select" id="cDifficulty">
+            <option value="beginner"${selOpt(r.Difficulty,'beginner')}>Beginner</option>
+            <option value="intermediate"${selOpt(r.Difficulty,'intermediate') || (!r.Difficulty ? ' selected' : '')}>Intermediate</option>
+            <option value="advanced"${selOpt(r.Difficulty,'advanced')}>Advanced</option>
+          </select>
+        </div>
+        <div class="cms-field">
+          <label class="cms-label">Category</label>
+          <select class="cms-input cms-select" id="cCategory">
+            ${['nepali','english','hindi','devotional','folk','pop','rock','classical'].map(function(c) {
+              return '<option value="' + c + '"' + selOpt(r.Category, c) + '>' + c.charAt(0).toUpperCase() + c.slice(1) + '</option>';
+            }).join('')}
+          </select>
+        </div>
+        <div class="cms-field">
+          <label class="cms-label">Featured</label>
+          <select class="cms-input cms-select" id="cFeatured">
+            <option value="false"${selOpt(r.Featured,'false') || (!r.Featured ? ' selected' : '')}>No</option>
+            <option value="true"${selOpt(r.Featured,'true')}>Yes</option>
+          </select>
+        </div>
+      </div>
+      <div class="cms-row">
+        <div class="cms-field">
+          <label class="cms-label">Chords Used</label>
+          <input class="cms-input" id="cChordsUsed" type="text"
+            value="${esc(r.Chords_Used || '')}" placeholder="G, Em7, Cadd9, D" />
+        </div>
+        <div class="cms-field">
+          <label class="cms-label">Date Added</label>
+          <input class="cms-input" id="cDate" type="date" value="${esc(toInputDate(r.Date_Added))}" />
+        </div>
+      </div>
+      <div class="cms-row">
+        <div class="cms-field">
+          <label class="cms-label">Image URL</label>
+          <input class="cms-input" id="cImageUrl" type="url" value="${esc(r.Image_URL || '')}" />
+        </div>
+        <div class="cms-field">
+          <label class="cms-label">Image Alt</label>
+          <input class="cms-input" id="cImageAlt" type="text" value="${esc(r.Image_Alt || '')}" />
+        </div>
+      </div>
+      <div class="cms-field">
+        <label class="cms-label">Excerpt</label>
+        <textarea class="cms-input cms-textarea-sm" id="cExcerpt" rows="2"
+          placeholder="Learn to play this song with G Em7 Cadd9 chords\u2026">${esc(r.Excerpt || '')}</textarea>
+      </div>
+      <div class="cms-field">
+        <label class="cms-label">Tab Content
+          <span class="cms-label-hint">
+            Press Enter for new line, blank line for section gap.
+            Chords in [brackets]: [G]hey its me [C]here
+            Section labels on own line: [Verse 1] or [Chorus]
+          </span>
+        </label>
+        <div class="cms-editor-wrap">
+          <div class="cms-editor-pane">
+            <div class="cms-editor-label">Write</div>
+            <textarea class="cms-input cms-editor cms-editor-mono"
+              id="cTabContent" rows="22" spellcheck="false"
+              placeholder="[Verse 1]&#10;[G]Hey its me&#10;[C]here with you&#10;&#10;[Chorus]&#10;[G]This is the [Em]chorus"></textarea>
+          </div>
+          <div class="cms-preview-pane">
+            <div class="cms-editor-label">Preview</div>
+            <div class="cms-preview cms-tab-preview" id="cTabPreview"></div>
+          </div>
+        </div>
+      </div>
+      <div class="cms-actions">
+        <button class="cms-btn cms-btn-primary" id="cPublish">
+          ${isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192'}
+        </button>
+        <button class="cms-btn cms-btn-ghost" id="chordBackToList2">Cancel</button>
+        <span class="cms-status" id="cStatus"></span>
+      </div>
+    </div>`;
+
+  const tabEl = document.getElementById('cTabContent');
+  if (r.Tab_Content) tabEl.value = pipesToLines(r.Tab_Content);
+
+  const goBack = function() { renderChordList(panel, view); };
+  document.getElementById('chordBackToList').addEventListener('click', goBack);
+  document.getElementById('chordBackToList2').addEventListener('click', goBack);
+
+  const titleEl = document.getElementById('cTitle');
+  const slugEl  = document.getElementById('cSlug');
+  if (!isEdit) {
+    titleEl.addEventListener('input', function() {
+      if (!slugEl._manuallyEdited) slugEl.value = makeSlug(titleEl.value);
+    });
+    slugEl.addEventListener('input', function() { slugEl._manuallyEdited = true; });
+  }
+
+  const previewEl = document.getElementById('cTabPreview');
+  let previewTimer;
+
+  function updateTabPreview() {
+    previewEl.innerHTML = renderTabPreview(tabEl.value);
+  }
+
+  tabEl.addEventListener('input', function() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updateTabPreview, 300);
+  });
+
+  if (tabEl.value) updateTabPreview();
+
+  document.getElementById('cPublish').addEventListener('click', async function() {
+    const title      = document.getElementById('cTitle').value.trim();
+    const slug       = document.getElementById('cSlug').value.trim() || makeSlug(title);
+    const artist     = document.getElementById('cArtist').value.trim();
+    const key        = document.getElementById('cKey').value;
+    const capo       = document.getElementById('cCapo').value;
+    const difficulty = document.getElementById('cDifficulty').value;
+    const category   = document.getElementById('cCategory').value;
+    const chordsUsed = document.getElementById('cChordsUsed').value.trim();
+    const date       = document.getElementById('cDate').value || today();
+    const featured   = document.getElementById('cFeatured').value;
+    const imageUrl   = document.getElementById('cImageUrl').value.trim();
+    const imageAlt   = document.getElementById('cImageAlt').value.trim();
+    const excerpt    = document.getElementById('cExcerpt').value.trim();
+    const tabContent = linesTopipes(tabEl.value);
+    const statusEl   = document.getElementById('cStatus');
+    const btn        = document.getElementById('cPublish');
+
+    if (!title)  { showToast('Title is required',  'error'); return; }
+    if (!artist) { showToast('Artist is required', 'error'); return; }
+
+    btn.disabled    = true;
+    btn.textContent = isEdit ? 'Saving\u2026' : 'Publishing\u2026';
+    statusEl.textContent = '';
+
+    const rowData = {
+      Slug:        slug,
+      Title:       title,
+      Artist:      artist,
+      Key:         key,
+      Capo:        capo,
+      Difficulty:  difficulty,
+      Category:    category,
+      Chords_Used: chordsUsed,
+      Tab_Content: tabContent,
+      Featured:    featured,
+      Excerpt:     excerpt,
+      Date_Added:  date,
+      Image_URL:   imageUrl,
+      Image_Alt:   imageAlt,
+    };
+
+    try {
+      const result = isEdit
+        ? await apiUpdate('chords', r.Slug, rowData)
+        : await apiAppend('chords', rowData);
+
+      if (result.ok) {
+        showToast(isEdit ? 'Chord sheet updated!' : 'Chord sheet published!');
+        renderChordList(panel, view);
+      } else {
+        showToast(result.error || 'Save failed', 'error');
+        statusEl.textContent = '\u2717 ' + (result.error || 'Error');
+        statusEl.style.color = '#991b1b';
+        btn.disabled    = false;
+        btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
+      }
+    } catch (e) {
+      showToast('Network error', 'error');
+      btn.disabled    = false;
+      btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
+    }
+  });
+}
 
 // ── MARKDOWN TOOLBAR ──────────────────────────────────────────────────────
 
