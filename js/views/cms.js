@@ -1,5 +1,8 @@
 // js/views/cms.js
 // Content Studio — full CMS UI.
+// LEFT pane  = WYSIWYG contenteditable (write like MS Word)
+// RIGHT pane = Raw markdown textarea   (source, editable, syncs both ways)
+// At save: right-pane markdown value goes to Google Sheet — zero backend change.
 
 import { esc, loadCSS, showToast, md } from '../utils.js';
 
@@ -429,24 +432,54 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
         <div id="bFaqRows" class="cms-inline-rows"></div>
         <button class="cms-btn cms-btn-ghost cms-btn-sm" id="bAddFaq" type="button">+ Add FAQ</button>
       </div>
+
       <div class="cms-field">
         <label class="cms-label">Content
-          <span class="cms-label-hint">Markdown. Use [img1], [img2]\u2026 for inline images.</span>
+          <span class="cms-label-hint">
+            Write naturally on the left. Markdown source shown on the right — both sync live.
+            At save, the markdown is stored in your Sheet.
+          </span>
         </label>
         <div class="cms-toolbar" id="bToolbar" role="toolbar" aria-label="Formatting toolbar"></div>
         <div class="cms-editor-wrap">
+
+          <!-- LEFT: WYSIWYG -->
           <div class="cms-editor-pane">
-            <div class="cms-editor-label">Write <span class="cms-editor-wc" id="bWC">0 words</span></div>
-            <textarea class="cms-input cms-editor" id="bContent"
-              rows="22" spellcheck="true"
-              placeholder="Write your blog post in markdown\u2026">${esc(r.Content || '')}</textarea>
+            <div class="cms-editor-label" id="bWysiwygLabel">
+              <span>
+                Write
+                <span class="cms-editor-label-badge wysiwyg">WYSIWYG</span>
+              </span>
+              <span class="cms-editor-wc" id="bWC">0 words</span>
+            </div>
+            <div
+              class="cms-wysiwyg"
+              id="bWysiwyg"
+              contenteditable="true"
+              spellcheck="true"
+              data-placeholder="Write your blog post here\u2026 (bold, headings, lists all work like Word)"
+            ></div>
           </div>
+
+          <!-- RIGHT: Raw Markdown -->
           <div class="cms-preview-pane">
-            <div class="cms-editor-label">Preview</div>
-            <div class="cms-preview article-body" id="bPreview"></div>
+            <div class="cms-editor-label" id="bMdLabel">
+              <span>
+                Markdown Source
+                <span class="cms-editor-label-badge markdown">MD</span>
+              </span>
+            </div>
+            <textarea
+              class="cms-md-pane"
+              id="bMarkdown"
+              spellcheck="false"
+              placeholder="Markdown will appear here as you type on the left&#10;&#10;You can also edit here directly — the left side will update too."
+            ></textarea>
           </div>
+
         </div>
       </div>
+
       <div class="cms-actions">
         <button class="cms-btn cms-btn-primary" id="bPublish">
           ${isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192'}
@@ -460,6 +493,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   document.getElementById('blogBackToList').addEventListener('click', goBack);
   document.getElementById('blogBackToList2').addEventListener('click', goBack);
 
+  // Auto-slug from title
   const titleEl = document.getElementById('bTitle');
   const slugEl  = document.getElementById('bSlug');
   if (!isEdit) {
@@ -469,7 +503,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     slugEl.addEventListener('input', function() { slugEl._manuallyEdited = true; });
   }
 
-  // Inline image rows
+  // ── Inline image rows ────────────────────────────────────────────────────
   const imageRowsEl = document.getElementById('bImageRows');
   let imageRows = biRows.length
     ? biRows.map(function(x) { return { num: x.Img_Number || '', url: x.Img_URL || '', alt: x.Img_Alt || '' }; })
@@ -501,7 +535,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   });
   renderImageRows();
 
-  // FAQ rows
+  // ── FAQ rows ─────────────────────────────────────────────────────────────
   const faqRowsEl = document.getElementById('bFaqRows');
   let faqItems = faqRows.length
     ? faqRows.map(function(x) { return { q: x.FAQ_Question || '', a: x.FAQ_Answer || '' }; })
@@ -534,36 +568,75 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   });
   renderFaqRows();
 
-  // Toolbar + preview
-  buildMarkdownToolbar(
-    document.getElementById('bToolbar'),
-    document.getElementById('bContent'),
-    document.getElementById('bPreview')
-  );
+  // ── WYSIWYG + Markdown bidirectional sync ─────────────────────────────────
+  const wysiwygEl  = document.getElementById('bWysiwyg');
+  const markdownEl = document.getElementById('bMarkdown');
+  const wcEl       = document.getElementById('bWC');
+  const wLabel     = document.getElementById('bWysiwygLabel');
+  const mLabel     = document.getElementById('bMdLabel');
 
-  const contentEl = document.getElementById('bContent');
-  const previewEl = document.getElementById('bPreview');
-  if (contentEl.value) previewEl.innerHTML = md(contentEl.value);
+  // Load existing content
+  if (r.Content) {
+    markdownEl.value   = r.Content;
+    wysiwygEl.innerHTML = md(r.Content);
+  }
 
-  let previewTimer;
-  contentEl.addEventListener('input', function() {
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(function() {
-      previewEl.innerHTML = md(contentEl.value);
-    }, 300);
+  updateWC();
+
+  // Sync lock — prevents infinite loops between the two panes
+  let _syncing = false;
+  let _wysiwygTimer, _mdTimer;
+
+  // LEFT (wysiwyg) → RIGHT (markdown)
+  wysiwygEl.addEventListener('input', function() {
+    if (_syncing) return;
+    clearTimeout(_wysiwygTimer);
+    _wysiwygTimer = setTimeout(function() {
+      _syncing = true;
+      markdownEl.value = htmlToMd(wysiwygEl.innerHTML);
+      flashLabel(mLabel);
+      updateWC();
+      _syncing = false;
+    }, 250);
   });
 
-  // Word count
-    function updateWC() {
-    const wc = document.getElementById('bWC');
-    if (!wc) return;
-    const words = contentEl.value.trim().split(/\s+/).filter(Boolean).length;
-    wc.textContent = words + ' words';
-    }
-    contentEl.addEventListener('input', updateWC);
-    updateWC();
+  // RIGHT (markdown) → LEFT (wysiwyg)
+  markdownEl.addEventListener('input', function() {
+    if (_syncing) return;
+    clearTimeout(_mdTimer);
+    _mdTimer = setTimeout(function() {
+      _syncing = true;
+      // Save cursor position in markdown textarea
+      const scrollTop = wysiwygEl.scrollTop;
+      wysiwygEl.innerHTML = md(markdownEl.value);
+      wysiwygEl.scrollTop = scrollTop;
+      flashLabel(wLabel);
+      updateWC();
+      _syncing = false;
+    }, 250);
+  });
 
-  // Publish
+  function updateWC() {
+    if (!wcEl) return;
+    const text  = wysiwygEl.innerText || wysiwygEl.textContent || '';
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    wcEl.textContent = words + ' word' + (words === 1 ? '' : 's');
+  }
+
+  function flashLabel(labelEl) {
+    if (!labelEl) return;
+    labelEl.classList.add('syncing');
+    setTimeout(function() { labelEl.classList.remove('syncing'); }, 400);
+  }
+
+  // ── Toolbar ──────────────────────────────────────────────────────────────
+  buildWysiwygToolbar(
+    document.getElementById('bToolbar'),
+    wysiwygEl,
+    markdownEl
+  );
+
+  // ── Publish ──────────────────────────────────────────────────────────────
   document.getElementById('bPublish').addEventListener('click', async function() {
     const title    = document.getElementById('bTitle').value.trim();
     const slug     = document.getElementById('bSlug').value.trim() || makeSlug(title);
@@ -573,7 +646,10 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     const excerpt  = document.getElementById('bExcerpt').value.trim();
     const imageUrl = document.getElementById('bImageUrl').value.trim();
     const imageAlt = document.getElementById('bImageAlt').value.trim();
-    const content  = document.getElementById('bContent').value;
+
+    // Always save from the markdown pane — that's the source of truth
+    const content  = markdownEl.value;
+
     const statusEl = document.getElementById('bStatus');
     const btn      = document.getElementById('bPublish');
 
@@ -776,6 +852,7 @@ async function renderChordList(panel, view) {
 }
 
 // ── CHORD FORM ─────────────────────────────────────────────────────────────
+// (Unchanged — chord tab uses plain monospace format, not WYSIWYG)
 
 function renderChordForm(panel, view, existingRow) {
   const isEdit = !!existingRow;
@@ -1002,71 +1079,180 @@ function renderChordForm(panel, view, existingRow) {
   });
 }
 
-// ── MARKDOWN TOOLBAR ──────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//  HTML → MARKDOWN CONVERTER
+//  Walks the contenteditable DOM and produces clean markdown.
+//  This is what feeds the right-pane textarea whenever the user types on left.
+// ══════════════════════════════════════════════════════════════════════════════
+
+function htmlToMd(html) {
+  if (!html) return '';
+
+  // Parse into a temporary container
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+
+  // Normalise — browsers sometimes insert <br> at end of contenteditable
+  tmp.querySelectorAll('br').forEach(function(br) {
+    // Only replace trailing <br> in a block with nothing after it
+    if (!br.nextSibling) {
+      br.parentNode.removeChild(br);
+    }
+  });
+
+  return nodeToMd(tmp).trim();
+}
+
+/**
+ * Recursively convert a DOM node to markdown text.
+ * @param {Node} node
+ * @param {object} ctx  — context flags (inList, listType, listDepth, inPre)
+ * @returns {string}
+ */
+function nodeToMd(node, ctx) {
+  if (!ctx) ctx = { depth: 0 };
+
+  // Text node
+  if (node.nodeType === Node.TEXT_NODE) {
+    const txt = node.textContent;
+    // Inside pre/code blocks, return raw
+    if (ctx.inPre) return txt;
+    return txt;
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+  const tag  = node.tagName.toLowerCase();
+  const kids = Array.from(node.childNodes);
+
+  // ── Helper: render children inline ──────────────────────────────────────
+  function inlineKids(extraCtx) {
+    return kids.map(function(c) { return nodeToMd(c, Object.assign({}, ctx, extraCtx || {})); }).join('');
+  }
+
+  // ── Helper: render children as block (trim + newline) ───────────────────
+  function blockKids() {
+    return kids.map(function(c) { return nodeToMd(c, ctx); }).join('');
+  }
+
+  // ── Special: img placeholder chip ───────────────────────────────────────
+  if (tag === 'span' && node.classList.contains('img-placeholder')) {
+    return node.dataset.placeholder || node.textContent;
+  }
+
+  // ── Headings ─────────────────────────────────────────────────────────────
+  if (tag === 'h1') return '\n# '    + inlineKids() + '\n';
+  if (tag === 'h2') return '\n## '   + inlineKids() + '\n';
+  if (tag === 'h3') return '\n### '  + inlineKids() + '\n';
+  if (tag === 'h4') return '\n#### ' + inlineKids() + '\n';
+
+  // ── Inline formatting ────────────────────────────────────────────────────
+  if (tag === 'strong' || tag === 'b') return '**' + inlineKids() + '**';
+  if (tag === 'em'     || tag === 'i') return '*'  + inlineKids() + '*';
+  if (tag === 's'      || tag === 'del') return '~~' + inlineKids() + '~~';
+
+  // ── Inline code ──────────────────────────────────────────────────────────
+  if (tag === 'code' && node.parentElement.tagName.toLowerCase() !== 'pre') {
+    return '`' + node.textContent + '`';
+  }
+
+  // ── Pre / code block ─────────────────────────────────────────────────────
+  if (tag === 'pre') {
+    const codeEl = node.querySelector('code');
+    const raw    = codeEl ? codeEl.textContent : node.textContent;
+    return '\n```\n' + raw.trim() + '\n```\n';
+  }
+
+  // ── Links ─────────────────────────────────────────────────────────────────
+  if (tag === 'a') {
+    const href = node.getAttribute('href') || '';
+    const text = inlineKids();
+    if (!href || href === text) return text;
+    return '[' + text + '](' + href + ')';
+  }
+
+  // ── Horizontal rule ──────────────────────────────────────────────────────
+  if (tag === 'hr') return '\n---\n';
+
+  // ── Blockquote ───────────────────────────────────────────────────────────
+  if (tag === 'blockquote') {
+    const inner = blockKids().trim();
+    return '\n' + inner.split('\n').map(function(l) { return '> ' + l; }).join('\n') + '\n';
+  }
+
+  // ── Unordered list ────────────────────────────────────────────────────────
+  if (tag === 'ul') {
+    return '\n' + kids.map(function(c) {
+      if (c.nodeType !== Node.ELEMENT_NODE) return '';
+      return '- ' + nodeToMd(c, ctx).trim();
+    }).filter(Boolean).join('\n') + '\n';
+  }
+
+  // ── Ordered list ──────────────────────────────────────────────────────────
+  if (tag === 'ol') {
+    return '\n' + kids.map(function(c, i) {
+      if (c.nodeType !== Node.ELEMENT_NODE) return '';
+      return (i + 1) + '. ' + nodeToMd(c, ctx).trim();
+    }).filter(Boolean).join('\n') + '\n';
+  }
+
+  // ── List item — just recurse inline ──────────────────────────────────────
+  if (tag === 'li') return inlineKids();
+
+  // ── Colour span — keep as HTML inline (markdown has no colour syntax) ────
+  if (tag === 'span') {
+    const style = node.getAttribute('style') || '';
+    const colorMatch = style.match(/color\s*:\s*([^;]+)/i);
+    if (colorMatch) {
+      return '<span style="color:' + colorMatch[1].trim() + '">' + inlineKids() + '</span>';
+    }
+    // Plain span (e.g. img-placeholder handled above) — just inline children
+    return inlineKids();
+  }
+
+  // ── Figure / inline image placeholder ────────────────────────────────────
+  if (tag === 'figure') {
+    // Look for data-placeholder set by the toolbar insert
+    const chip = node.querySelector('.img-placeholder');
+    if (chip) return '\n' + (chip.dataset.placeholder || chip.textContent) + '\n';
+    return '';
+  }
+
+  // ── Callout blocks ────────────────────────────────────────────────────────
+  if (tag === 'div' && node.classList.contains('callout')) {
+    // Extract type from class list: callout-note, callout-tip …
+    const typeClass = Array.from(node.classList).find(function(c) { return c.startsWith('callout-') && c !== 'callout'; });
+    const calloutType = typeClass ? typeClass.replace('callout-', '') : 'note';
+    const bodyEl = node.querySelector('.callout-body');
+    const bodyText = bodyEl ? bodyEl.innerText || bodyEl.textContent : '';
+    return '\n:::' + calloutType + '\n\n' + bodyText.trim() + '\n\n:::\n';
+  }
+
+  // ── Line break ────────────────────────────────────────────────────────────
+  if (tag === 'br') return '\n';
+
+  // ── Paragraph / div ──────────────────────────────────────────────────────
+  if (tag === 'p' || tag === 'div') {
+    const inner = inlineKids().trim();
+    if (!inner) return '\n';
+    return '\n' + inner + '\n';
+  }
+
+  // ── Fallback: just recurse ────────────────────────────────────────────────
+  return inlineKids();
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  WYSIWYG TOOLBAR
+//  Replaces buildMarkdownToolbar().
+//  Buttons call document.execCommand() on the contenteditable.
+//  Dropdowns (headings, callouts, colour, special chars) work the same way
+//  but manipulate the selection via Range/execCommand.
+// ══════════════════════════════════════════════════════════════════════════════
 
 const COLORS = ['#2d6a4f','#1b4332','#e63946','#f4a261','#457b9d','#6d6875','#000000','#ffffff'];
-
-// Format groups — rendered as grouped button clusters
-const TOOLBAR_GROUPS = [
-  {
-    label: 'text-size',
-    type: 'dropdown',
-    title: 'Text Size',
-    icon: 'T',
-    options: [
-      { label: 'Paragraph',  value: '',    wrap: ['',     ''],    block: false },
-      { label: 'Heading 1',  value: 'h1',  wrap: ['# ',   ''],   block: true  },
-      { label: 'Heading 2',  value: 'h2',  wrap: ['## ',  ''],   block: true  },
-      { label: 'Heading 3',  value: 'h3',  wrap: ['### ', ''],   block: true  },
-      { label: 'Heading 4',  value: 'h4',  wrap: ['#### ',''],   block: true  },
-    ],
-  },
-  {
-    label: 'inline',
-    type: 'group',
-    buttons: [
-      { label: 'B',  title: 'Bold',         wrap: ['**','**'],   block: false, cls: 'tb-bold'   },
-      { label: 'I',  title: 'Italic',       wrap: ['*','*'],     block: false, cls: 'tb-italic' },
-      { label: 'S',  title: 'Strikethrough',wrap: ['~~','~~'],   block: false, cls: 'tb-strike' },
-      { label: '`',  title: 'Inline code',  wrap: ['`','`'],     block: false                   },
-    ],
-  },
-  {
-    label: 'block',
-    type: 'group',
-    buttons: [
-      { label: '❝',   title: 'Blockquote',  wrap: ['> ',''],     block: true  },
-      { label: '```', title: 'Code block',  wrap: ['```\n','\n```'], block: true },
-      { label: '—',   title: 'Divider',     insert: '\n---\n'               },
-    ],
-  },
-  {
-    label: 'lists',
-    type: 'group',
-    buttons: [
-      { label: '•',  title: 'Bullet list',   wrap: ['- ',''],    block: true  },
-      { label: '1.',  title: 'Numbered list', wrap: ['1. ',''],   block: true  },
-    ],
-  },
-  {
-    label: 'insert',
-    type: 'group',
-    buttons: [
-      { label: '🔗', title: 'Link',          wrap: ['[','](url)'], block: false },
-      { label: '[img]', title: 'Image placeholder',
-        insertFn: function(ta) {
-          const matches = (ta.value.match(/\[img(\d+)\]/g) || []);
-          return '[img' + (matches.length + 1) + ']';
-        }
-      },
-    ],
-  },
-];
-
-// Callout types
 const CALLOUT_TYPES = ['note','tip','warning','important','info'];
-
-// Special chars
 const SPECIAL_CHARS = [
   '\u2014','\u2013','\u2026',
   '\u201C','\u201D','\u2018','\u2019','\u00AB','\u00BB',
@@ -1077,35 +1263,119 @@ const SPECIAL_CHARS = [
   '\u2116','\u20B9','\u20AC','\u00A3',
 ];
 
-function buildMarkdownToolbar(toolbar, textarea, preview) {
+function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
   toolbar.innerHTML = '';
 
-  // ── Group 1: Text Size dropdown ────────────────────────────────────────
-  const sizeGroup = TOOLBAR_GROUPS[0];
-  const sizeWrap  = document.createElement('div');
+  // Saved selection — we lose focus when clicking toolbar buttons,
+  // so we capture it on mousedown
+  let _savedRange = null;
+
+  function saveSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      _savedRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+
+  function restoreSelection() {
+    if (!_savedRange) { wysiwygEl.focus(); return; }
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedRange);
+  }
+
+  // Capture selection before toolbar button steals focus
+  toolbar.addEventListener('mousedown', function(e) {
+    if (e.target.closest('button, input[type="color"]')) {
+      saveSelection();
+    }
+  });
+
+  // After any edit, push markdown to right pane
+  // (The input event on wysiwygEl already handles this via the sync,
+  //  but execCommand doesn't always fire 'input', so we fire it manually.)
+  function afterEdit() {
+    wysiwygEl.dispatchEvent(new Event('input', { bubbles: true }));
+    updateToolbarState();
+  }
+
+  // ── execCommand wrapper ──────────────────────────────────────────────────
+  function exec(cmd, value) {
+    restoreSelection();
+    wysiwygEl.focus();
+    document.execCommand(cmd, false, value || null);
+    afterEdit();
+  }
+
+  // ── Heading: replaces current block with heading element ────────────────
+  function applyHeading(tag) {
+    restoreSelection();
+    wysiwygEl.focus();
+    if (tag === 'p' || tag === '') {
+      document.execCommand('formatBlock', false, 'p');
+    } else {
+      document.execCommand('formatBlock', false, tag);
+    }
+    afterEdit();
+  }
+
+  // ── Insert HTML at cursor ────────────────────────────────────────────────
+  function insertHTML(html) {
+    restoreSelection();
+    wysiwygEl.focus();
+    document.execCommand('insertHTML', false, html);
+    afterEdit();
+  }
+
+  // ── Insert img placeholder chip ──────────────────────────────────────────
+  function insertImgPlaceholder() {
+    restoreSelection();
+    const existing = wysiwygEl.querySelectorAll('.img-placeholder');
+    const num = existing.length + 1;
+    const placeholder = '[img' + num + ']';
+    const chip = '<span class="img-placeholder" contenteditable="false" data-placeholder="' +
+      placeholder + '">\uD83D\uDDBC\uFE0F ' + placeholder + '</span>&nbsp;';
+    insertHTML(chip);
+  }
+
+  // ── Separator ────────────────────────────────────────────────────────────
+  function addSep() {
+    const s = document.createElement('span');
+    s.className = 'cms-tb-sep';
+    toolbar.appendChild(s);
+  }
+
+  // ── 1. Heading / paragraph dropdown ─────────────────────────────────────
+  const sizeWrap = document.createElement('div');
   sizeWrap.className = 'tb-dropdown-wrap';
 
   const sizeBtn = document.createElement('button');
   sizeBtn.type      = 'button';
   sizeBtn.className = 'cms-tb-btn tb-size-btn';
-  sizeBtn.title     = 'Text size / heading';
   sizeBtn.innerHTML = '<span class="tb-size-label">Paragraph</span><span class="tb-caret">▾</span>';
 
   const sizeMenu = document.createElement('div');
   sizeMenu.className = 'tb-dropdown-menu';
   sizeMenu.hidden    = true;
 
-  sizeGroup.options.forEach(function(opt) {
+  const headingOpts = [
+    { label: 'Paragraph', tag: 'p',  cls: 'tb-size-p'  },
+    { label: 'Heading 1', tag: 'h1', cls: 'tb-size-h1' },
+    { label: 'Heading 2', tag: 'h2', cls: 'tb-size-h2' },
+    { label: 'Heading 3', tag: 'h3', cls: 'tb-size-h3' },
+    { label: 'Heading 4', tag: 'h4', cls: 'tb-size-h4' },
+  ];
+
+  headingOpts.forEach(function(opt) {
     const item = document.createElement('button');
-    item.type      = 'button';
-    item.className = 'tb-dropdown-item tb-size-' + (opt.value || 'p');
+    item.type        = 'button';
+    item.className   = 'tb-dropdown-item ' + opt.cls;
     item.textContent = opt.label;
+    item.addEventListener('mousedown', function(e) { e.preventDefault(); });
     item.addEventListener('click', function() {
-      applyWrap(textarea, opt.wrap, opt.block);
+      applyHeading(opt.tag);
       sizeMenu.hidden = true;
       sizeBtn.querySelector('.tb-size-label').textContent = opt.label;
-      refreshPreview(textarea, preview);
-      textarea.focus();
     });
     sizeMenu.appendChild(item);
   });
@@ -1119,44 +1389,142 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   sizeWrap.appendChild(sizeBtn);
   sizeWrap.appendChild(sizeMenu);
   toolbar.appendChild(sizeWrap);
+  addSep();
 
-  addSep(toolbar);
+  // ── 2. Inline format group: B I S ` ─────────────────────────────────────
+  const inlineGroup = document.createElement('div');
+  inlineGroup.className = 'tb-btn-group';
 
-  // ── Groups 2-5: button clusters ───────────────────────────────────────
-  TOOLBAR_GROUPS.slice(1).forEach(function(group, gi) {
-    if (gi > 0) addSep(toolbar);
-    const wrap = document.createElement('div');
-    wrap.className = 'tb-btn-group';
-    group.buttons.forEach(function(action) {
-      const btn = document.createElement('button');
-      btn.type      = 'button';
-      btn.className = 'cms-tb-btn' + (action.cls ? ' ' + action.cls : '');
-      btn.title     = action.title;
-      btn.innerHTML = '<span>' + action.label + '</span>';
-      btn.addEventListener('click', function() {
-        closeAllPopups(toolbar);
-        if (action.insert)   { insertAtCursor(textarea, action.insert, ''); }
-        else if (action.insertFn) { insertAtCursor(textarea, action.insertFn(textarea), ''); }
-        else if (action.wrap){ applyWrap(textarea, action.wrap, action.block); }
-        refreshPreview(textarea, preview);
-        textarea.focus();
-      });
-      wrap.appendChild(btn);
+  const inlineBtns = [
+    { label: 'B',  title: 'Bold',          cmd: 'bold',          cls: 'tb-bold',   id: 'tb-bold'   },
+    { label: 'I',  title: 'Italic',        cmd: 'italic',        cls: 'tb-italic', id: 'tb-italic' },
+    { label: 'S',  title: 'Strikethrough', cmd: 'strikeThrough', cls: 'tb-strike', id: 'tb-strike' },
+    { label: '`',  title: 'Inline code',   cmd: null,            cls: '',           id: 'tb-code'   },
+  ];
+
+  inlineBtns.forEach(function(b) {
+    const btn = document.createElement('button');
+    btn.type        = 'button';
+    btn.className   = 'cms-tb-btn' + (b.cls ? ' ' + b.cls : '');
+    btn.title       = b.title;
+    btn.id          = b.id;
+    btn.innerHTML   = '<span>' + b.label + '</span>';
+
+    btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+    btn.addEventListener('click', function() {
+      if (b.cmd) {
+        exec(b.cmd);
+      } else {
+        // Inline code — wrap selection in <code>
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+          restoreSelection();
+          wysiwygEl.focus();
+          const text = sel.toString();
+          document.execCommand('insertHTML', false, '<code>' + text + '</code>');
+          afterEdit();
+        }
+      }
     });
-    toolbar.appendChild(wrap);
+    inlineGroup.appendChild(btn);
   });
+  toolbar.appendChild(inlineGroup);
+  addSep();
 
-  addSep(toolbar);
+  // ── 3. Block format group: blockquote, code block, hr ────────────────────
+  const blockGroup = document.createElement('div');
+  blockGroup.className = 'tb-btn-group';
 
-  // ── Callout inserter ──────────────────────────────────────────────────
+  [
+    { label: '❝',   title: 'Blockquote', fn: function() { exec('formatBlock', 'blockquote'); } },
+    { label: '```', title: 'Code block', fn: function() {
+        insertHTML('<pre><code>code here</code></pre><p><br></p>');
+    }},
+    { label: '—',   title: 'Divider',    fn: function() { insertHTML('<hr><p><br></p>'); } },
+  ].forEach(function(b) {
+    const btn = document.createElement('button');
+    btn.type      = 'button';
+    btn.className = 'cms-tb-btn';
+    btn.title     = b.title;
+    btn.innerHTML = '<span>' + b.label + '</span>';
+    btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+    btn.addEventListener('click', b.fn);
+    blockGroup.appendChild(btn);
+  });
+  toolbar.appendChild(blockGroup);
+  addSep();
+
+  // ── 4. List group ────────────────────────────────────────────────────────
+  const listGroup = document.createElement('div');
+  listGroup.className = 'tb-btn-group';
+
+  [
+    { label: '•',  title: 'Bullet list',   cmd: 'insertUnorderedList' },
+    { label: '1.', title: 'Numbered list', cmd: 'insertOrderedList'   },
+  ].forEach(function(b) {
+    const btn = document.createElement('button');
+    btn.type      = 'button';
+    btn.className = 'cms-tb-btn';
+    btn.title     = b.title;
+    btn.innerHTML = '<span>' + b.label + '</span>';
+    btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+    btn.addEventListener('click', function() { exec(b.cmd); });
+    listGroup.appendChild(btn);
+  });
+  toolbar.appendChild(listGroup);
+  addSep();
+
+  // ── 5. Insert group: link, img placeholder ────────────────────────────────
+  const insertGroup = document.createElement('div');
+  insertGroup.className = 'tb-btn-group';
+
+  // Link
+  const linkBtn = document.createElement('button');
+  linkBtn.type      = 'button';
+  linkBtn.className = 'cms-tb-btn';
+  linkBtn.title     = 'Insert link';
+  linkBtn.innerHTML = '<span>\uD83D\uDD17</span>';
+  linkBtn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+  linkBtn.addEventListener('click', function() {
+    saveSelection();
+    const sel = window.getSelection();
+    const defaultText = (sel && !sel.isCollapsed) ? '' : 'link text';
+    const url = prompt('Enter URL:');
+    if (!url) return;
+    restoreSelection();
+    wysiwygEl.focus();
+    if (sel && !sel.isCollapsed) {
+      document.execCommand('createLink', false, url);
+    } else {
+      const selAfter = window.getSelection();
+      document.execCommand('insertHTML', false,
+        '<a href="' + url + '">' + (defaultText || url) + '</a>');
+    }
+    afterEdit();
+  });
+  insertGroup.appendChild(linkBtn);
+
+  // Image placeholder
+  const imgBtn = document.createElement('button');
+  imgBtn.type      = 'button';
+  imgBtn.className = 'cms-tb-btn';
+  imgBtn.title     = 'Insert image placeholder';
+  imgBtn.innerHTML = '<span>[img]</span>';
+  imgBtn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+  imgBtn.addEventListener('click', insertImgPlaceholder);
+  insertGroup.appendChild(imgBtn);
+
+  toolbar.appendChild(insertGroup);
+  addSep();
+
+  // ── 6. Callout dropdown ───────────────────────────────────────────────────
   const calloutWrap = document.createElement('div');
   calloutWrap.className = 'tb-dropdown-wrap';
 
   const calloutBtn = document.createElement('button');
   calloutBtn.type      = 'button';
   calloutBtn.className = 'cms-tb-btn';
-  calloutBtn.title     = 'Insert callout block';
-  calloutBtn.innerHTML = '<span>Callout ▾</span>';
+  calloutBtn.innerHTML = '<span>Callout \u25BE</span>';
 
   const calloutMenu = document.createElement('div');
   calloutMenu.className = 'tb-dropdown-menu tb-callout-menu';
@@ -1167,12 +1535,16 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
     item.type        = 'button';
     item.className   = 'tb-dropdown-item tb-callout-' + type;
     item.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    item.addEventListener('mousedown', function(e) { e.preventDefault(); });
     item.addEventListener('click', function() {
-      const snippet = ':::' + type + '\n\nYour ' + type + ' text here\n\n:::';
-      insertAtCursor(textarea, snippet, '');
+      const icons = { note:'📝', tip:'💡', warning:'⚠️', important:'🚨', info:'ℹ️' };
+      const html =
+        '<div class="callout callout-' + type + '" contenteditable="false">' +
+          '<div class="callout-header">' + (icons[type] || '') + ' ' + type.toUpperCase() + '</div>' +
+          '<div class="callout-body" contenteditable="true"><p>Your ' + type + ' text here</p></div>' +
+        '</div><p><br></p>';
+      insertHTML(html);
       calloutMenu.hidden = true;
-      refreshPreview(textarea, preview);
-      textarea.focus();
     });
     calloutMenu.appendChild(item);
   });
@@ -1186,10 +1558,9 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   calloutWrap.appendChild(calloutBtn);
   calloutWrap.appendChild(calloutMenu);
   toolbar.appendChild(calloutWrap);
+  addSep();
 
-  addSep(toolbar);
-
-  // ── Color picker ──────────────────────────────────────────────────────
+  // ── 7. Colour picker ─────────────────────────────────────────────────────
   const colorWrap = document.createElement('div');
   colorWrap.className = 'tb-dropdown-wrap';
 
@@ -1198,15 +1569,13 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   const colorBtn = document.createElement('button');
   colorBtn.type      = 'button';
   colorBtn.className = 'cms-tb-btn tb-color-btn';
-  colorBtn.title     = 'Text color';
   colorBtn.innerHTML =
-    '<span class="tb-color-swatch-preview" id="tbColorSwatch" style="background:' + activeColor + '"></span>' +
+    '<span class="tb-color-swatch-preview" style="background:' + activeColor + '"></span>' +
     '<span>Color</span>';
 
   const colorPanel = document.createElement('div');
   colorPanel.className = 'tb-color-panel';
   colorPanel.hidden    = true;
-  colorPanel.id        = 'tbColorPanel_' + Math.random().toString(36).slice(2);
 
   const swatchRow = document.createElement('div');
   swatchRow.className = 'tb-swatch-row';
@@ -1216,13 +1585,12 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
     sw.className   = 'tb-swatch' + (c === '#ffffff' ? ' tb-swatch-light' : '');
     sw.style.background = c;
     sw.title       = c;
+    sw.addEventListener('mousedown', function(e) { e.preventDefault(); });
     sw.addEventListener('click', function() {
       activeColor = c;
-      colorBtn.querySelector('#tbColorSwatch, .tb-color-swatch-preview').style.background = activeColor;
+      colorBtn.querySelector('.tb-color-swatch-preview').style.background = activeColor;
       colorPanel.hidden = true;
-      applyColor(textarea, activeColor);
-      refreshPreview(textarea, preview);
-      textarea.focus();
+      exec('foreColor', activeColor);
     });
     swatchRow.appendChild(sw);
   });
@@ -1237,13 +1605,14 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   customInput.type  = 'color';
   customInput.value = activeColor;
   customInput.className = 'tb-custom-color-input';
-  customInput.addEventListener('input', function(e) { activeColor = e.target.value; colorBtn.querySelector('.tb-color-swatch-preview').style.background = activeColor; });
+  customInput.addEventListener('input', function(e) {
+    activeColor = e.target.value;
+    colorBtn.querySelector('.tb-color-swatch-preview').style.background = activeColor;
+  });
   customInput.addEventListener('change', function(e) {
     activeColor = e.target.value;
     colorPanel.hidden = true;
-    applyColor(textarea, activeColor);
-    refreshPreview(textarea, preview);
-    textarea.focus();
+    exec('foreColor', activeColor);
   });
   customRow.appendChild(customLabel);
   customRow.appendChild(customInput);
@@ -1258,18 +1627,17 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   colorWrap.appendChild(colorBtn);
   colorWrap.appendChild(colorPanel);
   toolbar.appendChild(colorWrap);
+  addSep();
 
-  addSep(toolbar);
-
-  // ── Special chars ─────────────────────────────────────────────────────
+  // ── 8. Special characters ────────────────────────────────────────────────
   const specialWrap = document.createElement('div');
   specialWrap.className = 'tb-dropdown-wrap';
 
   const specialBtn = document.createElement('button');
   specialBtn.type      = 'button';
   specialBtn.className = 'cms-tb-btn';
+  specialBtn.innerHTML = '<span>\u03A9</span>';
   specialBtn.title     = 'Special characters';
-  specialBtn.innerHTML = '<span>Ω</span>';
 
   const specialPanel = document.createElement('div');
   specialPanel.className = 'tb-special-panel';
@@ -1281,12 +1649,14 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
     b.className   = 'tb-special-char';
     b.textContent = ch;
     b.title       = ch;
+    b.addEventListener('mousedown', function(e) { e.preventDefault(); });
     b.addEventListener('click', function(e) {
       e.stopPropagation();
-      insertAtCursor(textarea, ch, '');
+      restoreSelection();
+      wysiwygEl.focus();
+      document.execCommand('insertText', false, ch);
       specialPanel.hidden = true;
-      refreshPreview(textarea, preview);
-      textarea.focus();
+      afterEdit();
     });
     specialPanel.appendChild(b);
   });
@@ -1301,12 +1671,28 @@ function buildMarkdownToolbar(toolbar, textarea, preview) {
   specialWrap.appendChild(specialPanel);
   toolbar.appendChild(specialWrap);
 
-  // ── Global click to close all popups ─────────────────────────────────
-    if (toolbar._closeHandler) {
-        document.removeEventListener('click', toolbar._closeHandler);
-    }
-    toolbar._closeHandler = function() { closeAllPopups(toolbar); };
-    document.addEventListener('click', toolbar._closeHandler);
+  // ── Global click to close all popups ─────────────────────────────────────
+  if (toolbar._closeHandler) {
+    document.removeEventListener('click', toolbar._closeHandler);
+  }
+  toolbar._closeHandler = function() { closeAllPopups(toolbar); };
+  document.addEventListener('click', toolbar._closeHandler);
+
+  // ── Toolbar active state (update B/I/S buttons based on selection) ───────
+  function updateToolbarState() {
+    try {
+      const btnBold   = document.getElementById('tb-bold');
+      const btnItalic = document.getElementById('tb-italic');
+      const btnStrike = document.getElementById('tb-strike');
+      if (btnBold)   btnBold.classList.toggle('active',   document.queryCommandState('bold'));
+      if (btnItalic) btnItalic.classList.toggle('active', document.queryCommandState('italic'));
+      if (btnStrike) btnStrike.classList.toggle('active', document.queryCommandState('strikeThrough'));
+    } catch(e) { /* queryCommandState can throw in some environments */ }
+  }
+
+  wysiwygEl.addEventListener('keyup',    updateToolbarState);
+  wysiwygEl.addEventListener('mouseup',  updateToolbarState);
+  wysiwygEl.addEventListener('selectionchange', updateToolbarState);
 }
 
 function closeAllPopups(toolbar) {
@@ -1315,55 +1701,14 @@ function closeAllPopups(toolbar) {
   ).forEach(function(el) { el.hidden = true; });
 }
 
-function addSep(toolbar) {
-  const s = document.createElement('span');
-  s.className = 'cms-tb-sep';
-  toolbar.appendChild(s);
-}
 
-function applyWrap(textarea, wrap, block) {
-  const start  = textarea.selectionStart;
-  const end    = textarea.selectionEnd;
-  const sel    = textarea.value.slice(start, end);
-  const before = wrap[0];
-  const after  = wrap[1];
-  if (block && !sel) {
-    const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
-    const lineEnd   = textarea.value.indexOf('\n', end);
-    const realEnd   = lineEnd === -1 ? textarea.value.length : lineEnd;
-    const line      = textarea.value.slice(lineStart, realEnd);
-    textarea.setRangeText(before + line + after, lineStart, realEnd, 'select');
-  } else {
-    textarea.setRangeText(before + sel + after, start, end, 'select');
-  }
-}
-
-function applyColor(textarea, color) {
-  const start   = textarea.selectionStart;
-  const end     = textarea.selectionEnd;
-  const sel     = textarea.value.slice(start, end) || 'text';
-  const wrapped = '<span style="color:' + color + '">' + sel + '</span>';
-  textarea.setRangeText(wrapped, start, end, 'end');
-}
-
-function insertAtCursor(textarea, before, after) {
-  const start = textarea.selectionStart;
-  const end   = textarea.selectionEnd;
-  const sel   = textarea.value.slice(start, end);
-  textarea.setRangeText(before + sel + after, start, end, 'end');
-}
-
-function refreshPreview(textarea, preview) {
-  if (!preview) return;
-  setTimeout(function() { preview.innerHTML = md(textarea.value); }, 50);
-}
-
-// ── CHORD TAB PREVIEW ─────────────────────────────────────────────────────
+// ── CHORD TAB PREVIEW ──────────────────────────────────────────────────────
+// (Unchanged)
 
 const CHORD_RE_PREVIEW = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
 
 function renderTabPreview(raw) {
-  if (!raw) return '<span style="color:var(--muted-light)">Preview will appear here…</span>';
+  if (!raw) return '<span style="color:var(--muted-light)">Preview will appear here\u2026</span>';
 
   return raw.split('\n').map(function(line) {
     const trimmed = line.trim();
