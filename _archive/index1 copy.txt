@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suman Dangal — Dev &amp; QA Engineer</title>
+  <meta name="description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships in Nepal." />
+  <meta name="robots" content="index, follow" />
+  <link id="canonical" rel="canonical" href="https://suman-dangal.com.np/" />
+  <link rel="icon" type="image/x-icon" href="https://suman-dangal.com.np/favicon.ico">
+  <link rel="apple-touch-icon" href="https://suman-dangal.com.np/favicon.ico">
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="Suman Dangal" />
+  <meta property="og:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
+  <meta property="og:description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships." />
+  <meta property="og:url"         content="https://suman-dangal.com.np/" />
+  <meta property="og:image"       content="https://suman-dangal.com.np/og.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
+  <meta name="twitter:description" content="Final-year BCA student. Full-stack Dev &amp; QA." />
+  <meta name="twitter:image"       content="https://suman-dangal.com.np/og.png" />
+
+  <!-- Structured Data: Person -->
+  <script type="application/ld+json" id="static-person-schema">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Suman Dangal",
+    "url": "https://suman-dangal.com.np/",
+    "email": "sumandangal888@gmail.com",
+    "jobTitle": "Dev & QA Engineer",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Bhaktapur",
+      "addressCountry": "NP"
+    },
+    "sameAs": ["https://linkedin.com/in/sumandangal963"]
+  }
+  </script>
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json" id="static-org-schema">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Suman Dangal",
+    "url": "https://suman-dangal.com.np/",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://suman-dangal.com.np/og.png",
+      "width": 1200,
+      "height": 630
+    }
+  }
+  </script>
+
+  <!-- Structured Data: WebSite -->
+  <script type="application/ld+json" id="static-website-schema">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Suman Dangal",
+    "url": "https://suman-dangal.com.np/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://suman-dangal.com.np/blog?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" />
+  </noscript>
+
+  <style>
+:root{
+  --bg:#ffffff;
+  --surface:#f7f8f6;
+  --card:#ffffff;
+  --border:#e2e6df;
+  --border-dark:#c8d0c4;
+  --accent:#2d6a4f;
+  --accent-light:#52b788;
+  --accent-bg:#edf5f0;
+  --accent2:#1b4332;
+  --accent3:#b7791f;
+  --text:#1a1e1a;
+  --muted:#5a6659;
+  --muted-light:#8a9688;
+  --serif:'DM Serif Display','DM Serif Display Fallback',Georgia,serif;
+  --mono:'DM Mono','DM Mono Fallback','Courier New',monospace;
+  --sans:'DM Sans','DM Sans Fallback',system-ui,-apple-system,sans-serif;
+  --nav-h:62px;
+  --max:1080px;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --shadow-sm:0 1px 4px rgba(0,0,0,.09);
+  --shadow-md:0 4px 18px rgba(0,0,0,.1);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.12);
+}
+@font-face{font-family:'DM Serif Display Fallback';src:local('Georgia');size-adjust:103%;ascent-override:90%;descent-override:22%;line-gap-override:0%}
+@font-face{font-family:'DM Mono Fallback';src:local('Courier New');size-adjust:86%;ascent-override:92%;descent-override:24%;line-gap-override:0%}
+@font-face{font-family:'DM Sans Fallback';src:local('Arial');size-adjust:101%;ascent-override:92%;descent-override:24%;line-gap-override:0%}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+
+/* ── Progress bar ── */
+#nprogress{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--accent);z-index:10001;box-shadow:0 0 6px rgba(45,106,79,.4);transition:width .25s var(--ease),opacity .4s;pointer-events:none}
+
+/* ── Nav ── */
+nav{
+  position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;
+  display:flex;align-items:center;justify-content:space-between;padding:0 4rem;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(18px) saturate(1.2);
+  -webkit-backdrop-filter:blur(18px) saturate(1.2);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+  will-change:transform;
+  contain:layout style;
+}
+.nav-brand{font-family:var(--mono);font-size:.84rem;color:var(--accent);letter-spacing:.06em;text-decoration:none;cursor:pointer;font-weight:500}
+.nav-links{display:flex;gap:2.4rem;list-style:none}
+.nav-links a{font-family:var(--mono);font-size:.75rem;color:var(--muted);text-decoration:none;letter-spacing:.09em;text-transform:uppercase;transition:color .2s;cursor:pointer}
+.nav-links a:hover,.nav-links a[aria-current="page"]{color:var(--accent)}
+.nav-links a[aria-current="page"]{font-weight:500}
+.nav-burger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.nav-burger span{display:block;width:21px;height:1.5px;background:var(--text);border-radius:1px;transition:transform .3s,opacity .3s}
+.nav-burger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.nav-burger.open span:nth-child(2){opacity:0}
+.nav-burger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+
+/* ── Article author ── */
+.article-author{display:flex;align-items:center;gap:.8rem;font-family:var(--mono);font-size:.75rem;color:var(--muted-light);margin:2rem 0;padding:1rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.article-author a{color:var(--accent);text-decoration:none}
+.article-author a:hover{text-decoration:underline}
+
+/* ── App shell ── */
+#app{padding-top:var(--nav-h);min-height:100vh}
+.view{display:none}
+.view.active{display:block;animation:viewIn .32s var(--ease) both}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+h1.hero-title.h1-hidden{display:none}
+
+/* ── Layout ── */
+.container{max-width:var(--max);margin:0 auto;padding:5rem 4rem}
+.section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;font-weight:500}
+.section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border);max-width:64px}
+.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
+
+/* ── Hero ── */
+.hero{
+  min-height:calc(100vh - var(--nav-h));
+  display:grid;place-items:center;
+  padding:4rem;position:relative;overflow:hidden;
+  background:
+    linear-gradient(var(--border) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border) 1px,transparent 1px),
+    linear-gradient(160deg,#f0f7f2 0%,#ffffff 55%,#f7f8f6 100%);
+  background-size:48px 48px,48px 48px,100% 100%;
+}
+.hero-grid,.hero-glow{display:none}
+.hero-inner{position:relative;max-width:860px;width:100%}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.5rem;
+  font-family:var(--mono);font-size:.7rem;color:var(--accent);
+  background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);
+  padding:.3rem .9rem;border-radius:2rem;letter-spacing:.13em;
+  text-transform:uppercase;margin-bottom:1.8rem;
+  animation:fadeUp .55s ease both;font-weight:500
+}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+h1.hero-title{
+  font-family:var(--serif);
+  font-size:clamp(3rem,8.5vw,7rem);
+  line-height:1.04;letter-spacing:-.02em;
+  margin-bottom:1.5rem;
+  animation:fadeUp .55s .08s ease both;
+  color:var(--accent2)
+}
+h1.hero-title em{font-style:italic;color:var(--accent)}
+.hero-sub{font-size:1.05rem;color:var(--muted);max-width:500px;line-height:1.75;margin-bottom:2.4rem;animation:fadeUp .55s .15s ease both}
+.hero-ctas{display:flex;gap:1rem;flex-wrap:wrap;animation:fadeUp .55s .22s ease both}
+.hero-stats{
+  display:flex;gap:3rem;flex-wrap:wrap;
+  margin-top:4rem;padding-top:2.5rem;
+  border-top:1px solid var(--border);
+  animation:fadeUp .55s .3s ease both
+}
+.stat-num{font-family:var(--serif);font-size:2.1rem;color:var(--accent);display:block}
+.stat-lbl{font-family:var(--mono);font-size:.67rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:.45rem;
+  font-family:var(--mono);font-size:.8rem;font-weight:500;
+  letter-spacing:.05em;padding:.8rem 1.8rem;border-radius:.4rem;
+  text-decoration:none;cursor:pointer;border:none;
+  transition:background-color .2s,border-color .2s,color .2s,box-shadow .2s,transform .2s;
+  white-space:nowrap
+}
+.btn-solid{background:var(--accent);color:#ffffff}
+.btn-solid:hover{background:var(--accent2);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.btn-ghost{background:transparent;border:1.5px solid var(--border-dark);color:var(--text)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);background:var(--accent-bg)}
+
+/* ── Skills ── */
+.skills-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1.4rem;content-visibility:auto;contain-intrinsic-size:0 400px}
+.skill-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;padding:1.7rem;position:relative;overflow:hidden;transition:border-color .25s,transform .25s;box-shadow:var(--shadow-sm);contain:layout style}
+.skill-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;opacity:0;transition:opacity .3s;border-radius:.8rem .8rem 0 0}
+.skill-card.c-green::before{background:var(--accent)}
+.skill-card.c-blue::before{background:#2563eb}
+.skill-card.c-amber::before{background:var(--accent3)}
+.skill-card:hover{border-color:var(--accent-light);transform:translateY(-3px)}
+.skill-card:hover::before{opacity:1}
+.skill-icon{font-size:1.4rem;margin-bottom:.9rem}
+.skill-name{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;font-weight:500}
+.tag-row{display:flex;flex-wrap:wrap;gap:.45rem}
+.tag{font-family:var(--mono);font-size:.69rem;padding:.22rem .6rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+
+/* ── Projects ── */
+.projects-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;content-visibility:auto;contain-intrinsic-size:0 600px}
+.proj-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;padding:2rem;transition:border-color .25s,transform .25s;box-shadow:var(--shadow-sm);contain:layout style}
+.proj-card.feat{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center}
+.proj-card.wide{grid-column:span 2}
+.proj-card:hover{border-color:rgba(45,106,79,.3);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.proj-num{font-family:var(--mono);font-size:.68rem;color:var(--accent);letter-spacing:.12em;margin-bottom:.9rem;font-weight:500}
+h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;line-height:1.2;color:var(--accent2)}
+.proj-desc{font-size:.87rem;color:var(--muted);line-height:1.65;margin-bottom:1.4rem}
+.proj-bullets{list-style:none;margin-bottom:1.4rem}
+.proj-bullets li{font-size:.81rem;color:var(--muted);padding:.32rem 0 .32rem 1.1rem;position:relative;border-bottom:1px solid var(--border)}
+.proj-bullets li::before{content:'→';position:absolute;left:0;color:var(--accent);font-size:.72rem;top:.38rem}
+.proj-stack{display:flex;flex-wrap:wrap;gap:.38rem}
+.proj-stack .tag{font-size:.65rem;background:var(--accent-bg);border-color:rgba(45,106,79,.2);color:var(--accent)}
+.proj-links{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.2rem}
+.proj-visual{background:var(--surface);border-radius:.5rem;border:1.5px solid var(--border);height:190px;display:grid;place-items:center;font-size:2.8rem;min-width:0}
+.proj-note{font-size:.75rem;color:var(--muted-light);margin-top:.45rem;font-style:italic}
+
+/* ── Blog toolbar ── */
+.blog-toolbar{display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;margin-bottom:2rem;padding:1.2rem 1.4rem;background:var(--surface);border:1.5px solid var(--border);border-radius:.8rem;contain:layout style}
+.blog-search-wrap{flex:1;min-width:200px;position:relative;display:flex;align-items:center}
+.blog-search-wrap svg{position:absolute;left:.75rem;width:15px;height:15px;stroke:var(--muted);fill:none;pointer-events:none;flex-shrink:0}
+#blogSearch{width:100%;height:38px;padding:0 .75rem 0 2.4rem;border:1.5px solid var(--border);border-radius:.4rem;background:var(--card);color:var(--text);font-family:var(--sans);font-size:.85rem;outline:none;transition:border-color .2s}
+#blogSearch::placeholder{color:var(--muted-light)}
+#blogSearch:focus{border-color:var(--accent)}
+.blog-filters{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.filter-label{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:.2rem;font-weight:500}
+.filter-chip{font-family:var(--mono);font-size:.7rem;padding:.32rem .8rem;border-radius:2rem;border:1.5px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:border-color .18s,color .18s,background-color .18s;letter-spacing:.04em}
+.filter-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.filter-chip.active{border-color:var(--accent);background:var(--accent);color:#fff}
+.blog-sort-wrap{display:flex;align-items:center;gap:.5rem;margin-left:auto}
+#blogSort{height:38px;padding:0 2rem 0 .75rem;border:1.5px solid var(--border);border-radius:.4rem;background:var(--card);color:var(--text);font-family:var(--mono);font-size:.75rem;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a6659' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .6rem center;transition:border-color .2s}
+#blogSort:focus{border-color:var(--accent)}
+.blog-results-count{font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-left:auto;white-space:nowrap}
+
+/* ── Blog grid ── */
+.blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.4rem;content-visibility:auto;contain-intrinsic-size:0 500px}
+.blog-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s;display:flex;flex-direction:column;box-shadow:var(--shadow-sm);contain:layout style}
+.blog-card:hover{border-color:rgba(45,106,79,.3);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.blog-card-thumb{width:100%;height:172px;overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2.4rem;border-bottom:1px solid var(--border);flex-shrink:0;aspect-ratio:310/172}
+.blog-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.blog-card-body{padding:1.4rem;flex:1;display:flex;flex-direction:column}
+.blog-card-meta{display:flex;align-items:center;gap:.7rem;font-family:var(--mono);font-size:.65rem;color:var(--muted-light);letter-spacing:.06em;margin-bottom:.7rem}
+.blog-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
+h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem;line-height:1.25;flex:1;color:var(--accent2)}
+.blog-card-excerpt{font-size:.83rem;color:var(--muted);line-height:1.65}
+.blog-card-tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.75rem}
+.blog-tag{font-family:var(--mono);font-size:.63rem;padding:.18rem .55rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted-light);letter-spacing:.03em;transition:border-color .15s,color .15s}
+.blog-tag:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Article ── */
+.article-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.6rem}
+.article-tag{font-family:var(--mono);font-size:.68rem;padding:.22rem .65rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)}
+.pagination{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:3rem;font-family:var(--mono);font-size:.85rem;color:var(--muted);min-height:52px}
+.pagination .btn{padding:.5rem 1.2rem;font-size:.75rem}
+#view-article .container{max-width:720px}
+.article-back{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;margin-bottom:2.4rem;transition:color .2s;letter-spacing:.05em}
+.article-back:hover{color:var(--accent)}
+.article-meta{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-bottom:1.4rem;letter-spacing:.06em}
+h2.article-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.1;margin-bottom:1.8rem;color:var(--accent2)}
+.article-cover{width:100%;max-height:420px;object-fit:cover;border-radius:.7rem;border:1.5px solid var(--border);margin-bottom:2.2rem;display:block;aspect-ratio:720/420}
+.article-body h2{font-family:var(--serif);font-size:1.55rem;margin:2rem 0 1rem;color:var(--text)}
+.article-body h3{font-family:var(--serif);font-size:1.15rem;margin:1.5rem 0 .7rem;color:var(--accent)}
+.article-body p{color:var(--muted);line-height:1.82;margin-bottom:1.2rem;font-size:.94rem}
+.article-body p strong{color:var(--text);font-weight:500}
+.article-body a{color:var(--accent);text-underline-offset:3px}
+.article-body ul,.article-body ol{padding-left:1.4rem;margin-bottom:1.2rem}
+.article-body li{color:var(--muted);font-size:.9rem;line-height:1.8;margin-bottom:.3rem}
+.article-body blockquote{border-left:2px solid var(--accent);padding:.4rem 0 .4rem 1.4rem;margin:1.5rem 0;background:var(--accent-bg);border-radius:0 .4rem .4rem 0}
+.article-body blockquote p{color:var(--text);font-style:italic;margin:0}
+.article-body code{font-family:var(--mono);font-size:.8rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.18);padding:.14rem .38rem;border-radius:.25rem;color:var(--accent)}
+.article-body pre{background:var(--surface);border:1.5px solid var(--border);border-radius:.6rem;padding:1.4rem;overflow-x:auto;margin-bottom:1.4rem}
+.article-body pre code{background:none;border:none;padding:0;color:var(--text)}
+.blog-inline-img{display:block;width:100%;height:auto;border-radius:.6rem;border:1.5px solid var(--border);aspect-ratio:16/9;object-fit:cover;background:var(--surface)}
+figure.blog-figure{margin:2rem 0}
+figure.blog-figure figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted-light);text-align:center;margin-top:.55rem;letter-spacing:.04em;font-style:italic}
+
+/* ── Article author byline ── */
+.article-author{display:flex;align-items:center;gap:.8rem;font-family:var(--mono);font-size:.75rem;color:var(--muted-light);margin:2rem 0;padding:1rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.article-author a{color:var(--accent);text-decoration:none}
+.article-author a:hover{text-decoration:underline}
+
+/* ── Sheet HTML table ── */
+.sheet-html-block{margin:1.8rem 0;overflow-x:auto}
+.sheet-html-block table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.77rem}
+.sheet-html-block th{background:var(--accent-bg);color:var(--accent2);padding:.6rem 1rem;text-align:left;border-bottom:2px solid rgba(45,106,79,.2);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.sheet-html-block td{padding:.55rem 1rem;color:var(--muted);border-bottom:1px solid var(--border)}
+.sheet-html-block tr:hover td{background:var(--surface)}
+
+/* ── FAQ ── */
+.faq-section{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border)}
+.faq-section h2{font-family:var(--serif);font-size:1.55rem;margin-bottom:1.4rem;color:var(--accent2)}
+details.faq-item{border:1.5px solid var(--border);border-radius:.6rem;margin-bottom:.75rem;overflow:hidden;transition:border-color .2s;background:var(--card)}
+details.faq-item[open]{border-color:rgba(45,106,79,.3)}
+summary.faq-question{font-family:var(--sans);font-weight:500;font-size:.92rem;padding:1rem 1.2rem;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;color:var(--text);user-select:none}
+summary.faq-question::-webkit-details-marker{display:none}
+summary.faq-question::after{content:'+';font-family:var(--mono);font-size:1.1rem;color:var(--accent);transition:transform .25s;flex-shrink:0;margin-left:.8rem}
+details.faq-item[open] summary.faq-question::after{transform:rotate(45deg)}
+.faq-answer{padding:.75rem 1.2rem 1rem;font-size:.88rem;color:var(--muted);line-height:1.75;border-top:1px solid var(--border)}
+
+/* ── Timeline ── */
+.timeline{position:relative;padding-left:1.9rem;content-visibility:auto;contain-intrinsic-size:0 400px}
+.timeline::before{content:'';position:absolute;left:0;top:.4rem;bottom:0;width:2px;background:linear-gradient(to bottom,var(--accent),var(--border))}
+.tl-item{position:relative;padding-bottom:3rem}
+.tl-dot{position:absolute;left:-2.4rem;top:.35rem;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 2px var(--accent)}
+.tl-date{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.08em;margin-bottom:.45rem;font-weight:500;display:block}
+h3.tl-role{font-family:var(--serif);font-size:1.25rem;margin-bottom:.2rem;color:var(--accent2)}
+.tl-org{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin-bottom:.9rem}
+.tl-list{list-style:none}
+.tl-list li{font-size:.86rem;color:var(--muted);padding:.35rem 0 .35rem 1.1rem;position:relative}
+.tl-list li::before{content:'▸';position:absolute;left:0;color:var(--accent);font-size:.67rem;top:.42rem}
+
+/* ── About ── */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start}
+.about-text p{color:var(--muted);line-height:1.82;margin-bottom:1.2rem;font-size:.94rem}
+.about-text strong{color:var(--text);font-weight:500}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:.9rem 0;border-bottom:1px solid var(--border);gap:1rem}
+.info-label{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;font-weight:500}
+.info-val{color:var(--text);font-size:.88rem;text-align:right}
+.edu-card{background:var(--accent-bg);border:1.5px solid rgba(45,106,79,.2);border-left:3px solid var(--accent);border-radius:.7rem;padding:1.4rem;margin-top:1.4rem}
+h3.edu-deg{font-family:var(--serif);font-size:1.08rem;margin-bottom:.35rem;color:var(--accent2)}
+.edu-uni{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+
+/* ── Contact ── */
+#view-contact .container{text-align:center}
+.contact-grid{display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;margin-top:2rem}
+.contact-tile{display:inline-flex;align-items:center;gap:.55rem;padding:.85rem 1.7rem;border:1.5px solid var(--border);border-radius:.5rem;text-decoration:none;color:var(--text);font-family:var(--mono);font-size:.77rem;letter-spacing:.05em;transition:border-color .2s,color .2s,transform .2s,background-color .2s;background:var(--card);box-shadow:var(--shadow-sm)}
+.contact-tile:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-3px);box-shadow:var(--shadow-md);background:var(--accent-bg)}
+
+/* ── Skeleton ── */
+.skel{background:var(--surface);border-radius:.5rem;overflow:hidden;position:relative}
+.skel::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.6) 50%,transparent 100%);animation:shimmer 1.3s infinite}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.skel-card{height:200px}.skel-line{height:15px;margin-bottom:.75rem}.skel-line.s{width:38%}.skel-line.m{width:62%}
+
+/* ── Reveal on scroll ── */
+.reveal{opacity:0;transform:translate3d(0,18px,0);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.reveal.in{opacity:1;transform:translate3d(0,0,0)}
+
+/* ── Empty / 404 ── */
+.empty-state{grid-column:1/-1;font-family:var(--mono);font-size:.84rem;color:var(--muted-light);padding:3rem 0;text-align:center}
+#spa-404-overlay{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:var(--bg)}
+.not-found-wrap{text-align:center;padding:2rem}
+.not-found-code{font-family:var(--serif);font-size:7rem;color:var(--accent);opacity:.1;line-height:1;margin-bottom:.5rem;display:block}
+.not-found-wrap h2{font-family:var(--serif);font-size:2rem;margin-bottom:.7rem;color:var(--accent2)}
+.not-found-wrap p{color:var(--muted);font-size:.9rem;max-width:400px;margin:0 auto 2rem}
+
+/* ── Offline banner ── */
+#offline-banner{display:none;position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--accent2);color:#fff;font-family:var(--mono);font-size:.72rem;padding:.5rem 1.2rem;border-radius:2rem;z-index:9999;letter-spacing:.05em;box-shadow:var(--shadow-md)}
+
+/* ── Footer ── */
+footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted);letter-spacing:.04em;background:var(--surface)}
+
+/* ════════════════════════════════════════════════════════
+   FEATURED BLOG POSTS — Home section
+   Horizontal scroll on mobile, grid on desktop.
+   Uses existing design tokens — no new variables needed.
+   ════════════════════════════════════════════════════════ */
+
+/* Section wrapper — sits below the hero, above footer */
+.featured-section{
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:4rem;
+}
+.featured-section .section-inner{
+  max-width:var(--max);
+  margin:0 auto;
+}
+.featured-header{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:2rem;
+  flex-wrap:wrap;
+}
+.featured-heading{
+  font-family:var(--serif);
+  font-size:clamp(1.4rem,2.5vw,1.9rem);
+  color:var(--accent2);
+  line-height:1.15;
+  margin:0;
+}
+.featured-view-all{
+  font-family:var(--mono);
+  font-size:.72rem;
+  color:var(--accent);
+  text-decoration:none;
+  letter-spacing:.07em;
+  white-space:nowrap;
+  transition:color .18s;
+  cursor:pointer;
+}
+.featured-view-all:hover{color:var(--accent2);text-decoration:underline}
+
+/* Card grid — auto-fill with min 260px so 1–3 columns scale naturally */
+.featured-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:1.1rem;
+}
+
+/* Individual featured card */
+.fp-card{
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:.75rem;
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .22s,transform .22s,box-shadow .22s;
+  display:flex;
+  flex-direction:column;
+  box-shadow:var(--shadow-sm);
+  contain:layout style;
+  /* No explicit height — let content drive height for natural cards */
+}
+.fp-card:hover{
+  border-color:rgba(45,106,79,.35);
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-md);
+}
+.fp-card:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+/* Thumbnail — 16:9 aspect ratio, consistent across all cards */
+.fp-thumb{
+  width:100%;
+  aspect-ratio:16/9;
+  overflow:hidden;
+  background:var(--surface);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:2rem;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.fp-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* Card body */
+.fp-body{
+  padding:1.1rem 1.2rem 1.3rem;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+}
+.fp-meta{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  font-family:var(--mono);
+  font-size:.63rem;
+  color:var(--muted-light);
+  letter-spacing:.05em;
+}
+.fp-cat{
+  color:var(--accent);
+  background:var(--accent-bg);
+  border:1px solid rgba(45,106,79,.2);
+  padding:.12rem .45rem;
+  border-radius:1rem;
+  font-size:.62rem;
+  font-weight:500;
+}
+.fp-title{
+  font-family:var(--serif);
+  font-size:1.05rem;
+  line-height:1.28;
+  color:var(--accent2);
+  margin:0;
+  /* Clamp to 3 lines to keep cards uniform */
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.fp-excerpt{
+  font-size:.8rem;
+  color:var(--muted);
+  line-height:1.6;
+  /* Clamp to 2 lines */
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  margin-top:.1rem;
+}
+.fp-arrow{
+  display:inline-flex;
+  align-items:center;
+  gap:.3rem;
+  font-family:var(--mono);
+  font-size:.69rem;
+  color:var(--accent);
+  margin-top:auto;
+  padding-top:.6rem;
+  letter-spacing:.04em;
+  transition:gap .18s;
+}
+.fp-card:hover .fp-arrow{gap:.55rem}
+
+/* Skeleton placeholders while loading */
+.fp-skel-card{
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:.75rem;
+  overflow:hidden;
+}
+.fp-skel-thumb{
+  width:100%;
+  aspect-ratio:16/9;
+  background:var(--surface);
+  position:relative;
+  overflow:hidden;
+}
+.fp-skel-thumb::after,.fp-skel-line::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.6) 50%,transparent 100%);
+  animation:shimmer 1.3s infinite;
+}
+.fp-skel-body{padding:1.1rem 1.2rem 1.3rem;display:flex;flex-direction:column;gap:.7rem}
+.fp-skel-line{
+  height:13px;
+  border-radius:.3rem;
+  background:var(--surface);
+  position:relative;
+  overflow:hidden;
+}
+.fp-skel-line.s{width:40%}
+.fp-skel-line.m{width:68%}
+.fp-skel-line.l{width:90%}
+
+/* Hidden section state (no slugs configured or all failed to match) */
+.featured-section[aria-hidden="true"]{display:none}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  nav{padding:0 1.5rem}
+  .nav-links{display:none;flex-direction:column;gap:0;position:fixed;top:var(--nav-h);left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:1rem 1.5rem;z-index:999}
+  .nav-links.open{display:flex}
+  .nav-links li{border-bottom:1px solid var(--border)}
+  .nav-links li:last-child{border-bottom:none}
+  .nav-links a{display:flex;padding:.85rem 0;font-size:.82rem;min-height:44px;align-items:center}
+  .nav-burger{display:flex;min-width:44px;min-height:44px;align-items:center;justify-content:center}
+  .container{padding:3.5rem 1.5rem}.hero{padding:3rem 1.5rem}
+  h1.hero-title{font-size:clamp(2.4rem,11vw,4rem)}.hero-stats{gap:1.8rem}
+  .skills-grid,.blog-grid{grid-template-columns:1fr}
+  .projects-grid{grid-template-columns:1fr}
+  .proj-card.feat,.proj-card.wide{grid-column:span 1;grid-template-columns:1fr}.proj-visual{display:none}
+  .about-grid{grid-template-columns:1fr;gap:2.2rem}
+  .info-row{flex-direction:column;align-items:flex-start;gap:.2rem}.info-val{text-align:left}
+  .contact-grid{flex-direction:column;align-items:center}
+  .contact-tile{width:100%;max-width:340px;justify-content:center;min-height:44px}
+  footer{flex-direction:column;gap:.45rem;text-align:center;padding:1.5rem}
+  .blog-toolbar{flex-direction:column;align-items:stretch}
+  .blog-sort-wrap{margin-left:0}
+  .blog-results-count{margin-left:0}
+  .filter-chip{min-height:44px;display:inline-flex;align-items:center}
+  .btn{min-height:44px}
+
+  /* Featured section mobile */
+  .featured-section{padding:3rem 1.5rem}
+  .featured-grid{
+    /* On mobile: horizontal scroll row of cards */
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    gap:1rem;
+    padding-bottom:.5rem;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .featured-grid::-webkit-scrollbar{display:none}
+  .fp-card{
+    flex:0 0 78vw;
+    max-width:300px;
+  }
+}
+@media(max-width:480px){.hero-ctas{flex-direction:column}.btn{justify-content:center}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  .reveal{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media print{nav,footer,.hero-grid,.hero-glow,#nprogress{display:none}.container{padding:1rem}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  </style>
+</head>
+<body>
+
+<div id="nprogress" aria-hidden="true"></div>
+<div id="offline-banner" role="status">⚡ You appear to be offline — showing cached content</div>
+
+<nav role="navigation" aria-label="Main navigation">
+  <a class="nav-brand" href="/" data-link title="Suman Dangal — Dev &amp; QA Engineer" aria-label="Suman Dangal home">
+    <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <rect width="48" height="48" rx="9" fill="#1b4332"/>
+      <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle"
+        font-family="'Great Vibes','Dancing Script',Georgia,serif"
+        font-size="26" fill="#ffffff">SD</text>
+    </svg>
+  </a>
+  <button class="nav-burger" id="burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="navLinks" role="menubar">
+    <li role="none"><a href="/"           data-link role="menuitem">Home</a></li>
+    <li role="none"><a href="/skills"     data-link role="menuitem">Skills</a></li>
+    <li role="none"><a href="/projects"   data-link role="menuitem">Projects</a></li>
+    <li role="none"><a href="/blog"       data-link role="menuitem">Blog</a></li>
+    <li role="none"><a href="/experience" data-link role="menuitem">Experience</a></li>
+    <li role="none"><a href="/about"      data-link role="menuitem">About</a></li>
+    <li role="none"><a href="/contact"    data-link role="menuitem">Contact</a></li>
+  </ul>
+</nav>
+
+<div id="app" role="main">
+
+  <!-- HOME -->
+  <div id="view-home" class="view" role="region" aria-label="Home">
+    <section class="hero" id="heroSection" aria-label="Hero section">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="hero-glow"  aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="hero-badge">Available for Internship &amp; Junior Roles</div>
+          <h1 class="hero-title" id="site-h1">Dev &amp; QA<br><em>Engineer</em></h1>
+          <p class="hero-sub">Final-year BCA student building and testing full-stack web and mobile applications. I write clean code and break things carefully — so users don't have to.</p>
+        <div class="hero-ctas">
+          <a href="/projects" class="btn btn-solid" data-link>View Projects ↓</a>
+        </div>
+        <div class="hero-stats">
+          <div><span class="stat-num">4+</span><span class="stat-lbl">Projects Built</span></div>
+          <div><span class="stat-num">3+</span><span class="stat-lbl">Years Coding</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      ═══════════════════════════════════════════════════════════
+      FEATURED BLOG POSTS SECTION
+      - Hidden by default (aria-hidden="true") until JS loads data
+      - Rendered by renderFeaturedPosts() in the script below
+      - Data source: /api/data?sheet=featured  (single "Slug" column)
+        Cross-referenced against the cached blog sheet data
+      ═══════════════════════════════════════════════════════════
+    -->
+    <section
+      class="featured-section"
+      id="featuredSection"
+      aria-label="Featured blog posts"
+      aria-hidden="true"
+    >
+      <div class="section-inner">
+        <div class="featured-header">
+          <div>
+            <div class="section-eyebrow" style="margin-bottom:.5rem">From the blog</div>
+            <h2 class="featured-heading">Featured Posts</h2>
+          </div>
+          <a href="/blog" class="featured-view-all" data-link aria-label="View all blog posts">
+            View all posts →
+          </a>
+        </div>
+        <!-- Cards injected here by JS -->
+        <div class="featured-grid" id="featuredGrid" role="list">
+          <!-- Skeleton shown until data arrives -->
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+          <div class="fp-skel-card" aria-hidden="true">
+            <div class="fp-skel-thumb"></div>
+            <div class="fp-skel-body">
+              <div class="fp-skel-line s"></div>
+              <div class="fp-skel-line l"></div>
+              <div class="fp-skel-line m"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SKILLS -->
+  <div id="view-skills" class="view" role="region" aria-label="Skills and stack">
+    <section class="container">
+      <div class="section-eyebrow">What I Work With</div>
+      <p class="section-heading" role="heading" aria-level="2">Skills &amp; Stack</p>
+      <div class="skills-grid" id="skillsGrid">
+        <div class="skel skel-card"></div><div class="skel skel-card"></div>
+        <div class="skel skel-card"></div><div class="skel skel-card"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- PROJECTS -->
+  <div id="view-projects" class="view" role="region" aria-label="Projects">
+    <section class="container">
+      <div class="section-eyebrow">What I've Built</div>
+      <p class="section-heading" role="heading" aria-level="2">Projects</p>
+      <div class="projects-grid" id="projectsGrid">
+        <div class="skel skel-card"></div><div class="skel skel-card"></div>
+        <div class="skel skel-card"></div><div class="skel skel-card"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- BLOG LIST -->
+  <div id="view-blog" class="view" role="region" aria-label="Blog posts">
+    <section class="container">
+      <div class="section-eyebrow">Writing &amp; Notes</div>
+      <p class="section-heading" role="heading" aria-level="2">Blog</p>
+      <div class="blog-toolbar" id="blogToolbar" style="display:none" role="search" aria-label="Blog search and filters">
+        <div class="blog-search-wrap">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="search" id="blogSearch" placeholder="Search posts…" autocomplete="off" aria-label="Search blog posts" />
+        </div>
+        <div class="blog-filters" id="blogFilters" aria-label="Filter by category">
+          <span class="filter-label">Filter:</span>
+        </div>
+        <div class="blog-sort-wrap">
+          <label for="blogSort" class="sr-only">Sort posts</label>
+          <select id="blogSort" aria-label="Sort posts">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Title A → Z</option>
+            <option value="za">Title Z → A</option>
+          </select>
+        </div>
+        <span class="blog-results-count" id="blogResultsCount" aria-live="polite"></span>
+      </div>
+      <div id="blogGrid" class="blog-grid" aria-live="polite" aria-label="Blog post list"></div>
+      <div id="blogPagination" class="pagination" aria-label="Blog pagination"></div>
+    </section>
+  </div>
+
+  <!-- SINGLE ARTICLE -->
+  <div id="view-article" class="view" role="region" aria-label="Blog article">
+    <div class="container">
+      <article id="articleWrap" aria-live="polite"></article>
+    </div>
+  </div>
+
+  <!-- EXPERIENCE -->
+  <div id="view-experience" class="view" role="region" aria-label="Work experience">
+    <section class="container">
+      <div class="section-eyebrow">Work History</div>
+      <p class="section-heading" role="heading" aria-level="2">Experience</p>
+      <div class="timeline" id="expTimeline">
+        <div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ABOUT -->
+  <div id="view-about" class="view" role="region" aria-label="About Suman Dangal">
+    <section class="container">
+      <div class="section-eyebrow">Background</div>
+      <p class="section-heading" role="heading" aria-level="2">About Me</p>
+      <div class="about-grid">
+        <div class="about-text" id="aboutText">
+          <div class="skel skel-line" style="margin-bottom:1rem"></div>
+          <div class="skel skel-line m" style="margin-bottom:1rem"></div>
+          <div class="skel skel-line" style="margin-bottom:1rem"></div>
+          <div class="skel skel-line m"></div>
+        </div>
+        <div class="about-info">
+          <div class="info-row"><span class="info-label">Location</span><span class="info-val">Balkot, Bhaktapur, Nepal</span></div>
+          <div class="info-row"><span class="info-label">Availability</span><span class="info-val" style="color:var(--accent);font-weight:500">Open to Opportunities</span></div>
+          <div class="info-row"><span class="info-label">Languages</span><span class="info-val">English · Nepali · Hindi</span></div>
+          <div class="info-row"><span class="info-label">Focus</span><span class="info-val">Full-Stack Dev, QA Testing</span></div>
+          <div class="info-row"><span class="info-label">Email</span><span class="info-val">&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</span></div>
+          <div class="edu-card">
+            <h3 class="edu-deg">Bachelor in Computer Applications (BCA)</h3>
+            <div class="edu-uni">Tribhuvan University · 2021–Present · Bhaktapur, Nepal</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- CONTACT -->
+  <div id="view-contact" class="view" role="region" aria-label="Contact">
+    <section class="container">
+      <div class="section-eyebrow" style="justify-content:center">Let's Connect</div>
+      <p class="section-heading" role="heading" aria-level="2" style="text-align:center">Get In Touch</p>
+      <p style="color:var(--muted);text-align:center;font-size:.94rem;max-width:480px;margin:0 auto">Looking for a Dev or QA intern? I'm actively seeking opportunities — let's talk.</p>
+      <div class="contact-grid">
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;" class="contact-tile"><span aria-hidden="true">📧</span> &#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a>
+        <a href="https://linkedin.com/in/sumandangal963" target="_blank" rel="noopener" class="contact-tile"><span aria-hidden="true">🔗</span> linkedin.com/in/sumandangal963</a>
+        <a href="tel:+9779803340063" class="contact-tile"><span aria-hidden="true">📞</span> +977 9803340063</a>
+      </div>
+    </section>
+  </div>
+
+</div><!-- #app -->
+
+<footer role="contentinfo">
+  <span>© 2026 Suman Dangal</span>
+  <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
+</footer>
+
+<script>
+(() => {
+'use strict';
+
+// ── Config ─────────────────────────────────────────────────────────────────
+// NO Google Sheet URLs here — all fetches go through /api/data?sheet=<name>
+// Sheet IDs and GIDs live only in the Worker (server-side).
+const CFG = {
+  siteUrl:      'https://suman-dangal.com.np',
+  cacheMins:    10,
+  postsPerPage: 6,
+  // Named API endpoints — sheet URLs never touch the browser
+  api: {
+    blog:     '/api/data?sheet=blog',
+    skills:   '/api/data?sheet=skills',
+    projects: '/api/data?sheet=projects',
+    exp:      '/api/data?sheet=exp',
+    about:    '/api/data?sheet=about',
+    faq:      '/api/data?sheet=faq',
+    images:   '/api/data?sheet=images',
+    featured: '/api/data?sheet=featured', // single-column: Slug
+  },
+};
+
+// ── DOM helpers ────────────────────────────────────────────────────────────
+const $   = id => document.getElementById(id);
+const qs  = s  => document.querySelector(s);
+const qsa = s  => document.querySelectorAll(s);
+const bar     = $('nprogress');
+const burger  = $('burger');
+const navList = $('navLinks');
+const h1El    = $('site-h1');
+
+// ── Escape HTML ────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Progress bar ───────────────────────────────────────────────────────────
+let pTimer, pVal = 0;
+function pStart() {
+  pVal = 0; bar.style.width = '0%'; bar.style.opacity = '1';
+  pTimer = setInterval(() => { pVal = Math.min(pVal + Math.random() * 14, 82); bar.style.width = pVal + '%'; }, 160);
+}
+function pEnd() {
+  clearInterval(pTimer); bar.style.width = '100%';
+  setTimeout(() => { bar.style.opacity = '0'; }, 380);
+}
+
+// ── Offline detection ──────────────────────────────────────────────────────
+const offlineBanner = $('offline-banner');
+window.addEventListener('online',  () => { if (offlineBanner) offlineBanner.style.display = 'none'; });
+window.addEventListener('offline', () => { if (offlineBanner) offlineBanner.style.display = 'block'; });
+if (!navigator.onLine && offlineBanner) offlineBanner.style.display = 'block';
+
+// ── Google Drive image URL fixer ───────────────────────────────────────────
+function fixImgUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+  const m1 = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  if (m1) return `https://lh3.googleusercontent.com/d/${m1[1]}`;
+  const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (m2) return `https://lh3.googleusercontent.com/d/${m2[1]}`;
+  const m3 = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
+  if (m3) return `https://lh3.googleusercontent.com/d/${m3[1]}`;
+  return url;
+}
+
+// ── CSV parser ─────────────────────────────────────────────────────────────
+function parseCSV(raw) {
+  const rows = [];
+  let cur = '', inQ = false, row = [];
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (c === '"') {
+      if (inQ && raw[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      row.push(cur); cur = '';
+    } else if ((c === '\n' || (c === '\r' && raw[i+1] === '\n')) && !inQ) {
+      if (c === '\r') i++;
+      row.push(cur); cur = '';
+      rows.push(row); row = [];
+    } else {
+      cur += c;
+    }
+  }
+  row.push(cur);
+  if (row.some(v => v)) rows.push(row);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(vals => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] ?? '').trim(); });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+}
+
+// ── localStorage cache ─────────────────────────────────────────────────────
+const NS = 'sd4_'; // bumped namespace — clears old sd3_ cache automatically
+function cGet(key) {
+  try {
+    const it = JSON.parse(localStorage.getItem(NS + key));
+    if (!it) return { data: null, stale: true };
+    return { data: it.data, stale: Date.now() > it.exp };
+  } catch { return { data: null, stale: true }; }
+}
+function cSet(key, data) {
+  try {
+    localStorage.setItem(NS + key, JSON.stringify({ data, exp: Date.now() + CFG.cacheMins * 60_000 }));
+  } catch {}
+}
+
+// ── Core fetch — uses /api/data?sheet=<n>, NO direct Google URLs ───────────
+async function _doFetch(endpoint, key) {
+  try {
+    const r = await fetch(endpoint);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = parseCSV(await r.text());
+    cSet(key, data);
+    return data;
+  } catch (e) {
+    console.warn('[fetchSheet]', key, e.message);
+    return null;
+  }
+}
+
+async function fetchSheet(endpoint, key, onRevalidate) {
+  if (!endpoint) return null;
+  const { data, stale } = cGet(key);
+  if (data) {
+    if (!stale) return data;
+    _doFetch(endpoint, key).then(fresh => { if (fresh && onRevalidate) onRevalidate(fresh); });
+    return data;
+  }
+  return _doFetch(endpoint, key);
+}
+
+// ── HTML sanitiser (for table blocks from sheets) ──────────────────────────
+const SAFE_TAGS = new Set(['table','thead','tbody','tfoot','tr','th','td','strong','em','b','i','br','p','ul','ol','li','a','span']);
+function sanitizeHTML(raw) {
+  if (!raw) return '';
+  const doc = new DOMParser().parseFromString(raw, 'text/html');
+  (function strip(node) {
+    [...node.childNodes].forEach(kid => {
+      if (kid.nodeType !== 1) return;
+      const tag = kid.tagName.toLowerCase();
+      if (!SAFE_TAGS.has(tag)) { kid.replaceWith(document.createTextNode(kid.textContent)); return; }
+      [...kid.attributes].forEach(a => {
+        const ok = (tag === 'a' && a.name === 'href') ||
+                   (['th','td'].includes(tag) && ['colspan','rowspan','scope'].includes(a.name));
+        if (!ok) kid.removeAttribute(a.name);
+      });
+      if (tag === 'a') { kid.setAttribute('target','_blank'); kid.setAttribute('rel','noopener noreferrer'); }
+      strip(kid);
+    });
+  })(doc.body);
+  return doc.body.innerHTML;
+}
+
+// ── Inline image map builder ───────────────────────────────────────────────
+function buildImgMap(post, imageRows) {
+  const map = {};
+  let n = 1;
+  while (post[`Img${n}_URL`]) {
+    const url = fixImgUrl(post[`Img${n}_URL`]);
+    const alt = esc(post[`Img${n}_Alt`] || post.Title || '');
+    map[`[img${n}]`] =
+      `<figure class="blog-figure">` +
+        `<img class="blog-inline-img" src="${esc(url)}" alt="${alt}" loading="lazy" decoding="async" width="680" height="383">` +
+        `<figcaption>${alt}</figcaption>` +
+      `</figure>`;
+    n++;
+  }
+  if (imageRows?.length) {
+    const slug = (post.Slug || '').trim();
+    imageRows
+      .filter(r => (r.Blog_Slug || '').trim() === slug)
+      .sort((a, b) => Number(a.Img_Number || 0) - Number(b.Img_Number || 0))
+      .forEach(r => {
+        const num = Number(r.Img_Number || 0);
+        if (!num) return;
+        const url = fixImgUrl((r.Img_URL || '').trim());
+        const alt = esc((r.Img_Alt || post.Title || '').trim());
+        if (!url) return;
+        map[`[img${num}]`] =
+          `<figure class="blog-figure">` +
+            `<img class="blog-inline-img" src="${esc(url)}" alt="${alt}" loading="lazy" decoding="async" width="680" height="383">` +
+            `<figcaption>${alt}</figcaption>` +
+          `</figure>`;
+      });
+  }
+  return map;
+}
+
+// ── Markdown renderer ──────────────────────────────────────────────────────
+function md(text, imgMap = {}) {
+  if (!text) return '';
+  const toks = {};
+  let ti = 0;
+  for (const [code, html] of Object.entries(imgMap)) {
+    const tok = `\x00SD${ti++}\x00`;
+    toks[tok] = html;
+    text = text.split(code).join(tok);
+  }
+  let out = '', inUL = false, inOL = false, inPRE = false;
+  const closeL = () => {
+    if (inUL) { out += '</ul>'; inUL = false; }
+    if (inOL) { out += '</ol>'; inOL = false; }
+  };
+  const lines = text.includes('\n') ? text.split(/\n/).map(l => l.startsWith('|') ? l.slice(1) : l) : text.split('|');
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (toks[trimmed]) { closeL(); out += toks[trimmed]; continue; }
+    if (trimmed === '```') {
+      if (inPRE) { out += '</code></pre>'; inPRE = false; }
+      else { closeL(); out += '<pre><code>'; inPRE = true; }
+      continue;
+    }
+    if (inPRE) { out += esc(raw) + '\n'; continue; }
+    let l = esc(raw)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+      .replace(/`([^`]+)`/g,     '<code>$1</code>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+        (_, t, u) => `<a href="${u.replace(/&amp;/g,'&')}" target="_blank" rel="noopener">${t}</a>`);
+    for (const [tok, html] of Object.entries(toks)) {
+      if (l.includes(tok)) l = l.split(tok).join(html);
+    }
+    if      (/^## /.test(l))    { closeL(); out += `<h2>${l.slice(3)}</h2>`; }
+    else if (/^### /.test(l))   { closeL(); out += `<h3>${l.slice(4)}</h3>`; }
+    else if (/^&gt; /.test(l))  { closeL(); out += `<blockquote><p>${l.slice(5)}</p></blockquote>`; }
+    else if (/^- /.test(l))     { if (!inUL) { out += '<ul>'; inUL = true; } out += `<li>${l.slice(2)}</li>`; }
+    else if (/^\d+\. /.test(l)) { if (!inOL) { out += '<ol>'; inOL = true; } out += `<li>${l.replace(/^\d+\. /,'')}</li>`; }
+    else if (l.trim() === '')   { closeL(); }
+    else                        { closeL(); out += `<p>${l}</p>`; }
+  }
+  if (inPRE) out += '</code></pre>';
+  closeL();
+  return out;
+}
+
+// ── FAQ builder ────────────────────────────────────────────────────────────
+async function buildFAQ(slug, prefetchedRows) {
+  const old = $('faq-schema');
+  if (old) old.remove();
+  const allFaqs = prefetchedRows || await fetchSheet(CFG.api.faq, 'faq');
+  if (!allFaqs?.length) return '';
+  const pairs = allFaqs
+    .filter(r => (r.Blog_Slug || '').trim() === slug)
+    .sort((a, b) => Number(a.FAQ_Number || 0) - Number(b.FAQ_Number || 0))
+    .map(r => ({ q: (r.FAQ_Question || '').trim(), a: (r.FAQ_Answer || '').trim() }))
+    .filter(p => p.q && p.a);
+  if (!pairs.length) return '';
+  // Inject FAQ structured data
+  const faqSd = document.createElement('script');
+  faqSd.id   = 'faq-schema';
+  faqSd.type = 'application/ld+json';
+  faqSd.textContent = JSON.stringify({
+    '@context':  'https://schema.org',
+    '@type':     'FAQPage',
+    mainEntity: pairs.map(p => ({
+      '@type':         'Question',
+      name:            p.q,
+      acceptedAnswer: { '@type': 'Answer', text: p.a }
+    }))
+  });
+  document.head.appendChild(faqSd);
+  const items = pairs.map(p => `
+    <details class="faq-item">
+      <summary class="faq-question">${esc(p.q)}</summary>
+      <div class="faq-answer">${esc(p.a)}</div>
+    </details>`).join('');
+  return `<section class="faq-section" aria-label="Frequently Asked Questions">
+    <h2>Frequently Asked Questions</h2>${items}
+  </section>`;
+}
+
+// ── SEO meta updater ───────────────────────────────────────────────────────
+function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
+  const ft  = title ? `${title} | Suman Dangal` : 'Suman Dangal — Dev & QA Engineer';
+  const md_ = desc  || 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.';
+  const url = `${CFG.siteUrl}${path || '/'}`;
+  document.title = ft;
+  qs('meta[name="description"]').content        = md_;
+  $('canonical').href                           = url;
+  qs('meta[property="og:title"]').content       = ft;
+  qs('meta[property="og:description"]').content = md_;
+  qs('meta[property="og:url"]').content         = url;
+  qs('meta[name="twitter:title"]').content       = ft;
+  qs('meta[name="twitter:description"]').content = md_;
+  if (ogImage) {
+    qs('meta[property="og:image"]').content  = ogImage;
+    qs('meta[name="twitter:image"]').content = ogImage;
+  }
+  // robots
+  let robotsMeta = qs('meta[name="robots"]');
+  if (!robotsMeta) {
+    robotsMeta = document.createElement('meta');
+    robotsMeta.name = 'robots';
+    document.head.appendChild(robotsMeta);
+  }
+  robotsMeta.content = title === '404 — Not Found' ? 'noindex, nofollow' : 'index, follow';
+  // h1 visibility
+  const isHome = !path || path === '/';
+  h1El.classList.toggle('h1-hidden', !isHome);
+  h1El.style.display = isHome ? '' : 'none';
+  // BlogPosting schema
+  let dynSd = $('dyn-schema');
+  if (articleMeta) {
+    if (!dynSd) {
+      dynSd = document.createElement('script');
+      dynSd.id   = 'dyn-schema';
+      dynSd.type = 'application/ld+json';
+      document.head.appendChild(dynSd);
+    }
+    dynSd.textContent = JSON.stringify({
+      '@context':      'https://schema.org',
+      '@type':         'BlogPosting',
+      headline:         articleMeta.title,
+      description:      articleMeta.excerpt,
+      datePublished:    articleMeta.date,
+      dateModified:     articleMeta.date,
+      image:            articleMeta.imageUrl || `${CFG.siteUrl}/og.png`,
+      url,
+      inLanguage:       'en',
+      keywords:         (articleMeta.tags || []).join(', '),
+      author: {
+        '@type': 'Person',
+        name:    'Suman Dangal',
+        url:     CFG.siteUrl,
+        sameAs:  ['https://linkedin.com/in/sumandangal963'],
+      },
+      publisher: {
+        '@type': 'Person',
+        name:    'Suman Dangal',
+        url:     CFG.siteUrl,
+      },
+    });
+  } else if (dynSd) {
+    dynSd.remove();
+  }
+  // BreadcrumbList schema
+  let bcSd = $('bc-schema');
+  if (!bcSd) {
+    bcSd = document.createElement('script');
+    bcSd.id   = 'bc-schema';
+    bcSd.type = 'application/ld+json';
+    document.head.appendChild(bcSd);
+  }
+  const crumbs = [{ name: 'Home', url: CFG.siteUrl + '/' }];
+  if (title) crumbs.push({ name: title, url });
+  bcSd.textContent = JSON.stringify({
+    '@context':    'https://schema.org',
+    '@type':       'BreadcrumbList',
+    itemListElement: crumbs.map((c, i) => ({
+      '@type': 'ListItem', position: i + 1, name: c.name, item: c.url,
+    })),
+  });
+}
+
+// ── Reveal on scroll ───────────────────────────────────────────────────────
+const revealQueue = [];
+let revealScheduled = false;
+const rvObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { revealQueue.push(e.target); rvObs.unobserve(e.target); }
+  });
+  if (!revealScheduled) {
+    revealScheduled = true;
+    requestAnimationFrame(() => {
+        revealQueue.forEach((el, i) => { el.style.transitionDelay = `${i * 55}ms`; });
+        revealQueue.forEach(el => el.classList.add('in'));
+
+      revealQueue.length = 0;
+      revealScheduled = false;
+    });
+  }
+}, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
+function watchReveals() { qsa('.reveal:not(.in)').forEach(el => rvObs.observe(el)); }
+
+// ── Blog state ─────────────────────────────────────────────────────────────
+const blogState = { query: '', category: 'all', sort: 'newest', page: 1 };
+
+function parseDateForSort(dateStr) {
+  if (!dateStr) return 0;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function applyBlogFilters(rows) {
+  let result = [...rows];
+  if (blogState.query) {
+    const q = blogState.query.toLowerCase();
+    result = result.filter(p =>
+      (p.Title    || '').toLowerCase().includes(q) ||
+      (p.Excerpt  || '').toLowerCase().includes(q) ||
+      (p.Category || '').toLowerCase().includes(q) ||
+      (p.Tags     || '').toLowerCase().includes(q)
+    );
+  }
+  if (blogState.category !== 'all') {
+    result = result.filter(p =>
+      (p.Category || '').trim().toLowerCase() === blogState.category.toLowerCase()
+    );
+  }
+  result.sort((a, b) => {
+    switch (blogState.sort) {
+      case 'newest': return parseDateForSort(b.Date) - parseDateForSort(a.Date);
+      case 'oldest': return parseDateForSort(a.Date) - parseDateForSort(b.Date);
+      case 'az':     return (a.Title || '').localeCompare(b.Title || '');
+      case 'za':     return (b.Title || '').localeCompare(a.Title || '');
+      default:       return 0;
+    }
+  });
+  return result;
+}
+
+function buildCategoryChips(rows) {
+  const container = $('blogFilters');
+  if (!container) return;
+  const cats = new Set();
+  rows.forEach(r => { if (r.Category) cats.add(r.Category.trim()); });
+  container.innerHTML = '<span class="filter-label">Filter:</span>';
+  const allChip = document.createElement('button');
+  allChip.className = 'filter-chip' + (blogState.category === 'all' ? ' active' : '');
+  allChip.textContent = 'All';
+  allChip.setAttribute('aria-pressed', String(blogState.category === 'all'));
+  allChip.addEventListener('click', () => {
+    blogState.category = 'all'; blogState.page = 1;
+    updateChipActive(container, 'all'); renderFilteredBlog();
+  });
+  container.appendChild(allChip);
+  [...cats].sort().forEach(cat => {
+    const chip = document.createElement('button');
+    chip.className = 'filter-chip' + (blogState.category === cat ? ' active' : '');
+    chip.textContent = cat;
+    chip.dataset.cat = cat;
+    chip.setAttribute('aria-pressed', String(blogState.category === cat));
+    chip.addEventListener('click', () => {
+      blogState.category = cat; blogState.page = 1;
+      updateChipActive(container, cat); renderFilteredBlog();
+    });
+    container.appendChild(chip);
+  });
+}
+
+function updateChipActive(container, activeCat) {
+  container.querySelectorAll('.filter-chip').forEach(c => {
+    const cat = c.dataset.cat || 'all';
+    const active = cat === activeCat;
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-pressed', String(active));
+  });
+}
+
+let searchDebounce;
+function initBlogToolbar(rows) {
+  const toolbar = $('blogToolbar');
+  const search  = $('blogSearch');
+  const sort    = $('blogSort');
+  if (!toolbar || !search || !sort) return;
+  toolbar.style.display = '';
+  buildCategoryChips(rows);
+  search.value = blogState.query;
+  sort.value   = blogState.sort;
+  const freshSearch = search.cloneNode(true);
+  search.parentNode.replaceChild(freshSearch, search);
+  const freshSort = sort.cloneNode(true);
+  sort.parentNode.replaceChild(freshSort, sort);
+  freshSearch.addEventListener('input', e => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      blogState.query = e.target.value.trim(); blogState.page = 1; renderFilteredBlog();
+    }, 260);
+  });
+  freshSort.addEventListener('change', e => {
+    blogState.sort = e.target.value; blogState.page = 1; renderFilteredBlog();
+  });
+}
+
+function renderFilteredBlog() {
+  if (!blogRows?.length) return;
+  const g   = $('blogGrid');
+  const nav = $('blogPagination');
+  const cnt = $('blogResultsCount');
+  const filtered = applyBlogFilters(blogRows);
+  const total    = Math.ceil(filtered.length / CFG.postsPerPage);
+  const safe     = Math.max(1, Math.min(blogState.page, total || 1));
+  const slice    = filtered.slice((safe - 1) * CFG.postsPerPage, safe * CFG.postsPerPage);
+  if (cnt) {
+    cnt.textContent = (blogState.query || blogState.category !== 'all')
+      ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}` : '';
+  }
+  if (!slice.length) {
+    g.innerHTML = '<p class="empty-state">No posts match your search — try different keywords or filters.</p>';
+    if (nav) nav.innerHTML = '';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  slice.forEach(post => {
+    const card = document.createElement('article');
+    card.className = 'blog-card reveal';
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'article');
+    card.setAttribute('aria-label', post.Title || 'Blog post');
+    const imgUrl = fixImgUrl(post.Image_URL);
+    const thumb  = imgUrl
+      ? `<div class="blog-card-thumb"><img src="${esc(imgUrl)}" alt="${esc(post.Image_Alt || post.Title + ' cover')}" loading="lazy" decoding="async" width="310" height="172"></div>`
+      : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`;
+    const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+    const tagsHTML = tagList.length
+      ? `<div class="blog-card-tags">${tagList.map(t => `<span class="blog-tag">${esc(t)}</span>`).join('')}</div>` : '';
+    card.innerHTML =
+      `${thumb}<div class="blog-card-body">` +
+      `<div class="blog-card-meta"><span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
+      `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time></div>` +
+      `<h3 class="blog-card-title">${esc(post.Title || '')}</h3>` +
+      `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>${tagsHTML}</div>`;
+    const go = () => navigate(`/blog/${post.Slug}`);
+    card.addEventListener('click', go);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    frag.appendChild(card);
+  });
+  g.innerHTML = '';
+  g.appendChild(frag);
+  if (nav) {
+    nav.innerHTML = '';
+    if (total > 1) {
+      let ctrl = '';
+      if (safe > 1) ctrl += `<button class="btn btn-ghost" id="pgPrev" aria-label="Previous page">← Prev</button>`;
+      ctrl += `<span aria-live="polite" aria-atomic="true">Page ${safe} of ${total}</span>`;
+      if (safe < total) ctrl += `<button class="btn btn-ghost" id="pgNext" aria-label="Next page">Next →</button>`;
+      nav.innerHTML = ctrl;
+      const prev = $('pgPrev'); const next = $('pgNext');
+      if (prev) prev.addEventListener('click', () => { blogState.page = safe - 1; renderFilteredBlog(); window.scrollTo({top:0,behavior:'smooth'}); });
+      if (next) next.addEventListener('click', () => { blogState.page = safe + 1; renderFilteredBlog(); window.scrollTo({top:0,behavior:'smooth'}); });
+    }
+  }
+  watchReveals();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURED POSTS — core render function
+//
+//  Flow:
+//   1. Fetch /api/data?sheet=featured  → [ { Slug: "..." }, ... ]
+//   2. Fetch blog data (reuses cache if already loaded)
+//   3. Match slugs → full post objects
+//   4. Build cards and reveal section
+//
+//  Performance notes:
+//   - Both fetches run in parallel via Promise.all
+//   - Results are localStorage-cached for CFG.cacheMins
+//   - Images use loading="lazy" — zero LCP impact
+//   - Section stays hidden (aria-hidden) until valid cards exist
+//   - Skeleton is pure CSS, no layout shift
+// ════════════════════════════════════════════════════════════════
+async function renderFeaturedPosts() {
+  const section = $('featuredSection');
+  const grid    = $('featuredGrid');
+  if (!section || !grid) return;
+
+  try {
+    // Fetch featured slugs and blog data in parallel
+    const [featuredRows, allBlogRows] = await Promise.all([
+      fetchSheet(CFG.api.featured, 'featured'),
+      fetchSheet(CFG.api.blog,     'blog'),
+    ]);
+
+    // Update shared blogRows cache so blog page doesn't re-fetch
+    if (allBlogRows?.length && !blogRows) blogRows = allBlogRows;
+
+    // No featured slugs configured → keep section hidden, silent fail
+    if (!featuredRows?.length || !allBlogRows?.length) {
+      return;
+    }
+
+    // Build an ordered list of matched posts (order from the featured sheet)
+    const blogMap = {};
+    allBlogRows.forEach(p => { if (p.Slug) blogMap[p.Slug.trim()] = p; });
+
+    const posts = featuredRows
+      .map(r => {
+        // Column header is "Slug" (case-insensitive fallback)
+        const slug = (r.Slug || r.slug || Object.values(r)[0] || '').trim();
+        return slug ? blogMap[slug] : null;
+      })
+      .filter(Boolean); // skip slugs that don't match any blog post
+
+    // If nothing matched, keep section hidden
+    if (!posts.length) return;
+
+    // Build cards
+    const frag = document.createDocumentFragment();
+    posts.forEach(post => {
+      const imgUrl = fixImgUrl(post.Image_URL || '');
+      const slug   = (post.Slug || '').trim();
+
+      const card = document.createElement('article');
+      card.className = 'fp-card';
+      card.setAttribute('role', 'listitem');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', post.Title || 'Featured post');
+
+      const thumbHTML = imgUrl
+        ? `<div class="fp-thumb">
+             <img src="${esc(imgUrl)}"
+                  alt="${esc(post.Image_Alt || post.Title + ' cover image')}"
+                  loading="lazy"
+                  decoding="async"
+                  width="400"
+                  height="225">
+           </div>`
+        : `<div class="fp-thumb" aria-hidden="true">✍️</div>`;
+
+      card.innerHTML =
+        thumbHTML +
+        `<div class="fp-body">` +
+          `<div class="fp-meta">` +
+            `<span class="fp-cat">${esc(post.Category || 'Post')}</span>` +
+            `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
+          `</div>` +
+          `<h3 class="fp-title">${esc(post.Title || '')}</h3>` +
+          (post.Excerpt ? `<p class="fp-excerpt">${esc(post.Excerpt)}</p>` : '') +
+          `<span class="fp-arrow" aria-hidden="true">Read post →</span>` +
+        `</div>`;
+
+      // Navigation — full keyboard + click support
+      const go = () => navigate(`/blog/${slug}`);
+      card.addEventListener('click', go);
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+
+      frag.appendChild(card);
+    });
+
+    // Swap skeletons for real cards and reveal section
+    grid.innerHTML = '';
+    grid.appendChild(frag);
+    section.removeAttribute('aria-hidden');
+    section.setAttribute('aria-hidden', 'false');
+
+  } catch (e) {
+    // Silent fail — section stays hidden, no console noise in production
+    console.warn('[featuredPosts]', e.message);
+  }
+}
+
+// ── Fallback content (shown if API unavailable) ────────────────────────────
+const FB = {
+  skills: `<div class="skill-card c-green reveal"><div class="skill-icon">🐍</div><div class="skill-name">Languages</div><div class="tag-row"><span class="tag">Python</span><span class="tag">Java</span><span class="tag">PHP</span><span class="tag">JavaScript</span><span class="tag">HTML5</span><span class="tag">CSS3</span></div></div><div class="skill-card c-blue reveal"><div class="skill-icon">⚙️</div><div class="skill-name">Frameworks &amp; Backend</div><div class="tag-row"><span class="tag">Django</span><span class="tag">Django REST</span><span class="tag">PHP OOP</span><span class="tag">SQLite</span><span class="tag">MySQL</span><span class="tag">MariaDB</span></div></div><div class="skill-card c-amber reveal"><div class="skill-icon">📱</div><div class="skill-name">Mobile &amp; Tools</div><div class="tag-row"><span class="tag">Android Studio</span><span class="tag">Java (Android)</span><span class="tag">XML Layouts</span><span class="tag">Git</span><span class="tag">Bluetooth APIs</span></div></div><div class="skill-card c-green reveal"><div class="skill-icon">🧪</div><div class="skill-name">QA &amp; Concepts</div><div class="tag-row"><span class="tag">Manual Testing</span><span class="tag">Test Case Writing</span><span class="tag">REST APIs</span><span class="tag">OOP</span><span class="tag">SDLC</span><span class="tag">SQL Injection Prevention</span><span class="tag">Prompt Engineering</span></div></div>`,
+  projects: `<article class="proj-card feat reveal"><div><div class="proj-num">01 / Featured</div><h3 class="proj-title">Django E-commerce Platform</h3><p class="proj-desc">Full-stack product listing, cart, and checkout using Django's MVT architecture.</p><ul class="proj-bullets"><li>Verified 100% of CRUD operations across relational SQLite database</li><li>Wrote edge-case &amp; error-handling test suites; prevented SQL injection</li><li>Resolved all frontend-to-backend data discrepancies found in testing</li></ul><div class="proj-stack"><span class="tag">Django</span><span class="tag">Python</span><span class="tag">SQLite</span><span class="tag">Django REST</span><span class="tag">Manual Testing</span></div><p class="proj-note">⚠️ ~60s cold start on free Render hosting</p><div class="proj-links"><a href="https://ecommerce-ksmw.onrender.com/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></div><div class="proj-visual" aria-hidden="true">🛒</div></article><article class="proj-card reveal"><div class="proj-num">02</div><h3 class="proj-title">College Library Management System</h3><p class="proj-desc">PHP OOP application managing book inventory and student borrowing records.</p><ul class="proj-bullets"><li>100% accuracy in book-to-student mapping</li><li>Resolved edge-case bugs in borrow/return logic</li><li>SQL-safe input handling throughout</li></ul><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">MySQL</span><span class="tag">OOP</span></div><div class="proj-links"><a href="https://collglibsys.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article><article class="proj-card reveal"><div class="proj-num">03</div><h3 class="proj-title">Bluetooth Messaging App</h3><p class="proj-desc">Android app enabling peer-to-peer Bluetooth messaging with local data persistence.</p><ul class="proj-bullets"><li>Tested connectivity across multiple device combos</li><li>Resolved stability issues for consistent delivery</li></ul><div class="proj-stack"><span class="tag">Java</span><span class="tag">Android Studio</span><span class="tag">Bluetooth API</span><span class="tag">XML</span></div></article><article class="proj-card wide reveal"><div class="proj-num">04</div><h3 class="proj-title">Book E-commerce Platform</h3><p class="proj-desc">Full-stack PHP app with authentication, product management, sandbox payment, and order tracking.</p><div class="proj-stack"><span class="tag">PHP</span><span class="tag">MariaDB</span><span class="tag">HTML</span><span class="tag">CSS</span><span class="tag">JavaScript</span><span class="tag">Authentication</span></div><div class="proj-links"><a href="https://bookecom.free.nf/" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></article>`,
+  experience: `<div class="tl-item reveal"><div class="tl-dot" aria-hidden="true"></div><time class="tl-date" datetime="2025-09">SEP 2025 – DEC 2025</time><h3 class="tl-role">SEO Intern</h3><div class="tl-org">Sathi Edtech Pvt. Ltd. · Kathmandu</div><ul class="tl-list"><li>Monitored traffic with Google Search Console; produced keyword reports</li><li>Corrected metadata errors, improving crawl efficiency</li><li>Optimized 10+ blog posts with high-ranking keywords</li></ul></div><div class="tl-item reveal"><div class="tl-dot" aria-hidden="true"></div><time class="tl-date" datetime="2026-01">JAN 2026</time><h3 class="tl-role">Data Validation &amp; Testing</h3><div class="tl-org">Personal Project · Django E-commerce Platform</div><ul class="tl-list"><li>Verified pricing, inventory, and user data across all CRUD ops</li><li>Wrote test cases covering edge cases and error-handling routines</li><li>Resolved 100% of data discrepancies found during testing</li></ul></div><div class="tl-item reveal"><div class="tl-dot" aria-hidden="true"></div><time class="tl-date" datetime="2023-01">JAN 2023</time><h3 class="tl-role">System Logic Testing</h3><div class="tl-org">Personal Project · PHP College Library System</div><ul class="tl-list"><li>Manual testing on library database logic</li><li>100% accuracy in book-to-student mapping</li><li>Resolved edge-case bugs using PHP OOP</li></ul></div>`,
+  about: `<p>I'm a <strong>final-year BCA student</strong> at Tribhuvan University, Nepal, passionate about building reliable software and catching bugs before users do.</p><p>I have hands-on experience across the full stack — from <strong>Django REST APIs</strong> and PHP backends to Android mobile apps.</p><p>I bring a <strong>testing mindset</strong> to everything I build — writing edge-case test suites, validating data across all operations, and ensuring frontend and backend always agree.</p><p>Looking for a <strong>Dev or QA Internship</strong> where I can grow fast, ship real features, and work with a team that cares about quality.</p>`,
+};
+
+// ── Router ─────────────────────────────────────────────────────────────────
+const KNOWN = new Set(['', 'skills', 'projects', 'blog', 'experience', 'about', 'contact']);
+const VIEWS = {
+  home:       $('view-home'),
+  skills:     $('view-skills'),
+  projects:   $('view-projects'),
+  blog:       $('view-blog'),
+  article:    $('view-article'),
+  experience: $('view-experience'),
+  about:      $('view-about'),
+  contact:    $('view-contact'),
+};
+
+let blogRows = null;
+
+async function navigate(rawPath, push = true) {
+  const u = new URL(rawPath, location.origin);
+  let path = u.pathname
+    .replace(/\/portfolio-upload\/?/g, '/')
+    .replace(/\/index\.html?$/i, '/')
+    .replace(/\/+/g, '/') || '/';
+  const page  = parseInt(u.searchParams.get('page')) || 1;
+  const parts = path.replace(/^\//, '').split('/');
+  const route = parts[0] || '';
+  const slug  = parts[1] || '';
+
+  pStart();
+  Object.values(VIEWS).forEach(v => v.classList.remove('active'));
+  qsa('.nav-links a').forEach(a => {
+    const r = new URL(a.getAttribute('href'), location.origin).pathname.replace(/^\//, '');
+    a.setAttribute('aria-current', r === route ? 'page' : 'false');
+  });
+
+  const full = path + (u.search || '');
+  if (push && KNOWN.has(route) && (location.pathname + location.search) !== full) {
+    history.pushState({}, '', full);
+  }
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  const ol = $('spa-404-overlay');
+  if (ol) ol.remove();
+
+  if (route === '') {
+    VIEWS.home.classList.add('active');
+    updateSEO({ path: '/' });
+    watchReveals();
+    // Kick off featured posts fetch non-blocking — doesn't delay page paint
+    renderFeaturedPosts();
+
+  } else if (route === 'skills') {
+    VIEWS.skills.classList.add('active');
+    updateSEO({ title: 'Skills & Stack', desc: 'Python, Django, PHP, Java, Android, QA. Skills of Suman Dangal.', path: '/skills' });
+    await renderSkills(); watchReveals();
+
+  } else if (route === 'projects') {
+    VIEWS.projects.classList.add('active');
+    updateSEO({ title: 'Projects', desc: 'E-commerce, library, and mobile projects by Suman Dangal.', path: '/projects' });
+    await renderProjects(); watchReveals();
+
+  } else if (route === 'blog' && !slug) {
+    VIEWS.blog.classList.add('active');
+    updateSEO({ title: 'Blog', desc: 'Dev notes, QA tips, and tech writing by Suman Dangal.', path: '/blog' });
+    blogState.page = page;
+    await renderBlogList(); watchReveals();
+
+  } else if (route === 'blog' && slug) {
+    VIEWS.article.classList.add('active');
+    await renderArticle(slug); watchReveals();
+
+  } else if (route === 'experience') {
+    VIEWS.experience.classList.add('active');
+    updateSEO({ title: 'Experience', desc: 'SEO Intern and QA testing by Suman Dangal.', path: '/experience' });
+    await renderExperience(); watchReveals();
+
+  } else if (route === 'about') {
+    VIEWS.about.classList.add('active');
+    updateSEO({ title: 'About Suman Dangal', desc: 'BCA student at Tribhuvan University, Bhaktapur, Nepal.', path: '/about' });
+    await renderAbout(); watchReveals();
+
+  } else if (route === 'contact') {
+    VIEWS.contact.classList.add('active');
+    updateSEO({ title: 'Contact', desc: 'Get in touch with Suman Dangal for Dev or QA internship opportunities.', path: '/contact' });
+    watchReveals();
+
+  } else {
+    // 404
+    const heroSec = $('heroSection');
+    if (heroSec && !$('spa-404-overlay')) {
+      heroSec.style.position = 'relative';
+      const ov = document.createElement('div');
+      ov.id = 'spa-404-overlay';
+      ov.innerHTML =
+        `<div class="not-found-wrap">` +
+          `<span class="not-found-code" aria-hidden="true">404</span>` +
+          `<h2>Page not found</h2>` +
+          `<p>The path <code style="font-family:var(--mono);color:var(--accent)">${esc(path)}</code> doesn't exist.</p>` +
+          `<a href="/" class="btn btn-solid" data-link>← Back to Home</a>` +
+        `</div>`;
+      heroSec.appendChild(ov);
+    }
+    VIEWS.home.classList.add('active');
+    updateSEO({ title: '404 — Not Found', path });
+  }
+  pEnd();
+}
+
+// Intercept data-link clicks
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-link]');
+  if (!a) return;
+  const href = a.getAttribute('href');
+  if (!href || /^(https?:|mailto:|tel:|#)/.test(href)) return;
+  e.preventDefault();
+  navigate(href);
+  burger.classList.remove('open');
+  navList.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+});
+
+window.addEventListener('popstate', () => navigate(location.pathname + location.search, false));
+
+// Boot
+navigate(location.pathname + location.search, false);
+
+// ── Page renderers ─────────────────────────────────────────────────────────
+
+async function renderSkills() {
+  const g = $('skillsGrid');
+  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(4);
+  const rows = await fetchSheet(CFG.api.skills, 'skills');
+  if (!rows?.length) { g.innerHTML = FB.skills; return; }
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const d = document.createElement('div');
+    d.className = `skill-card ${r.color || 'c-green'} reveal`;
+    const tags = (r.tags || '').split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+    d.innerHTML = `<div class="skill-icon" aria-hidden="true">${esc(r.icon || '💡')}</div><div class="skill-name">${esc(r.title || '')}</div><div class="tag-row">${tags}</div>`;
+    frag.appendChild(d);
+  });
+  g.innerHTML = '';
+  g.appendChild(frag);
+}
+
+async function renderProjects() {
+  const g = $('projectsGrid');
+  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(4);
+  const rows = await fetchSheet(CFG.api.projects, 'projects');
+  if (!rows?.length) { g.innerHTML = FB.projects; return; }
+  const frag = document.createDocumentFragment();
+  rows.forEach((r, i) => {
+    const art = document.createElement('article');
+    art.className = 'proj-card reveal' + (r.featured === 'true' ? ' feat' : '') + (r.wide === 'true' ? ' wide' : '');
+    const buls  = (r.bullets || '').split('|').filter(Boolean).map(b => `<li>${esc(b.trim())}</li>`).join('');
+    const stack = (r.stack || '').split(',').filter(Boolean).map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+    const linkHTML = (r.link && r.link.trim())
+      ? `<div class="proj-links"><a href="${esc(r.link.trim())}" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div>` : '';
+    const vis = r.featured === 'true' ? `<div class="proj-visual" aria-hidden="true">🛒</div>` : '';
+    art.innerHTML =
+      `<div><div class="proj-num">${String(i + 1).padStart(2, '0')}${r.featured === 'true' ? ' / Featured' : ''}</div>` +
+      `<h3 class="proj-title">${esc(r.title || '')}</h3><p class="proj-desc">${esc(r.desc || '')}</p>` +
+      (buls ? `<ul class="proj-bullets">${buls}</ul>` : '') +
+      `<div class="proj-stack">${stack}</div>${linkHTML}</div>${vis}`;
+    frag.appendChild(art);
+  });
+  g.innerHTML = '';
+  g.appendChild(frag);
+}
+
+async function renderBlogList() {
+  const g = $('blogGrid');
+  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
+  blogRows = await fetchSheet(CFG.api.blog, 'blog', fresh => {
+    blogRows = fresh;
+    if ($('view-blog').classList.contains('active')) { initBlogToolbar(fresh); renderFilteredBlog(); }
+  });
+  if (!blogRows?.length) {
+    $('blogToolbar').style.display = 'none';
+    g.innerHTML = '<p class="empty-state">No posts yet — check back soon.</p>';
+    return;
+  }
+  initBlogToolbar(blogRows);
+  renderFilteredBlog();
+}
+
+async function renderArticle(slug) {
+  const wrap = $('articleWrap');
+  wrap.innerHTML =
+    `<div class="skel skel-line m" style="margin-bottom:1.5rem"></div>` +
+    `<div class="skel skel-line" style="height:36px;margin-bottom:1.5rem"></div>` +
+    `<div class="skel skel-card" style="height:320px;margin-bottom:1.5rem"></div>` +
+    `<div class="skel skel-line"></div><div class="skel skel-line m"></div><div class="skel skel-line s"></div>`;
+
+  const [blogData, faqData, imageData] = await Promise.all([
+    blogRows ? Promise.resolve(blogRows) : fetchSheet(CFG.api.blog, 'blog'),
+    fetchSheet(CFG.api.faq, 'faq'),
+    fetchSheet(CFG.api.images, 'blogimages'),
+  ]);
+  if (!blogRows) blogRows = blogData;
+  const post = blogRows?.find(p => p.Slug === slug);
+
+  if (!post) {
+    wrap.innerHTML =
+      `<button class="article-back" id="artBack">← Back to Blog</button>` +
+      `<div class="not-found-wrap"><span class="not-found-code" aria-hidden="true">404</span>` +
+      `<h2>Post not found</h2>` +
+      `<p>No post with slug <code style="font-family:var(--mono);color:var(--accent)">${esc(slug)}</code> exists.</p>` +
+      `<a href="/blog" class="btn btn-solid" data-link>← Browse all posts</a></div>`;
+    $('artBack').addEventListener('click', () => navigate('/blog'));
+    updateSEO({ title: `${slug} | Suman Dangal`, desc: 'Blog post by Suman Dangal.', path: `/blog/${slug}` });
+    const oldFaq = $('faq-schema');
+    if (oldFaq) oldFaq.remove();
+    return;
+  }
+
+  const imgMap   = buildImgMap(post, imageData);
+  const coverUrl = fixImgUrl(post.Image_URL);
+  const cover    = coverUrl
+    ? `<img class="article-cover" src="${esc(coverUrl)}" alt="${esc(post.Image_Alt || post.Title + ' featured image')}" loading="eager" decoding="async" fetchpriority="high" width="720" height="420">`
+    : '';
+  const tableHTML = post.Table_HTML ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>` : '';
+  const tagList   = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  const tagsHTML  = tagList.length
+    ? `<div class="article-tags">${tagList.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>` : '';
+
+  updateSEO({
+    title:       post.Title,
+    desc:        post.Excerpt,
+    path:        `/blog/${post.Slug}`,
+    ogImage:     coverUrl || '',
+    articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl, tags: tagList },
+  });
+
+  const faqHTML = await buildFAQ(slug, faqData);
+
+  // Breadcrumb nav visible inside article
+
+  // Author byline
+  const authorLine =
+    `<div class="article-author" itemscope itemtype="https://schema.org/Person">` +
+    `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>` +
+    `<span>Written by <a href="/about" data-link itemprop="url"><span itemprop="name">Suman Dangal</span></a></span>` +
+    `</div>`;
+
+  wrap.innerHTML =
+    `<button class="article-back" id="artBack">← Back to Blog</button>` +
+    `<div class="article-meta"><span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
+    `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time></div>` +
+    `<h2 class="article-title">${esc(post.Title || '')}</h2>` +
+    tagsHTML + cover +
+    `<div class="article-body">${md(post.Content || '', imgMap)}${tableHTML}</div>` +
+    authorLine + faqHTML;
+
+  $('artBack').addEventListener('click', () => navigate('/blog'));
+}
+
+async function renderExperience() {
+  const tl = $('expTimeline');
+  tl.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
+  const rows = await fetchSheet(CFG.api.exp, 'exp');
+  if (!rows?.length) { tl.innerHTML = FB.experience; return; }
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const d = document.createElement('div');
+    d.className = 'tl-item reveal';
+    const buls = (r.bullets || '').split('|').filter(Boolean).map(b => `<li>${esc(b.trim())}</li>`).join('');
+    d.innerHTML =
+      `<div class="tl-dot" aria-hidden="true"></div>` +
+      `<time class="tl-date" datetime="${esc(r.datetime || r.date || '')}">${esc(r.date || '')}</time>` +
+      `<h3 class="tl-role">${esc(r.role || '')}</h3>` +
+      `<div class="tl-org">${esc(r.org || '')}</div>` +
+      `<ul class="tl-list">${buls}</ul>`;
+    frag.appendChild(d);
+  });
+  tl.innerHTML = '';
+  tl.appendChild(frag);
+}
+
+async function renderAbout() {
+  const el = $('aboutText');
+  el.innerHTML = '<div class="skel skel-line" style="margin-bottom:1rem"></div>'.repeat(4);
+  const rows = await fetchSheet(CFG.api.about, 'about');
+  if (!rows?.length) { el.innerHTML = FB.about; return; }
+  const ps = [rows[0].bio1, rows[0].bio2, rows[0].bio3, rows[0].bio4].filter(Boolean);
+  el.innerHTML = ps.length ? ps.map(p => `<p>${esc(p)}</p>`).join('') : FB.about;
+}
+
+// ── Mobile nav burger ──────────────────────────────────────────────────────
+burger.addEventListener('click', () => {
+  const open = !navList.classList.contains('open');
+  burger.classList.toggle('open', open);
+  navList.classList.toggle('open', open);
+  burger.setAttribute('aria-expanded', String(open));
+});
+
+// Close nav on outside click
+document.addEventListener('click', e => {
+  if (!navList.contains(e.target) && !burger.contains(e.target)) {
+    navList.classList.remove('open');
+    burger.classList.remove('open');
+    burger.setAttribute('aria-expanded', 'false');
+  }
+});
+
+})();
+</script>
+</body>
+</html>

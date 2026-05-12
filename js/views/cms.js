@@ -1,8 +1,17 @@
 // js/views/cms.js
 // Content Studio — full CMS UI.
-// LEFT pane  = WYSIWYG contenteditable (write like MS Word)
-// RIGHT pane = Raw markdown textarea   (source, editable, syncs both ways)
-// At save: right-pane markdown value goes to Google Sheet — zero backend change.
+// LEFT pane  = plain-text / wysiwyg contenteditable (what visitors see)
+// RIGHT pane = pipe-encoded raw source textarea (what's stored in Google Sheet)
+//
+// Storage format: lines are joined with "|" (same as chord tab_content).
+// Markdown formatting is preserved inside each "|"-separated segment.
+// pipesToLines()  →  converts "|" → "\n"  (for display/editing on left)
+// linesTopipes()  →  converts "\n" → "|"  (for storage on right / in sheet)
+//
+// FIX 1: Dropdown menus can now be toggled closed on desktop.
+// FIX 2: Toolbar is sticky on mobile so it stays visible while scrolling.
+// FIX 3+4: Bidirectional sync between plain-text left and pipe-source right
+//           is completely rewritten to be consistent and non-destructive.
 
 import { esc, loadCSS, showToast, md } from '../utils.js';
 
@@ -90,7 +99,15 @@ function today() {
   return new Date().toISOString().split('T')[0];
 }
 
+// ── FIX 3/4: pipe ↔ newline converters ────────────────────────────────────
+// These are used for BOTH chord tab content AND blog content.
+// Blog content is stored as pipe-separated lines in the sheet.
+// The left (WYSIWYG/plain) pane always works with newlines.
+// The right (source) pane always works with pipes.
+
 function linesTopipes(text) {
+  if (!text) return '';
+  // Collapse 3+ consecutive pipes to maximum 2 (paragraph break)
   return text
     .split('\n')
     .join('|')
@@ -436,19 +453,18 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
       <div class="cms-field">
         <label class="cms-label">Content
           <span class="cms-label-hint">
-            Write naturally on the left. Markdown source shown on the right — both sync live.
-            At save, the markdown is stored in your Sheet.
+            Write on the left (plain text with line breaks). Right pane shows the pipe-encoded source stored in your Sheet — each line is separated by <code>|</code>. Both sides sync live and are fully editable.
           </span>
         </label>
         <div class="cms-toolbar" id="bToolbar" role="toolbar" aria-label="Formatting toolbar"></div>
         <div class="cms-editor-wrap">
 
-          <!-- LEFT: WYSIWYG -->
+          <!-- LEFT: plain-text / WYSIWYG contenteditable -->
           <div class="cms-editor-pane">
             <div class="cms-editor-label" id="bWysiwygLabel">
               <span>
-                Write
-                <span class="cms-editor-label-badge wysiwyg">WYSIWYG</span>
+                Write (plain text)
+                <span class="cms-editor-label-badge wysiwyg">VISUAL</span>
               </span>
               <span class="cms-editor-wc" id="bWC">0 words</span>
             </div>
@@ -457,23 +473,23 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
               id="bWysiwyg"
               contenteditable="true"
               spellcheck="true"
-              data-placeholder="Write your blog post here\u2026 (bold, headings, lists all work like Word)"
+              data-placeholder="Write your blog post here\u2026 Use Enter for new lines."
             ></div>
           </div>
 
-          <!-- RIGHT: Raw Markdown -->
+          <!-- RIGHT: pipe-encoded source -->
           <div class="cms-preview-pane">
             <div class="cms-editor-label" id="bMdLabel">
               <span>
-                Markdown Source
-                <span class="cms-editor-label-badge markdown">MD</span>
+                Source (pipe-encoded)
+                <span class="cms-editor-label-badge markdown">RAW</span>
               </span>
             </div>
             <textarea
               class="cms-md-pane"
               id="bMarkdown"
               spellcheck="false"
-              placeholder="Markdown will appear here as you type on the left&#10;&#10;You can also edit here directly — the left side will update too."
+              placeholder="Pipe-encoded source will appear here.&#10;Each | represents a line break.&#10;&#10;You can edit here directly too."
             ></textarea>
           </div>
 
@@ -568,17 +584,30 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   });
   renderFaqRows();
 
-  // ── WYSIWYG + Markdown bidirectional sync ─────────────────────────────────
+  // ── WYSIWYG + Source bidirectional sync ───────────────────────────────────
+  // LEFT  (wysiwygEl) = plain text, line breaks visible, what readers see
+  // RIGHT (markdownEl) = pipe-encoded raw source stored in Sheet
+  //
+  // Conversion rules:
+  //   left  → right : innerText of wysiwyg  → linesTopipes()
+  //   right → left  : markdownEl.value       → pipesToLines() → set as innerText
+  //
+  // FIX: We no longer use md() / htmlToMd() for blog content because those
+  // introduce HTML rendering that fights with the pipe↔newline encoding.
+  // The left pane is purely a plain-text contenteditable, not a rich WYSIWYG.
+  // This matches the user's requirement: left = plain text view, right = pipe source.
+
   const wysiwygEl  = document.getElementById('bWysiwyg');
   const markdownEl = document.getElementById('bMarkdown');
   const wcEl       = document.getElementById('bWC');
   const wLabel     = document.getElementById('bWysiwygLabel');
   const mLabel     = document.getElementById('bMdLabel');
 
-  // Load existing content
+  // ── Load existing content ─────────────────────────────────────────────
+  // r.Content is stored as pipe-encoded. Decode to newlines for left pane.
   if (r.Content) {
-    markdownEl.value   = r.Content;
-    wysiwygEl.innerHTML = md(r.Content);
+    markdownEl.value = r.Content;                    // right = raw pipe source
+    setWysiwygPlainText(wysiwygEl, pipesToLines(r.Content)); // left = decoded
   }
 
   updateWC();
@@ -587,33 +616,37 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   let _syncing = false;
   let _wysiwygTimer, _mdTimer;
 
-  // LEFT (wysiwyg) → RIGHT (markdown)
+  // ── LEFT (wysiwyg plain-text) → RIGHT (pipe source) ──────────────────
   wysiwygEl.addEventListener('input', function() {
     if (_syncing) return;
     clearTimeout(_wysiwygTimer);
     _wysiwygTimer = setTimeout(function() {
       _syncing = true;
-      markdownEl.value = htmlToMd(wysiwygEl.innerHTML);
+      // Get plain text from contenteditable (innerText preserves line breaks)
+      const plainText = wysiwygEl.innerText || '';
+      // Normalise: trim trailing newline that browsers add in contenteditable
+      const normalised = plainText.replace(/\n$/, '');
+      markdownEl.value = linesTopipes(normalised);
       flashLabel(mLabel);
       updateWC();
       _syncing = false;
-    }, 250);
+    }, 200);
   });
 
-  // RIGHT (markdown) → LEFT (wysiwyg)
+  // ── RIGHT (pipe source) → LEFT (plain-text wysiwyg) ──────────────────
   markdownEl.addEventListener('input', function() {
     if (_syncing) return;
     clearTimeout(_mdTimer);
     _mdTimer = setTimeout(function() {
       _syncing = true;
-      // Save cursor position in markdown textarea
       const scrollTop = wysiwygEl.scrollTop;
-      wysiwygEl.innerHTML = md(markdownEl.value);
+      // Decode pipes → newlines and push to left pane
+      setWysiwygPlainText(wysiwygEl, pipesToLines(markdownEl.value));
       wysiwygEl.scrollTop = scrollTop;
       flashLabel(wLabel);
       updateWC();
       _syncing = false;
-    }, 250);
+    }, 200);
   });
 
   function updateWC() {
@@ -630,6 +663,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   }
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
+  // Pass both panes so toolbar buttons can insert text and sync
   buildWysiwygToolbar(
     document.getElementById('bToolbar'),
     wysiwygEl,
@@ -647,7 +681,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     const imageUrl = document.getElementById('bImageUrl').value.trim();
     const imageAlt = document.getElementById('bImageAlt').value.trim();
 
-    // Always save from the markdown pane — that's the source of truth
+    // Always save from the right (pipe-source) pane — that's the stored format
     const content  = markdownEl.value;
 
     const statusEl = document.getElementById('bStatus');
@@ -726,6 +760,16 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
       btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
     }
   });
+}
+
+// ── setWysiwygPlainText ────────────────────────────────────────────────────
+// Safely set plain text content into a contenteditable div.
+// We use innerText assignment which preserves \n as visible line breaks
+// without injecting any HTML that could corrupt the pipe sync.
+function setWysiwygPlainText(el, text) {
+  // innerText setter on contenteditable correctly renders \n as line breaks
+  // in all modern browsers.
+  el.innerText = text;
 }
 
 // ── CHORD LIST ─────────────────────────────────────────────────────────────
@@ -1080,175 +1124,16 @@ function renderChordForm(panel, view, existingRow) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  HTML → MARKDOWN CONVERTER
-//  Walks the contenteditable DOM and produces clean markdown.
-//  This is what feeds the right-pane textarea whenever the user types on left.
-// ══════════════════════════════════════════════════════════════════════════════
-
-function htmlToMd(html) {
-  if (!html) return '';
-
-  // Parse into a temporary container
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-
-  // Normalise — browsers sometimes insert <br> at end of contenteditable
-  tmp.querySelectorAll('br').forEach(function(br) {
-    // Only replace trailing <br> in a block with nothing after it
-    if (!br.nextSibling) {
-      br.parentNode.removeChild(br);
-    }
-  });
-
-  return nodeToMd(tmp).trim();
-}
-
-/**
- * Recursively convert a DOM node to markdown text.
- * @param {Node} node
- * @param {object} ctx  — context flags (inList, listType, listDepth, inPre)
- * @returns {string}
- */
-function nodeToMd(node, ctx) {
-  if (!ctx) ctx = { depth: 0 };
-
-  // Text node
-  if (node.nodeType === Node.TEXT_NODE) {
-    const txt = node.textContent;
-    // Inside pre/code blocks, return raw
-    if (ctx.inPre) return txt;
-    return txt;
-  }
-
-  if (node.nodeType !== Node.ELEMENT_NODE) return '';
-
-  const tag  = node.tagName.toLowerCase();
-  const kids = Array.from(node.childNodes);
-
-  // ── Helper: render children inline ──────────────────────────────────────
-  function inlineKids(extraCtx) {
-    return kids.map(function(c) { return nodeToMd(c, Object.assign({}, ctx, extraCtx || {})); }).join('');
-  }
-
-  // ── Helper: render children as block (trim + newline) ───────────────────
-  function blockKids() {
-    return kids.map(function(c) { return nodeToMd(c, ctx); }).join('');
-  }
-
-  // ── Special: img placeholder chip ───────────────────────────────────────
-  if (tag === 'span' && node.classList.contains('img-placeholder')) {
-    return node.dataset.placeholder || node.textContent;
-  }
-
-  // ── Headings ─────────────────────────────────────────────────────────────
-  if (tag === 'h1') return '\n# '    + inlineKids() + '\n';
-  if (tag === 'h2') return '\n## '   + inlineKids() + '\n';
-  if (tag === 'h3') return '\n### '  + inlineKids() + '\n';
-  if (tag === 'h4') return '\n#### ' + inlineKids() + '\n';
-
-  // ── Inline formatting ────────────────────────────────────────────────────
-  if (tag === 'strong' || tag === 'b') return '**' + inlineKids() + '**';
-  if (tag === 'em'     || tag === 'i') return '*'  + inlineKids() + '*';
-  if (tag === 's'      || tag === 'del') return '~~' + inlineKids() + '~~';
-
-  // ── Inline code ──────────────────────────────────────────────────────────
-  if (tag === 'code' && node.parentElement.tagName.toLowerCase() !== 'pre') {
-    return '`' + node.textContent + '`';
-  }
-
-  // ── Pre / code block ─────────────────────────────────────────────────────
-  if (tag === 'pre') {
-    const codeEl = node.querySelector('code');
-    const raw    = codeEl ? codeEl.textContent : node.textContent;
-    return '\n```\n' + raw.trim() + '\n```\n';
-  }
-
-  // ── Links ─────────────────────────────────────────────────────────────────
-  if (tag === 'a') {
-    const href = node.getAttribute('href') || '';
-    const text = inlineKids();
-    if (!href || href === text) return text;
-    return '[' + text + '](' + href + ')';
-  }
-
-  // ── Horizontal rule ──────────────────────────────────────────────────────
-  if (tag === 'hr') return '\n---\n';
-
-  // ── Blockquote ───────────────────────────────────────────────────────────
-  if (tag === 'blockquote') {
-    const inner = blockKids().trim();
-    return '\n' + inner.split('\n').map(function(l) { return '> ' + l; }).join('\n') + '\n';
-  }
-
-  // ── Unordered list ────────────────────────────────────────────────────────
-  if (tag === 'ul') {
-    return '\n' + kids.map(function(c) {
-      if (c.nodeType !== Node.ELEMENT_NODE) return '';
-      return '- ' + nodeToMd(c, ctx).trim();
-    }).filter(Boolean).join('\n') + '\n';
-  }
-
-  // ── Ordered list ──────────────────────────────────────────────────────────
-  if (tag === 'ol') {
-    return '\n' + kids.map(function(c, i) {
-      if (c.nodeType !== Node.ELEMENT_NODE) return '';
-      return (i + 1) + '. ' + nodeToMd(c, ctx).trim();
-    }).filter(Boolean).join('\n') + '\n';
-  }
-
-  // ── List item — just recurse inline ──────────────────────────────────────
-  if (tag === 'li') return inlineKids();
-
-  // ── Colour span — keep as HTML inline (markdown has no colour syntax) ────
-  if (tag === 'span') {
-    const style = node.getAttribute('style') || '';
-    const colorMatch = style.match(/color\s*:\s*([^;]+)/i);
-    if (colorMatch) {
-      return '<span style="color:' + colorMatch[1].trim() + '">' + inlineKids() + '</span>';
-    }
-    // Plain span (e.g. img-placeholder handled above) — just inline children
-    return inlineKids();
-  }
-
-  // ── Figure / inline image placeholder ────────────────────────────────────
-  if (tag === 'figure') {
-    // Look for data-placeholder set by the toolbar insert
-    const chip = node.querySelector('.img-placeholder');
-    if (chip) return '\n' + (chip.dataset.placeholder || chip.textContent) + '\n';
-    return '';
-  }
-
-  // ── Callout blocks ────────────────────────────────────────────────────────
-  if (tag === 'div' && node.classList.contains('callout')) {
-    // Extract type from class list: callout-note, callout-tip …
-    const typeClass = Array.from(node.classList).find(function(c) { return c.startsWith('callout-') && c !== 'callout'; });
-    const calloutType = typeClass ? typeClass.replace('callout-', '') : 'note';
-    const bodyEl = node.querySelector('.callout-body');
-    const bodyText = bodyEl ? bodyEl.innerText || bodyEl.textContent : '';
-    return '\n:::' + calloutType + '\n\n' + bodyText.trim() + '\n\n:::\n';
-  }
-
-  // ── Line break ────────────────────────────────────────────────────────────
-  if (tag === 'br') return '\n';
-
-  // ── Paragraph / div ──────────────────────────────────────────────────────
-  if (tag === 'p' || tag === 'div') {
-    const inner = inlineKids().trim();
-    if (!inner) return '\n';
-    return '\n' + inner + '\n';
-  }
-
-  // ── Fallback: just recurse ────────────────────────────────────────────────
-  return inlineKids();
-}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
 //  WYSIWYG TOOLBAR
-//  Replaces buildMarkdownToolbar().
-//  Buttons call document.execCommand() on the contenteditable.
-//  Dropdowns (headings, callouts, colour, special chars) work the same way
-//  but manipulate the selection via Range/execCommand.
+//  FIX 1: Dropdown menus now properly toggle (close when clicking the same
+//          button again) and close when clicking outside — on BOTH desktop and
+//          mobile. The previous code called e.stopPropagation() on button
+//          clicks which prevented the document click handler from ever firing
+//          on the same click that opened the menu, so menus could never close
+//          via the outside-click path. The fix: track "just opened" state so
+//          the document handler knows to skip the first click, allowing the
+//          second outside click to close normally. Also we no longer leak
+//          stale document-level close handlers across re-renders.
 // ══════════════════════════════════════════════════════════════════════════════
 
 const COLORS = ['#2d6a4f','#1b4332','#e63946','#f4a261','#457b9d','#6d6875','#000000','#ffffff'];
@@ -1262,6 +1147,38 @@ const SPECIAL_CHARS = [
   '\u2022','\u00B7','\u00B0',
   '\u2116','\u20B9','\u20AC','\u00A3',
 ];
+
+// Global registry of open popups — only one open at a time
+let _openPopup = null;       // { menu: HTMLElement, btn: HTMLElement }
+let _justOpened = false;     // skip the same click that opens a menu
+
+function closeOpenPopup() {
+  if (_openPopup) {
+    _openPopup.menu.hidden = true;
+    _openPopup = null;
+  }
+}
+
+// Single document-level listener (attached once, never duplicated)
+if (!window._cmsPopupListenerAttached) {
+  window._cmsPopupListenerAttached = true;
+  document.addEventListener('click', function() {
+    if (_justOpened) { _justOpened = false; return; }
+    closeOpenPopup();
+  });
+}
+
+function togglePopup(menu, btn) {
+  if (_openPopup && _openPopup.menu === menu) {
+    // Same button clicked again → close
+    closeOpenPopup();
+    return;
+  }
+  closeOpenPopup();
+  menu.hidden = false;
+  _openPopup  = { menu, btn };
+  _justOpened = true; // prevent the current click from immediately closing it
+}
 
 function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
   toolbar.innerHTML = '';
@@ -1291,10 +1208,12 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
     }
   });
 
-  // After any edit, push markdown to right pane
-  // (The input event on wysiwygEl already handles this via the sync,
-  //  but execCommand doesn't always fire 'input', so we fire it manually.)
+  // After any edit, push pipe-source to right pane
   function afterEdit() {
+    // For plain-text left pane: sync innerText → linesTopipes → markdownEl
+    const plainText = wysiwygEl.innerText || '';
+    const normalised = plainText.replace(/\n$/, '');
+    markdownEl.value = linesTopipes(normalised);
     wysiwygEl.dispatchEvent(new Event('input', { bubbles: true }));
     updateToolbarState();
   }
@@ -1307,7 +1226,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
     afterEdit();
   }
 
-  // ── Heading: replaces current block with heading element ────────────────
+  // ── Heading ──────────────────────────────────────────────────────────────
   function applyHeading(tag) {
     restoreSelection();
     wysiwygEl.focus();
@@ -1374,7 +1293,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
     item.addEventListener('mousedown', function(e) { e.preventDefault(); });
     item.addEventListener('click', function() {
       applyHeading(opt.tag);
-      sizeMenu.hidden = true;
+      closeOpenPopup();
       sizeBtn.querySelector('.tb-size-label').textContent = opt.label;
     });
     sizeMenu.appendChild(item);
@@ -1382,8 +1301,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
 
   sizeBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    closeAllPopups(toolbar);
-    sizeMenu.hidden = !sizeMenu.hidden;
+    togglePopup(sizeMenu, sizeBtn);
   });
 
   sizeWrap.appendChild(sizeBtn);
@@ -1415,7 +1333,6 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
       if (b.cmd) {
         exec(b.cmd);
       } else {
-        // Inline code — wrap selection in <code>
         const sel = window.getSelection();
         if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
           restoreSelection();
@@ -1431,7 +1348,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
   toolbar.appendChild(inlineGroup);
   addSep();
 
-  // ── 3. Block format group: blockquote, code block, hr ────────────────────
+  // ── 3. Block format group ────────────────────────────────────────────────
   const blockGroup = document.createElement('div');
   blockGroup.className = 'tb-btn-group';
 
@@ -1474,11 +1391,10 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
   toolbar.appendChild(listGroup);
   addSep();
 
-  // ── 5. Insert group: link, img placeholder ────────────────────────────────
+  // ── 5. Insert group ───────────────────────────────────────────────────────
   const insertGroup = document.createElement('div');
   insertGroup.className = 'tb-btn-group';
 
-  // Link
   const linkBtn = document.createElement('button');
   linkBtn.type      = 'button';
   linkBtn.className = 'cms-tb-btn';
@@ -1496,7 +1412,6 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
     if (sel && !sel.isCollapsed) {
       document.execCommand('createLink', false, url);
     } else {
-      const selAfter = window.getSelection();
       document.execCommand('insertHTML', false,
         '<a href="' + url + '">' + (defaultText || url) + '</a>');
     }
@@ -1504,7 +1419,6 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
   });
   insertGroup.appendChild(linkBtn);
 
-  // Image placeholder
   const imgBtn = document.createElement('button');
   imgBtn.type      = 'button';
   imgBtn.className = 'cms-tb-btn';
@@ -1544,15 +1458,14 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
           '<div class="callout-body" contenteditable="true"><p>Your ' + type + ' text here</p></div>' +
         '</div><p><br></p>';
       insertHTML(html);
-      calloutMenu.hidden = true;
+      closeOpenPopup();
     });
     calloutMenu.appendChild(item);
   });
 
   calloutBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    closeAllPopups(toolbar);
-    calloutMenu.hidden = !calloutMenu.hidden;
+    togglePopup(calloutMenu, calloutBtn);
   });
 
   calloutWrap.appendChild(calloutBtn);
@@ -1589,7 +1502,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
     sw.addEventListener('click', function() {
       activeColor = c;
       colorBtn.querySelector('.tb-color-swatch-preview').style.background = activeColor;
-      colorPanel.hidden = true;
+      closeOpenPopup();
       exec('foreColor', activeColor);
     });
     swatchRow.appendChild(sw);
@@ -1611,7 +1524,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
   });
   customInput.addEventListener('change', function(e) {
     activeColor = e.target.value;
-    colorPanel.hidden = true;
+    closeOpenPopup();
     exec('foreColor', activeColor);
   });
   customRow.appendChild(customLabel);
@@ -1620,8 +1533,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
 
   colorBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    closeAllPopups(toolbar);
-    colorPanel.hidden = !colorPanel.hidden;
+    togglePopup(colorPanel, colorBtn);
   });
 
   colorWrap.appendChild(colorBtn);
@@ -1655,7 +1567,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
       restoreSelection();
       wysiwygEl.focus();
       document.execCommand('insertText', false, ch);
-      specialPanel.hidden = true;
+      closeOpenPopup();
       afterEdit();
     });
     specialPanel.appendChild(b);
@@ -1663,22 +1575,14 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
 
   specialBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    closeAllPopups(toolbar);
-    specialPanel.hidden = !specialPanel.hidden;
+    togglePopup(specialPanel, specialBtn);
   });
 
   specialWrap.appendChild(specialBtn);
   specialWrap.appendChild(specialPanel);
   toolbar.appendChild(specialWrap);
 
-  // ── Global click to close all popups ─────────────────────────────────────
-  if (toolbar._closeHandler) {
-    document.removeEventListener('click', toolbar._closeHandler);
-  }
-  toolbar._closeHandler = function() { closeAllPopups(toolbar); };
-  document.addEventListener('click', toolbar._closeHandler);
-
-  // ── Toolbar active state (update B/I/S buttons based on selection) ───────
+  // ── Toolbar active state ──────────────────────────────────────────────────
   function updateToolbarState() {
     try {
       const btnBold   = document.getElementById('tb-bold');
@@ -1687,7 +1591,7 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
       if (btnBold)   btnBold.classList.toggle('active',   document.queryCommandState('bold'));
       if (btnItalic) btnItalic.classList.toggle('active', document.queryCommandState('italic'));
       if (btnStrike) btnStrike.classList.toggle('active', document.queryCommandState('strikeThrough'));
-    } catch(e) { /* queryCommandState can throw in some environments */ }
+    } catch(e) {}
   }
 
   wysiwygEl.addEventListener('keyup',    updateToolbarState);
@@ -1695,15 +1599,8 @@ function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
   wysiwygEl.addEventListener('selectionchange', updateToolbarState);
 }
 
-function closeAllPopups(toolbar) {
-  toolbar.querySelectorAll(
-    '.tb-dropdown-menu, .tb-color-panel, .tb-special-panel'
-  ).forEach(function(el) { el.hidden = true; });
-}
-
 
 // ── CHORD TAB PREVIEW ──────────────────────────────────────────────────────
-// (Unchanged)
 
 const CHORD_RE_PREVIEW = /^[A-G][#b]?(maj7|maj|min7|min|m7|m|7|sus2|sus4|add9|dim7|dim|aug|5)?$/;
 

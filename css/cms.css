@@ -129,8 +129,10 @@
   border: 1.5px solid var(--border);
   border-bottom: 1px solid var(--border);
   border-radius: .5rem .5rem 0 0;
-  position: relative;
-  z-index: 20;
+  position: sticky;
+  /* sits just below the main site nav + CMS header + CMS tabs on mobile  */
+  top: 0;
+  z-index: 80;
   min-height: 44px;
   user-select: none;
 }
@@ -916,6 +918,19 @@
     z-index: 999;
   }
   .tb-size-btn { min-width: 90px; }
+
+  /* FIX 2: sticky toolbar on mobile */
+  .cms-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    border-radius: 0;
+    margin: 0 -1rem;
+    width: calc(100% + 2rem);
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
