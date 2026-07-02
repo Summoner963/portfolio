@@ -212,6 +212,16 @@ export default {
     const path   = url.pathname;
     const method = request.method;
 
+
+    // ── 301 redirect: old test slug → real published slug ─────────────
+    if (path === '/blog/free-domain-nepal-guide') {
+      return Response.redirect('https://suman-dangal.com.np/blog/get-free-domain-in-nepal', 301);
+    }
+
+    if (path === '/blog/free-domain-in-nepal-guide') {
+      return Response.redirect('https://suman-dangal.com.np/blog/get-free-domain-in-nepal', 301);
+    }
+
     // Only allow GET / HEAD
     if (method !== 'GET' && method !== 'HEAD') {
       return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
