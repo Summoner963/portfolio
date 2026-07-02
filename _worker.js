@@ -213,14 +213,15 @@ export default {
     const method = request.method;
 
 
-    // ── 301 redirect: old test slug → real published slug ─────────────
-    if (path === '/blog/free-domain-nepal-guide') {
-      return Response.redirect('https://suman-dangal.com.np/blog/get-free-domain-in-nepal', 301);
-    }
+    const REDIRECTS = {
+  '/blog/free-domain-nepal-guide':    '/blog/get-free-domain-in-nepal',
+  '/blog/free-domain-in-nepal-guide': '/blog/get-free-domain-in-nepal',
+};
 
-    if (path === '/blog/free-domain-in-nepal-guide') {
-      return Response.redirect('https://suman-dangal.com.np/blog/get-free-domain-in-nepal', 301);
-    }
+// near the top of fetch(), before rate limiting:
+if (REDIRECTS[path]) {
+  return Response.redirect('https://suman-dangal.com.np' + REDIRECTS[path], 301);
+}
 
     // Only allow GET / HEAD
     if (method !== 'GET' && method !== 'HEAD') {
