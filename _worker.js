@@ -204,6 +204,33 @@ a{color:var(--accent);text-underline-offset:3px}
 `;
 
 // ─────────────────────────────────────────────────────────────────────────
+//  BLOG LIST CSS — mirrors index.html's .container/.blog-grid/.blog-card
+//  exactly, so the SSR list looks identical to the client-rendered one.
+// ─────────────────────────────────────────────────────────────────────────
+const BLOG_LIST_CSS = `
+.container{max-width:1080px;margin:0 auto;padding:5rem 4rem}
+.section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;font-weight:500}
+.section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border);max-width:64px}
+.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
+.blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.4rem}
+.blog-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;overflow:hidden;transition:border-color .25s,transform .25s;display:flex;flex-direction:column;box-shadow:var(--shadow-sm);text-decoration:none;color:inherit}
+.blog-card:hover{border-color:rgba(45,106,79,.3);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.blog-card-thumb{width:100%;height:172px;overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2.4rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.blog-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.blog-card-body{padding:1.4rem;flex:1;display:flex;flex-direction:column}
+.blog-card-meta{display:flex;align-items:center;gap:.7rem;font-family:var(--mono);font-size:.65rem;color:var(--muted-light);letter-spacing:.06em;margin-bottom:.7rem}
+.blog-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
+h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem;line-height:1.25;flex:1;color:var(--accent2)}
+.blog-card-excerpt{font-size:.83rem;color:var(--muted);line-height:1.65}
+.blog-card-tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.75rem}
+.blog-tag{font-family:var(--mono);font-size:.63rem;padding:.18rem .55rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted-light);letter-spacing:.03em}
+@media(max-width:768px){
+  .container{padding:3.5rem 1.5rem}
+  .blog-grid{grid-template-columns:1fr}
+}
+`;
+
+// ─────────────────────────────────────────────────────────────────────────
 //  MAIN FETCH HANDLER
 // ─────────────────────────────────────────────────────────────────────────
 export default {
@@ -699,6 +726,9 @@ async function prerenderBlogPost(slug, env, request) {
 // ─────────────────────────────────────────────────────────────────────────
 //  Blog LIST page SSR — real content so GSC stops flagging soft-404
 // ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+//  Blog LIST page SSR — matches client-side .blog-grid/.blog-card exactly
+// ─────────────────────────────────────────────────────────────────────────
 async function prerenderBlogList(env, request) {
   const rows = await fetchSheetData('blog', env);
 
@@ -710,18 +740,28 @@ async function prerenderBlogList(env, request) {
     const slug    = post.Slug.trim();
     const imgUrl  = fixImgUrl(post.Image_URL || '');
     const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+
+    const thumb = imgUrl
+      ? `<div class="blog-card-thumb"><img src="${escHtml(imgUrl)}" alt="${escHtml(post.Image_Alt || post.Title + ' cover')}" loading="lazy" decoding="async" width="310" height="172"></div>`
+      : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`;
+
+    const tagsHTML = tagList.length
+      ? `<div class="blog-card-tags">${tagList.map(t => `<span class="blog-tag">${escHtml(t)}</span>`).join('')}</div>`
+      : '';
+
     return `
-    <article style="border:1.5px solid var(--border);border-radius:.8rem;padding:1.4rem;margin-bottom:1.2rem">
-      <a href="${SITE_URL}/blog/${escHtml(slug)}" style="text-decoration:none;color:inherit">
-        <div class="pre-meta">
-          <span class="pre-cat">${escHtml(post.Category || 'Post')}</span>
+    <a href="${SITE_URL}/blog/${escHtml(slug)}" class="blog-card">
+      ${thumb}
+      <div class="blog-card-body">
+        <div class="blog-card-meta">
+          <span class="blog-cat">${escHtml(post.Category || 'Post')}</span>
           <time datetime="${escHtml(post.Date || '')}">${escHtml(post.Date || '')}</time>
         </div>
-        <h2 style="font-family:var(--serif);font-size:1.3rem;margin:.5rem 0;color:var(--accent2)">${escHtml(post.Title || '')}</h2>
-        <p style="color:var(--muted);font-size:.9rem;line-height:1.6">${escHtml(post.Excerpt || '')}</p>
-        ${tagList.length ? `<div class="pre-tags" style="margin-top:.8rem">${tagList.map(t => `<span class="pre-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
-      </a>
-    </article>`;
+        <h3 class="blog-card-title">${escHtml(post.Title || '')}</h3>
+        <p class="blog-card-excerpt">${escHtml(post.Excerpt || '')}</p>
+        ${tagsHTML}
+      </div>
+    </a>`;
   }).join('');
 
   const listSchema = `
@@ -745,7 +785,7 @@ async function prerenderBlogList(env, request) {
   <meta property="og:url" content="${SITE_URL}/blog">
   <meta property="og:type" content="website">
   ${listSchema}
-  <style>${PRERENDER_CSS}<\/style>
+  <style>${PRERENDER_CSS}${BLOG_LIST_CSS}<\/style>
 </head>
 <body>
   <nav class="pre-nav" role="navigation" aria-label="Main navigation">
@@ -769,10 +809,12 @@ async function prerenderBlogList(env, request) {
       <li><a href="${SITE_URL}/contact">Contact</a></li>
     </ul>
   </nav>
-  <main class="pre-main">
-    <h1 class="pre-title">Blog</h1>
-    <p style="color:var(--muted);margin-bottom:2rem">Dev notes, QA tips, and tech writing.</p>
-    ${cardsHTML || '<p>No posts yet — check back soon.</p>'}
+  <main class="container">
+    <div class="section-eyebrow">Writing &amp; Notes</div>
+    <p class="section-heading">Blog</p>
+    <div class="blog-grid">
+      ${cardsHTML || '<p style="color:var(--muted)">No posts yet — check back soon.</p>'}
+    </div>
   </main>
   <footer class="pre-footer" role="contentinfo">
     <span>© 2026 Suman Dangal</span>
@@ -801,12 +843,11 @@ async function prerenderBlogList(env, request) {
     })),
   });
 }
-
 // ─────────────────────────────────────────────────────────────────────────
 //  Sitemap generation
 // ─────────────────────────────────────────────────────────────────────────
 async function generateSitemap(env) {
-  
+
   const staticPages = [
     { loc: '/',           priority: '1.0', changefreq: 'monthly' },
     { loc: '/skills',     priority: '0.7', changefreq: 'monthly' },
