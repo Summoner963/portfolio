@@ -312,6 +312,11 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
       }
     }
 
+
+     // ── Blog LIST page SSR (fixes GSC soft-404 on /blog) ────────────────
+    if (path === '/blog' || path === '/blog/') {
+      return await prerenderBlogList(env, request);
+    }
     // ── Blog post SSR (for crawlers & social sharing) ──────────────────
     const blogMatch = path.match(/^\/blog\/([^/]+)\/?$/);
     if (blogMatch) return await prerenderBlogPost(blogMatch[1], env, request);
@@ -692,9 +697,116 @@ async function prerenderBlogPost(slug, env, request) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+//  Blog LIST page SSR — real content so GSC stops flagging soft-404
+// ─────────────────────────────────────────────────────────────────────────
+async function prerenderBlogList(env, request) {
+  const rows = await fetchSheetData('blog', env);
+
+  const sorted = (rows || [])
+    .filter(r => r.Slug && r.Slug.trim())
+    .sort((a, b) => new Date(b.Date || 0) - new Date(a.Date || 0));
+
+  const cardsHTML = sorted.map(post => {
+    const slug    = post.Slug.trim();
+    const imgUrl  = fixImgUrl(post.Image_URL || '');
+    const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+    return `
+    <article style="border:1.5px solid var(--border);border-radius:.8rem;padding:1.4rem;margin-bottom:1.2rem">
+      <a href="${SITE_URL}/blog/${escHtml(slug)}" style="text-decoration:none;color:inherit">
+        <div class="pre-meta">
+          <span class="pre-cat">${escHtml(post.Category || 'Post')}</span>
+          <time datetime="${escHtml(post.Date || '')}">${escHtml(post.Date || '')}</time>
+        </div>
+        <h2 style="font-family:var(--serif);font-size:1.3rem;margin:.5rem 0;color:var(--accent2)">${escHtml(post.Title || '')}</h2>
+        <p style="color:var(--muted);font-size:.9rem;line-height:1.6">${escHtml(post.Excerpt || '')}</p>
+        ${tagList.length ? `<div class="pre-tags" style="margin-top:.8rem">${tagList.map(t => `<span class="pre-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+      </a>
+    </article>`;
+  }).join('');
+
+  const listSchema = `
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Blog","name":"Suman Dangal Blog","url":"${SITE_URL}/blog",
+   "blogPost":[${sorted.map(p => `{"@type":"BlogPosting","headline":"${escJson(p.Title || '')}","url":"${SITE_URL}/blog/${escJson(p.Slug)}"}`).join(',')}]}
+  <\/script>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog | Suman Dangal</title>
+  <meta name="description" content="Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="${SITE_URL}/blog">
+  <link rel="icon" type="image/x-icon" href="${SITE_URL}/favicon.ico">
+  <meta property="og:title" content="Blog | Suman Dangal">
+  <meta property="og:description" content="Dev notes, QA tips, and tech writing by Suman Dangal.">
+  <meta property="og:url" content="${SITE_URL}/blog">
+  <meta property="og:type" content="website">
+  ${listSchema}
+  <style>${PRERENDER_CSS}<\/style>
+</head>
+<body>
+  <nav class="pre-nav" role="navigation" aria-label="Main navigation">
+    <a href="${SITE_URL}/" style="display:inline-flex;align-items:center;text-decoration:none" title="Suman Dangal" aria-label="Suman Dangal home">
+      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <rect width="48" height="48" rx="9" fill="#1b4332"/>
+        <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-family="'Great Vibes','Dancing Script',Georgia,serif" font-size="26" fill="#ffffff">SD</text>
+      </svg>
+    </a>
+    <button class="pre-burger" id="preBurger" aria-label="Open menu" aria-expanded="false"
+      onclick="var m=document.getElementById('preNavLinks');var o=!m.classList.contains('open');m.classList.toggle('open',o);this.setAttribute('aria-expanded',o)">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="pre-nav-links" id="preNavLinks">
+      <li><a href="${SITE_URL}/">Home</a></li>
+      <li><a href="${SITE_URL}/skills">Skills</a></li>
+      <li><a href="${SITE_URL}/projects">Projects</a></li>
+      <li><a href="${SITE_URL}/blog" class="active">Blog</a></li>
+      <li><a href="${SITE_URL}/experience">Experience</a></li>
+      <li><a href="${SITE_URL}/about">About</a></li>
+      <li><a href="${SITE_URL}/contact">Contact</a></li>
+    </ul>
+  </nav>
+  <main class="pre-main">
+    <h1 class="pre-title">Blog</h1>
+    <p style="color:var(--muted);margin-bottom:2rem">Dev notes, QA tips, and tech writing.</p>
+    ${cardsHTML || '<p>No posts yet — check back soon.</p>'}
+  </main>
+  <footer class="pre-footer" role="contentinfo">
+    <span>© 2026 Suman Dangal</span>
+    <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
+  </footer>
+  <script>
+    (function(){
+      var ua = navigator.userAgent || '';
+      var isBot = /google|bing|yandex|baidu|duckduck|slurp|facebook|twitter|linkedin|whatsapp|telegram|apple|pinterest|reddit|slack|discord|crawler|spider|bot|headless|prerender|python|curl|wget|java|ruby|go-http|node-fetch/i.test(ua);
+      var looksReal = typeof window !== 'undefined' && typeof history !== 'undefined' && navigator.cookieEnabled;
+      if (!isBot && looksReal) {
+        fetch('/').then(function(r){ return r.text(); }).then(function(html){
+          document.open(); document.write(html); document.close();
+        }).catch(function(){});
+      }
+    })();
+  <\/script>
+</body>
+</html>`;
+
+  return new Response(html, {
+    status: 200,
+    headers: applySecurityHeaders(new Headers({
+      'Content-Type':  'text/html;charset=UTF-8',
+      'Cache-Control': htmlCacheHeaders(),
+    })),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  Sitemap generation
 // ─────────────────────────────────────────────────────────────────────────
 async function generateSitemap(env) {
+  
   const staticPages = [
     { loc: '/',           priority: '1.0', changefreq: 'monthly' },
     { loc: '/skills',     priority: '0.7', changefreq: 'monthly' },
