@@ -275,6 +275,7 @@ h3.proj-title{font-family:var(--serif);font-size:1.45rem;margin-bottom:.7rem;lin
 /* ── Blog grid ── */
 .blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.4rem;content-visibility:auto;contain-intrinsic-size:0 500px}
 .blog-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s;display:flex;flex-direction:column;box-shadow:var(--shadow-sm);contain:layout style}
+a.blog-card, a.fp-card { text-decoration: none; color: inherit; }
 .blog-card:hover{border-color:rgba(45,106,79,.3);transform:translateY(-3px);box-shadow:var(--shadow-md)}
 .blog-card-thumb{width:100%;height:172px;overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2.4rem;border-bottom:1px solid var(--border);flex-shrink:0;aspect-ratio:310/172}
 .blog-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1371,11 +1372,12 @@ function renderFilteredBlog() {
     if (nav) nav.innerHTML = '';
     return;
   }
-  const frag = document.createDocumentFragment();
+const frag = document.createDocumentFragment();
   slice.forEach(post => {
-    const card = document.createElement('article');
+    const card = document.createElement('a');
+    card.href = `/blog/${post.Slug}`;
+    card.setAttribute('data-link', '');
     card.className = 'blog-card reveal';
-    card.setAttribute('tabindex', '0');
     card.setAttribute('role', 'article');
     card.setAttribute('aria-label', post.Title || 'Blog post');
     const imgUrl = fixImgUrl(post.Image_URL);
@@ -1391,9 +1393,6 @@ function renderFilteredBlog() {
       `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time></div>` +
       `<h3 class="blog-card-title">${esc(post.Title || '')}</h3>` +
       `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>${tagsHTML}</div>`;
-    const go = () => navigate(`/blog/${post.Slug}`);
-    card.addEventListener('click', go);
-    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     frag.appendChild(card);
   });
   g.innerHTML = '';
@@ -1471,10 +1470,11 @@ async function renderFeaturedPosts() {
       const imgUrl = fixImgUrl(post.Image_URL || '');
       const slug   = (post.Slug || '').trim();
 
-      const card = document.createElement('article');
+const card = document.createElement('a');
+      card.href = `/blog/${slug}`;
+      card.setAttribute('data-link', '');
       card.className = 'fp-card';
       card.setAttribute('role', 'listitem');
-      card.setAttribute('tabindex', '0');
       card.setAttribute('aria-label', post.Title || 'Featured post');
 
       const thumbHTML = imgUrl
@@ -1499,13 +1499,6 @@ async function renderFeaturedPosts() {
           (post.Excerpt ? `<p class="fp-excerpt">${esc(post.Excerpt)}</p>` : '') +
           `<span class="fp-arrow" aria-hidden="true">Read post →</span>` +
         `</div>`;
-
-      // Navigation — full keyboard + click support
-      const go = () => navigate(`/blog/${slug}`);
-      card.addEventListener('click', go);
-      card.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
-      });
 
       frag.appendChild(card);
     });
