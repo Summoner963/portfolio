@@ -353,7 +353,7 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
     if (ROUTE_META[normPath]) return await serveIndexWithMeta(env, request, normPath);
 
     // ── Everything else — serve SPA shell ─────────────────────────────
-    return await serveIndex(env, request);
+    return await serveNotFound(env, request);
   },
 };
 
@@ -417,15 +417,24 @@ async function handleDataEndpoint(url, env) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Serve SPA index.html
+//  Serve SPA shell as a REAL 404 — for genuinely unknown/typo paths only.
+//  Client JS still renders the visual "Page not found" UI via updateSEO(),
+//  but now the HTTP status and robots meta are correct even if a crawler
+//  doesn't execute JS in time — fixes soft-404 risk on garbage URLs.
 // ─────────────────────────────────────────────────────────────────────────
-async function serveIndex(env, request) {
+async function serveNotFound(env, request) {
   const indexUrl = new URL('/', new URL(request.url).origin);
   const response = await env.ASSETS.fetch(new Request(indexUrl, request));
-  const headers  = applySecurityHeaders(new Headers(response.headers));
+  let html = await response.text();
+
+  html = /<meta name="robots" content="[^"]*"/.test(html)
+    ? html.replace(/<meta name="robots" content="[^"]*"/, `<meta name="robots" content="noindex, nofollow"`)
+    : html.replace('</head>', `  <meta name="robots" content="noindex, nofollow">\n</head>`);
+
+  const headers = applySecurityHeaders(new Headers(response.headers));
   headers.set('Content-Type',  'text/html;charset=UTF-8');
-  headers.set('Cache-Control', htmlCacheHeaders());
-  return new Response(response.body, { status: 200, headers });
+  headers.set('Cache-Control', 'no-store');
+  return new Response(html, { status: 404, headers });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
