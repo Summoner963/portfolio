@@ -243,6 +243,7 @@ export default {
     const REDIRECTS = {
   '/blog/free-domain-nepal-guide':    '/blog/get-free-domain-in-nepal',
   '/blog/free-domain-in-nepal-guide': '/blog/get-free-domain-in-nepal',
+  '/blog/free-domain-in-nepal/':        '/blog/get-free-domain-in-nepal',
 };
 
 // near the top of fetch(), before rate limiting:
