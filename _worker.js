@@ -247,8 +247,9 @@ export default {
 };
 
 // near the top of fetch(), before rate limiting:
-if (REDIRECTS[path]) {
-  return Response.redirect('https://suman-dangal.com.np' + REDIRECTS[path], 301);
+const redirectLookupPath = path.replace(/\/$/, '') || '/';
+if (REDIRECTS[redirectLookupPath]) {
+  return Response.redirect('https://suman-dangal.com.np' + REDIRECTS[redirectLookupPath], 301);
 }
 
     // Only allow GET / HEAD
