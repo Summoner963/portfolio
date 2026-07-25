@@ -6,11 +6,11 @@
  *   - ROUTE_META      : per-route title / description / canonical / h1 for known SPA routes
  *   - serveIndexWithMeta(env, request, normPath) : serve index.html with injected meta tags
  *   - serveIndex(env, request)                  : serve bare index.html (SPA shell)
- *   - generateSitemap(env, fetchSheetData)      : build sitemap.xml including blog + chord slugs
+ *   - generateSitemap(env, fetchSheetData)      : build sitemap.xml including blog slugs
  *   - htmlCacheHeaders()                        : shared Cache-Control string for HTML responses
  *
  * Imports: worker/utils.js (escHtml, applySecurityHeaders)
- * Imported by: worker/index.js, worker/ssr/blog.js, worker/ssr/chords.js
+ * Imported by: worker/index.js, worker/ssr/blog.js
  */
 
 import { escHtml, applySecurityHeaders } from '../utils.js';
@@ -76,12 +76,6 @@ export const ROUTE_META = {
     description: 'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.',
     canonical:   `${SITE_URL}/contact`,
     h1:          'Contact',
-  },
-  '/chords': {
-    title:       'Chord Sheets | Suman Dangal',
-    description: 'Guitar chord sheets and tabs — Nepali, pop, folk, devotional songs by Suman Dangal.',
-    canonical:   `${SITE_URL}/chords`,
-    h1:          'Chord Sheets',
   },
   '/back-lab': {
     title:       'Content Studio | Suman Dangal',
@@ -175,12 +169,6 @@ a{color:var(--accent);text-underline-offset:3px}
 .pre-faq summary::after{content:'+';font-family:var(--mono);font-size:1.1rem;color:var(--accent);flex-shrink:0;margin-left:.8rem}
 .pre-faq details[open] summary::after{transform:rotate(45deg)}
 .pre-faq .faq-answer{padding:.75rem 1.2rem 1rem;font-size:.88rem;color:var(--muted);line-height:1.75;border-top:1px solid var(--border)}
-/* Chord tab (used by chords SSR) */
-.pre-chord-header{margin-bottom:2rem}
-.pre-chord-meta{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;font-family:var(--mono);font-size:.72rem;color:var(--muted-light)}
-.pre-chord-badge{background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent);padding:.18rem .55rem;border-radius:1rem;font-size:.68rem;font-weight:500}
-.pre-tab{font-family:var(--mono);font-size:.84rem;line-height:1.9;white-space:pre;overflow-x:auto;background:var(--surface);border:1.5px solid var(--border);border-radius:.7rem;padding:1.8rem;margin-top:1.6rem;color:var(--text)}
-.pre-tab .chord-name{color:var(--accent);font-weight:500}
 /* Author byline */
 .pre-author{display:flex;align-items:center;gap:.8rem;font-family:var(--mono);font-size:.75rem;color:var(--muted-light);margin:2rem 0;padding:1rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .pre-author a{color:var(--accent);text-decoration:none}
@@ -217,7 +205,7 @@ a{color:var(--accent);text-underline-offset:3px}
 
 /**
  * Build the nav HTML for an SSR-prerendered page.
- * @param {string} activePath  e.g. '/blog', '/chords'
+ * @param {string} activePath  e.g. '/blog'
  * @returns {string}
  */
 export function preNavHTML(activePath) {
@@ -391,8 +379,30 @@ export async function serveIndex(env, request) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+//  serveNotFound — real HTTP 404 for genuinely unknown paths
+//  Serves the SPA shell (client's own 404 UI still renders) but with the
+//  correct status code and server-set noindex, so crawlers that don't run
+//  JS in time don't treat garbage/typo URLs as valid 200 pages.
+// ─────────────────────────────────────────────────────────────────────────
+
+export async function serveNotFound(env, request) {
+  const indexUrl = new URL('/', new URL(request.url).origin);
+  const response = await env.ASSETS.fetch(new Request(indexUrl, request));
+  let html = await response.text();
+
+  html = /<meta name="robots" content="[^"]*"/.test(html)
+    ? html.replace(/<meta name="robots" content="[^"]*"/, `<meta name="robots" content="noindex, nofollow"`)
+    : html.replace('</head>', `  <meta name="robots" content="noindex, nofollow">\n</head>`);
+
+  const headers = applySecurityHeaders(new Headers(response.headers));
+  headers.set('Content-Type',  'text/html;charset=UTF-8');
+  headers.set('Cache-Control', 'no-store');
+  return new Response(html, { status: 404, headers });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 //  serveIndexWithMeta — SPA shell with route-specific meta tag injection
-//  Used for known SPA routes (/skills, /blog, /chords, etc.) so that
+//  Used for known SPA routes (/skills, /blog etc.) so that
 //  social crawlers and link-preview bots see correct OG tags even though
 //  the page itself is a JS-rendered SPA.
 // ─────────────────────────────────────────────────────────────────────────
@@ -463,7 +473,7 @@ export async function serveIndexWithMeta(env, request, normPath) {
 
 // ─────────────────────────────────────────────────────────────────────────
 //  generateSitemap
-//  Builds sitemap.xml with static routes + all blog slugs + all chord slugs.
+//  Builds sitemap.xml with static routes + all blog slugs .
 //  fetchSheetData is passed in by worker/index.js to avoid circular imports.
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -481,13 +491,11 @@ export async function generateSitemap(env, fetchSheetData) {
     { loc: '/experience', priority: '0.7', changefreq: 'monthly' },
     { loc: '/about',      priority: '0.6', changefreq: 'monthly' },
     { loc: '/contact',    priority: '0.5', changefreq: 'yearly'  },
-    { loc: '/chords',     priority: '0.8', changefreq: 'weekly'  },
   ];
 
-  // Fetch blog and chord slugs in parallel — silent fail on either
-  const [blogRows, chordRows] = await Promise.all([
+  // Fetch blog slugs in parallel — silent fail on either
+  const [blogRows] = await Promise.all([
     fetchSheetData('blog',   env).catch(() => []),
-    fetchSheetData('chords', env).catch(() => []),
   ]);
 
   const blogUrls = (blogRows || [])
@@ -499,16 +507,8 @@ export async function generateSitemap(env, fetchSheetData) {
       lastmod:    _isoDate(r.Date || ''),
     }));
 
-  const chordUrls = (chordRows || [])
-    .filter(r => r.Slug?.trim())
-    .map(r => ({
-      loc:        `/chords/${r.Slug.trim()}`,
-      priority:   '0.7',
-      changefreq: 'monthly',
-      lastmod:    _isoDate(r.Date_Added || ''),
-    }));
 
-  const all = [...staticPages, ...blogUrls, ...chordUrls];
+  const all = [...staticPages, ...blogUrls];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"

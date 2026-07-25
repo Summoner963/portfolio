@@ -32,16 +32,8 @@ export function getSheetGids(env) {
     faq:        env.FAQ_GID        || '303688554',
     images:     env.IMAGES_GID     || '1267436347',
     featured:   env.FEATURED_GID   || '980532084',
-
-    // ── Blog linked sheets ─────────────────────────────────────────────
-    // Used by the blog page to load inline images ([img1], [img2]…).
-    // Set BLOGIMAGE_GID in wrangler.toml [vars] to your blogimage tab GID.
     blogimage:  env.BLOGIMAGE_GID  || '1267436347',
 
-    // ── Chords sheet ───────────────────────────────────────────────────
-    // Set CHORDS_GID in wrangler.toml [vars] once the sheet tab is created.
-    // Until then this returns '' which causes /api/data?sheet=chords → 404.
-    chords:     env.CHORDS_GID     || '687736904',
   };
 }
 

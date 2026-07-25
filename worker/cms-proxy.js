@@ -71,7 +71,7 @@ export async function handleCMSRead(request, env) {
   }
 
   // Whitelist allowed sheets
-  const ALLOWED = new Set(['blog', 'blogimage', 'faq', 'chords']);
+  const ALLOWED = new Set(['blog', 'blogimage', 'faq']);
   const sheet   = (body.sheet || '').toLowerCase().trim();
   if (!ALLOWED.has(sheet)) {
     return new Response(JSON.stringify({ ok: false, error: `Unknown sheet: ${sheet}` }), {

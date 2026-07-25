@@ -36,9 +36,22 @@ async function hmacSign(secret, data) {
   return btoa(String.fromCharCode(...new Uint8Array(sig)));
 }
 
+// worker/cms-auth.js — add alongside the other crypto helpers
+function timingSafeEqual(a, b) {
+  const enc = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  const len = Math.max(aBytes.length, bBytes.length);
+  let diff = aBytes.length ^ bBytes.length;
+  for (let i = 0; i < len; i++) {
+    diff |= (aBytes[i] || 0) ^ (bBytes[i] || 0);
+  }
+  return diff === 0;
+}
+
 async function hmacVerify(secret, data, signature) {
   const expected = await hmacSign(secret, data);
-  return expected === signature;
+  return timingSafeEqual(expected, signature);
 }
 
 // ── Token format: base64(payload).signature ──────────────────────────────
@@ -108,8 +121,8 @@ export async function handleCMSAuth(request, env) {
 
   const passwordHash = await sha256(password);
   const usernameOk   = username === expectedUser;
-  const passwordOk   = passwordHash === expectedHash.toLowerCase();
-
+  const passwordOk   = timingSafeEqual(passwordHash, expectedHash.toLowerCase());
+  
   if (!usernameOk || !passwordOk) {
     // Constant-time-ish delay to slow brute force
     await new Promise(r => setTimeout(r, 400));

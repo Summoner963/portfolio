@@ -8,7 +8,6 @@
 //   - Structured data builders:
 //       buildBreadcrumb()      → BreadcrumbList
 //       buildBlogPosting()     → BlogPosting
-//       buildMusicComposition()→ MusicComposition  (chord pages)
 //       buildFAQSchema()       → FAQPage           (re-exported from api.js)
 //       buildPersonSchema()    → Person (home only, static)
 //   - removeSchema(): clean up dynamic schemas on route change.
@@ -19,7 +18,6 @@
 //   - updateSEO() is the single call each view makes — it handles
 //     title, description, canonical, og:*, twitter:*, h1, breadcrumb,
 //     and robots in one shot.
-//   - MusicComposition schema added for /chords/:slug pages per Section 5.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { esc }     from './utils.js';
@@ -171,57 +169,6 @@ export function buildBlogPosting(meta) {
   });
 }
 
-/**
- * Inject a MusicComposition schema for a chord detail page.
- * https://schema.org/MusicComposition
- *
- * @param {{
- *   title:       string,
- *   artist:      string,
- *   album:       string,
- *   year:        string,
- *   key:         string,
- *   tags:        string[],
- *   slug:        string,
- *   excerpt:     string,
- *   imageUrl:    string,
- *   bpm:         string,
- *   difficulty:  string,
- * }} meta
- */
-export function buildMusicComposition(meta) {
-  const url = `${CFG.siteUrl}/chords/${meta.slug}`;
-  injectSchema('chord-schema', {
-    '@context':          'https://schema.org',
-    '@type':             'MusicComposition',
-    name:                 meta.title,
-    composer: {
-      '@type': 'MusicGroup',
-      name:     meta.artist || 'Unknown Artist',
-    },
-    ...(meta.album ? { includedInDataCatalog: { '@type': 'DataCatalog', name: meta.album } } : {}),
-    ...(meta.year  ? { dateCreated: meta.year } : {}),
-    musicalKey:           meta.key   || '',
-    url,
-    description:          meta.excerpt || `Chord sheet for ${meta.title} by ${meta.artist}.`,
-    inLanguage:          'en',
-    keywords:            (meta.tags || []).join(', '),
-    ...(meta.imageUrl ? {
-      image: {
-        '@type':  'ImageObject',
-        url:       meta.imageUrl,
-        width:     1200,
-        height:    630,
-      },
-    } : {}),
-    // Credit the site as publisher
-    publisher: {
-      '@type': 'Person',
-      name:    'Suman Dangal',
-      url:     `${CFG.siteUrl}/`,
-    },
-  });
-}
 
 /**
  * Inject the static Person + Organization + WebSite schemas.
@@ -303,20 +250,7 @@ export function buildHomeSchemas() {
  *   tags:    string[],
  *   slug:    string,
  * }} [articleMeta]                  — Triggers BlogPosting schema
- * @property {{
- *   title:      string,
- *   artist:     string,
- *   album:      string,
- *   year:       string,
- *   key:        string,
- *   tags:       string[],
- *   slug:       string,
- *   excerpt:    string,
- *   imageUrl:   string,
- *   bpm:        string,
- *   difficulty: string,
- * }} [chordMeta]                    — Triggers MusicComposition schema
- */
+
 
 /**
  * Update all SEO-related <head> elements and structured data for a route.
@@ -331,7 +265,6 @@ export function updateSEO(opts = {}) {
     ogType    = 'website',
     noindex   = false,
     articleMeta,
-    chordMeta,
   } = opts;
 
   const fullTitle = title
@@ -404,14 +337,10 @@ export function updateSEO(opts = {}) {
 
   // ── Structured data: page-specific schemas ────────────────────────────
   // Remove schemas from previous navigation before injecting new ones.
-  removeSchemas(['dyn-schema', 'chord-schema', 'faq-schema']);
+  removeSchemas(['dyn-schema', 'faq-schema']);
 
   if (articleMeta) {
     buildBlogPosting(articleMeta);
-  }
-
-  if (chordMeta) {
-    buildMusicComposition(chordMeta);
   }
 
   // ── Home: inject static Person/Org/WebSite schemas ───────────────────

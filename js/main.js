@@ -36,7 +36,6 @@
  *   js/views/about.js       → renderAbout
  *   js/views/experience.js  → renderExperience
  *   js/views/contact.js     → renderContact
- *   js/views/chords.js      → renderChords, renderChordDetail
  */
 
 // ─── Static imports (always needed, zero lazy overhead) ───────────────────
@@ -151,28 +150,8 @@ registerRoute('/contact', async () => {
   watchReveals();
 });
 
-// ── Chord list (/chords) ───────────────────────────────────────────────────
-// Not in the main nav — linked from hero + about page.
-// Exact route registered before the prefix so /chords renders the list,
-// not the detail handler.
-registerRoute('/chords', async () => {
-  const { renderChords } = await import('./views/chords.js');
-  updateSEO({
-    title: 'Chord Sheets',
-    desc:  'Guitar chord sheets and tabs — Nepali, pop, folk, devotional songs by Suman Dangal.',
-    path:  '/chords',
-  });
-  await renderChords();
-  watchReveals();
-});
 
-// ── Chord detail (/chords/:slug) ───────────────────────────────────────────
-registerPrefix('/chords/', async ({ slug }) => {
-  const { renderChordDetail } = await import('./views/chords.js');
-  // SEO is set inside renderChordDetail once row data is known
-  await renderChordDetail(slug);
-  watchReveals();
-});
+
 
 // After the last registerPrefix call, before boot():
 

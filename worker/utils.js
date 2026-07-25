@@ -5,7 +5,7 @@
 //  Rules:
 //   - Pure functions only — no side effects, no global state.
 //   - No imports from other worker files — this is the leaf node.
-//   - Every SSR handler (blog, chords, meta) imports from here.
+//   - Every SSR handler (blog meta) imports from here.
 //     Zero duplication across handlers.
 //   - All HTML output goes through escHtml() before insertion.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -250,7 +250,6 @@ export function sanitizeHTML(raw) {
 //   [text](url)         → <a>
 //   ```                 → <pre><code> block
 //   [img1]              → <figure><img> (resolved via imgMap)
-//   [chord:G]           → chord token (used by chords SSR renderer)
 //   blank line          → paragraph break
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -363,16 +362,6 @@ export function renderMarkdown(text, imgMap = {}) {
       continue;
     }
 
-    // ── Chord token: [chord:G] — passed through as a data attribute ──
-    // The chords SSR renderer replaces these with styled spans.
-    // In blog SSR they render as plain text (fallback).
-    const chordMatch = l.trim().match(/^\[chord:([A-Ga-g][^[\]]*)\]$/);
-    if (chordMatch) {
-      closeList();
-      out.push(`<span class="pre-chord-name" data-chord="${escHtml(chordMatch[1])}">${escHtml(chordMatch[1])}</span>`);
-      continue;
-    }
-
     // ── Paragraph ─────────────────────────────────────────────────────
     closeList();
     out.push(`<p>${inlineFmt(l)}</p>`);
@@ -384,80 +373,6 @@ export function renderMarkdown(text, imgMap = {}) {
 
   return out.join('\n');
 }
-
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Tab content renderer (for Chords SSR)
-//  Converts the [G]notation tab format to HTML with chord spans above lyrics.
-//
-//  Input:  "Amazing [G]grace how [Em]sweet the [C]sound [G]"
-//  Output: A series of .tab-unit spans, each containing:
-//          - .tab-chord  (chord name, or empty)
-//          - .tab-lyric  (the word that follows)
-//
-//  For SSR (bots): renders as a <pre> block with chords on a line above
-//  lyrics — the plain-text format that screen readers and crawlers can parse.
-// ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Render a tab content string (using [Chord] notation) as a crawler-friendly
- * pre-formatted HTML block.  The SPA hydrates this into an interactive view.
- *
- * @param {string} tabContent
- * @returns {string}  HTML string safe for SSR insertion
- */
-export function renderTabSSR(tabContent) {
-  if (!tabContent) return '';
-
-  const lines = tabContent.split(/\n/);
-  const renderedLines = lines.map(line => {
-    // Split line into segments: text before chord, chord, text after chord …
-    // Pattern: optional text, [Chord], more text, repeat
-    const chordLine   = [];
-    const lyricLine   = [];
-
-    // Split by [ChordName] tokens
-    const parts = line.split(/(\[[^\]]+\])/);
-
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      const isChord = /^\[.+\]$/.test(part);
-
-      if (isChord) {
-        const chordName = part.slice(1, -1);   // strip [ ]
-        // The chord belongs above the next text segment
-        const nextText  = parts[i + 1] || '';
-        const padLen    = Math.max(chordName.length, nextText.length);
-        chordLine.push(chordName.padEnd(padLen));
-        // lyric line: we'll handle the next text segment in the next iteration
-        lyricLine.push(' '.repeat(chordName.length > nextText.length
-          ? chordName.length - nextText.length : 0));
-        // skip the next text part since we're handling it here
-        i++;
-        lyricLine.push(nextText.padEnd(padLen));
-        chordLine.push(' '.repeat(padLen - chordName.length));
-      } else {
-        // Plain text with no preceding chord
-        chordLine.push(' '.repeat(part.length));
-        lyricLine.push(part);
-      }
-    }
-
-    const cLine = chordLine.join('').trimEnd();
-    const lLine = lyricLine.join('').trimEnd();
-
-    if (!cLine && !lLine) return '';
-
-    let html = '';
-    if (cLine.trim()) html += `<span class="tab-chord-line">${escHtml(cLine)}</span>\n`;
-    if (lLine)        html += `<span class="tab-lyric-line">${escHtml(lLine)}</span>`;
-    return html;
-  });
-
-  return `<pre class="tab-content-ssr" aria-label="Chord tab">${renderedLines.filter(Boolean).join('\n')}</pre>`;
-}
-
-
 // ─────────────────────────────────────────────────────────────────────────
 //  Security headers
 //  Single definition used by worker/index.js and all SSR handlers.

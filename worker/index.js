@@ -9,7 +9,6 @@
 //    • /api/data?sheet=<name>  — proxies named sheets (GIDs server-side only)
 //    • /sitemap.xml, /robots.txt, /llms.txt
 //    • /blog/:slug  — SSR prerender
-//    • /chords/:slug — SSR prerender
 //    • Known SPA routes — meta-tag injection
 //    • Everything else — bare SPA shell
 //
@@ -33,7 +32,6 @@ import {
 import { handleCMSAuth }       from './cms-auth.js';
 import { handleCMSRead, handleCMSWrite } from './cms-proxy.js';
 import { prerenderBlogPost }   from './ssr/blog.js';
-import { prerenderChord }      from './ssr/chords.js';
 import {
   SITE_URL,
   ROUTE_META,
@@ -43,6 +41,7 @@ import {
   hydrationScript,
   serveIndex,
   serveIndexWithMeta,
+  serveNotFound,
   generateSitemap,
   htmlCacheHeaders,
 }                              from './ssr/meta.js';
@@ -55,6 +54,12 @@ import {
 const _memCache = {};
 
 const CACHE_MS = 10 * 60 * 1000; // 10 minutes
+
+// ── Legacy blog slug redirects ───────────────────────────────────────────
+const REDIRECTS = {
+  '/blog/free-domain-nepal-guide':    '/blog/get-free-domain-in-nepal',
+  '/blog/free-domain-in-nepal-guide': '/blog/get-free-domain-in-nepal',
+};
 
 function memGet(key) {
   const it = _memCache[key];
@@ -86,6 +91,28 @@ function isRateLimited(ip) {
   }
   entry.count++;
   return entry.count > RL_MAX;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Dedicated rate limit for CMS login — stricter than the general API limit,
+//  since brute-force protection needs a much tighter window than normal traffic.
+// ─────────────────────────────────────────────────────────────────────────
+
+const CMS_AUTH_RL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const CMS_AUTH_RL_MAX       = 8;              // max login attempts per IP per window
+
+/** @type {Record<string, {count: number, windowStart: number}>} */
+const _cmsAuthRl = {};
+
+function isCmsAuthRateLimited(ip) {
+  const now   = Date.now();
+  const entry = _cmsAuthRl[ip];
+  if (!entry || now - entry.windowStart > CMS_AUTH_RL_WINDOW_MS) {
+    _cmsAuthRl[ip] = { count: 1, windowStart: now };
+    return false;
+  }
+  entry.count++;
+  return entry.count > CMS_AUTH_RL_MAX;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -229,13 +256,7 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
 - [Experience](${SITE_URL}/experience/)
 - [About](${SITE_URL}/about/)
 - [Contact](${SITE_URL}/contact/)
-- [Chord Sheets](${SITE_URL}/chords/)
 
-## Chord Sheets
-
-A curated collection of guitar chord sheets with interactive transpose,
-chord diagrams, and auto-scroll. Covers Nepali, devotional, folk, pop,
-rock, and classical songs.
 
 ## Contact
 
@@ -281,6 +302,14 @@ export default {
     const path   = url.pathname;
     const method = request.method;
 
+       // ── Legacy blog slug redirects ─────────────────────────────────────────
+   const redirectLookupPath = path.replace(/\/$/, '') || '/';
+   if (REDIRECTS[redirectLookupPath]) {
+     return Response.redirect(SITE_URL + REDIRECTS[redirectLookupPath], 301);
+   }
+
+
+
     // ── Method check ──────────────────────────────────────────────────────
     const CMS_POST_PATHS = new Set(['/api/cms/auth', '/api/cms/read', '/api/cms/write']);
 
@@ -313,6 +342,13 @@ export default {
 
     // ── CMS auth ───────────────────────────────────────────────────────────
     if (path === '/api/cms/auth') {
+        if (isCmsAuthRateLimited(clientIP)) {
+       return new Response(JSON.stringify({ ok: false, error: 'Too many login attempts — try again in 15 minutes' }), {
+         status: 429,
+         headers: { 'Retry-After': '900', 'Content-Type': 'application/json' },
+       });
+     }
+
       const resp    = await handleCMSAuth(request, env);
       const headers = applySecurityHeaders(new Headers(resp.headers));
       return new Response(resp.body, { status: resp.status, headers });
@@ -365,23 +401,6 @@ export default {
       return new Response(resp.body, { status: resp.status, headers });
     }
 
-    // ── Chord detail SSR — /chords/:slug ──────────────────────────────────
-    const chordMatch = path.match(/^\/chords\/([^/]+)\/?$/);
-    if (chordMatch) {
-      const slug    = decodeURIComponent(chordMatch[1]);
-      const resp    = await prerenderChord(slug, env, request, fetchSheetData);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── Chord list page — /chords ──────────────────────────────────────────
-    if (path === '/chords' || path === '/chords/') {
-      const normPath = '/chords';
-      const resp     = await serveIndexWithMeta(env, request, normPath);
-      const headers  = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
     // ── Known SPA routes — inject per-route meta tags ──────────────────────
     const normPath = path === '/' ? '/' : path.replace(/\/$/, '');
     if (ROUTE_META[normPath]) {
@@ -400,7 +419,7 @@ export default {
     }
 
     // ── Everything else — bare SPA shell ──────────────────────────────────
-    const resp    = await serveIndex(env, request);
+    const resp    = await serveNotFound(env, request);
     const headers = applySecurityHeaders(new Headers(resp.headers));
     return new Response(resp.body, { status: resp.status, headers });
   },

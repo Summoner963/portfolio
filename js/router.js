@@ -47,9 +47,9 @@ export function registerRoute(path, handler) {
 
 /**
  * Register a prefix route (catches the prefix itself and any deeper path).
- * Used for /blog (catches /blog and /blog/:slug) and /chords.
+ * Used for /blog (catches /blog and /blog/:slug) 
  * Registration order matters — first match wins when prefixes overlap.
- * @param {string} prefix      e.g. '/blog', '/chords'
+ * @param {string} prefix      e.g. '/blog', '
  * @param {RouteHandler} handler
  */
 export function registerPrefix(prefix, handler) {
@@ -159,16 +159,14 @@ function _getViewIdForPath(path) {
     '/experience': 'view-experience',
     '/about':      'view-about',
     '/contact':    'view-contact',
-    '/chords':     'view-chords',
     '/back-lab':   'view-cms',
   };
 
   // Try exact match first
   if (exactMap[path]) return exactMap[path];
 
-  // Prefix matches — article detail and chord detail pages
+  // Prefix matches — article detail pages
   if (path.startsWith('/blog/'))   return 'view-article';
-  if (path.startsWith('/chords/')) return 'view-chord-detail';
 
   return null;
 }

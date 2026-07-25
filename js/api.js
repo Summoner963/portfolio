@@ -35,8 +35,7 @@ export const CFG = {
   /** Blog posts per page (list view). */
   postsPerPage: 6,
 
-  /** Chords per page (list view). */
-  chordsPerPage: 12,
+ 
 
   /**
    * Named API endpoints.
@@ -56,7 +55,6 @@ export const CFG = {
     faq:      '/api/data?sheet=faq',
     images:   '/api/data?sheet=images',
     featured: '/api/data?sheet=featured',
-    chords:   '/api/data?sheet=chords',   // NEW — chord sheet
   },
 };
 
