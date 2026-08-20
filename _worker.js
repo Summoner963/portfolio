@@ -248,7 +248,7 @@ export default {
 
 };
 
-// near the top of fetch(), before rate limiting:
+// near the top of fetch(), before rate limitingg:
 const redirectLookupPath = path.replace(/\/$/, '') || '/';
 if (REDIRECTS[redirectLookupPath]) {
   return Response.redirect('https://suman-dangal.com.np' + REDIRECTS[redirectLookupPath], 301);
