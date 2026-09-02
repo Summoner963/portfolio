@@ -260,8 +260,11 @@ if (REDIRECTS[redirectLookupPath]) {
     }
 
     // ── Rate limiting ──────────────────────────────────────────────────
+    // ── Exempt verified search crawlers from rate limiting ──────────────────
+    const ua = request.headers.get('User-Agent') || '';
+    const isSearchCrawler = /googlebot|bingbot|adsbot-google|google-inspectiontool|mediapartners-google/i.test(ua);
     const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-    if (isRateLimited(clientIP)) {
+    if (!isSearchCrawler && isRateLimited(clientIP)) {
       return new Response('Too Many Requests', {
         status: 429,
         headers: {
@@ -507,6 +510,7 @@ async function prerenderBlogPost(slug, env, request) {
   const title       = post.Title    || '';
   const excerpt     = post.Excerpt  || '';
   const date        = post.Date     || '';
+  const lastmod     = post.Last_Modified || date;
   const category    = post.Category || 'Post';
   const postUrl     = `${SITE_URL}/blog/${slug}`;
   const imageUrl    = fixImgUrl(post.Image_URL || '');
@@ -578,6 +582,7 @@ async function prerenderBlogPost(slug, env, request) {
   <meta property="og:type"        content="article">
   <meta property="og:site_name"   content="Suman Dangal">
   <meta property="article:published_time" content="${escHtml(date)}">
+  <meta property="article:modified_time" content="${escHtml(lastmod)}">
   <meta property="article:author" content="Suman Dangal">
   ${tagList.map(t => `<meta property="article:tag" content="${escHtml(t)}">`).join('\n  ')}
   ${imageUrl ? `<meta property="og:image" content="${escHtml(imageUrl)}">
@@ -603,7 +608,7 @@ async function prerenderBlogPost(slug, env, request) {
    "headline":"${escJson(title)}",
    "description":"${escJson(excerpt)}",
    "datePublished":"${escJson(date)}",
-   "dateModified":"${escJson(date)}",
+   "dateModified":"${escJson(lastmod)}",
    "url":"${postUrl}",
    "inLanguage":"en",
    "author":{"@type":"Person","name":"Suman Dangal","url":"${SITE_URL}/","sameAs":["https://linkedin.com/in/sumandangal963"]}
@@ -880,7 +885,7 @@ async function generateSitemap(env) {
         loc:        `/blog/${r.Slug.trim()}`,
         priority:   '0.8',
         changefreq: 'monthly',
-        lastmod:    formatDate(r.Date || ''),
+        lastmod:    formatDate(r.Last_Modified || r.Date || ''),
       }));
   } catch {}
 
