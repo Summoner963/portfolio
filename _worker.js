@@ -1,25 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  Suman Dangal — Cloudflare Worker  (worker.js)
-//  Security improvements:
-//   1. Named /api/data?sheet= endpoints — NO sheet URLs/IDs ever reach browser
-//   2. Strict whitelist — only known sheet names are served
-//   3. IP-based rate limiting via Cloudflare KV (falls back gracefully)
-//   4. Removed generic /api/sheet proxy — no arbitrary URL fetching
-//   5. All sheet config lives server-side only (env vars via wrangler.toml)
-//   6. Full SEO: structured data, sitemap, llms.txt all preserved
+//  Suman Dangal — Cloudflare Pages advanced-mode worker (_worker.js)
+//   • /api/data?sheet=<name> — named sheet proxy; sheet IDs never reach browser
+//   • Every HTML route is the real index.html with per-page SEO tags (and, for
+//     blog pages, the content itself) injected server-side via HTMLRewriter
+//   • Sheets responses cached (memory + Cache API) with stale fallback
+//   • /sitemap.xml, /robots.txt, /llms.txt
+//   • *.pages.dev production host → 301 to custom domain; previews noindex
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── Sheet ID (server-side only — never sent to browser) ──────────────────
-// Move this to wrangler.toml [vars] SHEET_ID for extra safety.
-// But keeping here ensures nothing breaks if wrangler.toml isn't updated.
-
-
-// GID map — server-side only, never exposed to client
-// ⚠️  Replace 'YOUR_FEATURED_GID' with the actual GID of your "featured" sheet tab.
-//     To find it: open the sheet tab → look at the URL → ?gid=XXXXXXXXX
-// Safe to commit — no secrets here
-const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e';
-
+// GID map — server-side only. Safe to commit: no secrets here.
+// SHEET_ID (the "Publish to web" ID) is a Cloudflare secret.
 function getSheetGids(env) {
   return {
     blog:     env.BLOG_GID     || '1132024800',
@@ -33,31 +23,24 @@ function getSheetGids(env) {
   };
 }
 
-const SITE_URL = 'https://suman-dangal.com.np';
-const CACHE_MS  = 10 * 60 * 1000; // 10 minutes
+const SITE_URL      = 'https://suman-dangal.com.np';
+const DEFAULT_IMAGE = `${SITE_URL}/android-chrome-512x512.png`;
+const POSTS_PER_PAGE = 6; // keep in sync with CFG.postsPerPage in index.html
 
-// Simple in-memory cache (per Worker instance)
-const _cache = {};
-function memGet(key) {
-  const it = _cache[key];
-  if (!it) return null;
-  if (Date.now() > it.exp) { delete _cache[key]; return null; }
-  return it.data;
-}
-function memSet(key, data) {
-  _cache[key] = { data, exp: Date.now() + CACHE_MS };
-}
+// ── Sheets cache ──────────────────────────────────────────────────────────
+const FRESH_MS         = 5 * 60 * 1000;      // serve without refetching
+const STALE_KEEP_S     = 7 * 24 * 60 * 60;   // keep last-good copy for outages
+const SHEET_TIMEOUT_MS = 4000;               // give up on slow Sheets
 
-// ── Rate limit config ─────────────────────────────────────────────────────
-// Uses in-memory store (resets per Worker cold start).
-// For production: use Cloudflare Rate Limiting in dashboard (free tier).
-const RL_WINDOW_MS  = 60_000; // 1 minute window
-const RL_MAX        = 120;    // max requests per IP per window
-const _rl = {};               // { ip: { count, windowStart } }
+const _mem = {}; // per-isolate: { name: { text, at } }
 
+// ── Rate limit (per isolate; use Cloudflare WAF rules for real protection) ─
+const RL_WINDOW_MS = 60_000;
+const RL_MAX       = 120;
+const _rl = {};
 function isRateLimited(ip) {
   const now = Date.now();
-  let entry = _rl[ip];
+  const entry = _rl[ip];
   if (!entry || now - entry.windowStart > RL_WINDOW_MS) {
     _rl[ip] = { count: 1, windowStart: now };
     return false;
@@ -67,240 +50,103 @@ function isRateLimited(ip) {
 }
 
 // ── Security headers ──────────────────────────────────────────────────────
+// 'unsafe-inline' scripts: index.html is one inline-script app and uses
+// onload= on the font preload. img-src https: because Sheet rows may point
+// images at any host.
 const SECURITY_HEADERS = {
-  'X-Frame-Options':            'SAMEORIGIN',
+  'X-Frame-Options':            'DENY',
   'X-Content-Type-Options':     'nosniff',
   'Referrer-Policy':            'strict-origin-when-cross-origin',
+  'Strict-Transport-Security':  'max-age=31536000',
   'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
   'Permissions-Policy':         'camera=(), microphone=(), geolocation=(), payment=()',
-  'Content-Security-Policy':
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com data:; " +
-    "img-src 'self' data: https://lh3.googleusercontent.com https://suman-dangal.com.np; " +
-    "connect-src 'self'; " +   // ← only self — no google URLs from browser
-    "frame-ancestors 'none';",
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: https:",
+    "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cloudflareinsights.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    'upgrade-insecure-requests',
+  ].join('; '),
 };
 
-function applySecurityHeaders(headers) {
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
-  return headers;
-}
-
-function htmlCacheHeaders() {
-  return 'public, max-age=3600, stale-while-revalidate=86400';
-}
-
-// ── Route metadata for SEO ────────────────────────────────────────────────
+// ── Static route metadata ─────────────────────────────────────────────────
 const ROUTE_META = {
-  '/':           { title: 'Suman Dangal — Dev & QA Engineer',  description: 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.',                                     canonical: `${SITE_URL}/`,           h1: null },
-  '/skills':     { title: 'Skills & Stack | Suman Dangal',      description: 'Python, Django, PHP, Java, Android Studio, manual QA testing — skills of Suman Dangal.',                          canonical: `${SITE_URL}/skills`,     h1: 'Skills & Stack' },
-  '/projects':   { title: 'Projects | Suman Dangal',            description: 'Django e-commerce, PHP library system, Android Bluetooth app — projects by Suman Dangal.',                        canonical: `${SITE_URL}/projects`,   h1: 'Projects' },
-  '/blog':       { title: 'Blog | Suman Dangal',                description: 'Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.',                         canonical: `${SITE_URL}/blog`,       h1: 'Blog' },
-  '/experience': { title: 'Experience | Suman Dangal',          description: 'SEO Intern at Sathi Edtech and QA/testing projects — work experience of Suman Dangal.',                           canonical: `${SITE_URL}/experience`, h1: 'Experience' },
-  '/about':      { title: 'About Suman Dangal',                 description: 'BCA student at Tribhuvan University, Bhaktapur, Nepal. Full-stack developer and QA tester.',                       canonical: `${SITE_URL}/about`,      h1: 'About Suman Dangal' },
-  '/contact':    { title: 'Contact | Suman Dangal',             description: 'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.',                                  canonical: `${SITE_URL}/contact`,    h1: 'Contact' },
+  '/':           { view: 'home',       title: 'Suman Dangal — Dev & QA Engineer', description: 'Final-year BCA student. Full-stack Dev & QA. Open to internships in Nepal.' },
+  '/skills':     { view: 'skills',     title: 'Skills & Stack | Suman Dangal',     description: 'Python, Django, PHP, Java, Android Studio, manual QA testing — skills of Suman Dangal.' },
+  '/projects':   { view: 'projects',   title: 'Projects | Suman Dangal',           description: 'Django e-commerce, PHP library system, Android Bluetooth app — projects by Suman Dangal.' },
+  '/blog':       { view: 'blog',       title: 'Blog | Suman Dangal',               description: 'Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.' },
+  '/experience': { view: 'experience', title: 'Experience | Suman Dangal',         description: 'SEO Intern at Sathi Edtech and QA/testing projects — work experience of Suman Dangal.' },
+  '/about':      { view: 'about',      title: 'About Suman Dangal',                description: 'BCA student at Tribhuvan University, Bhaktapur, Nepal. Full-stack developer and QA tester.' },
+  '/contact':    { view: 'contact',    title: 'Contact | Suman Dangal',            description: 'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.' },
 };
 
-// ─────────────────────────────────────────────────────────────────────────
-//  PRERENDER CSS — mirrors index.html SPA styles exactly
-//  Served with SSR blog posts so crawlers & users see styled content
-//  before the SPA hydrates. Zero flash of unstyled content.
-// ─────────────────────────────────────────────────────────────────────────
-const PRERENDER_CSS = `
-:root{
-  --bg:#ffffff;--surface:#f7f8f6;--card:#ffffff;
-  --border:#e2e6df;--border-dark:#c8d0c4;
-  --accent:#2d6a4f;--accent-light:#52b788;--accent-bg:#edf5f0;
-  --accent2:#1b4332;--accent3:#b7791f;
-  --text:#1a1e1a;--muted:#5a6659;--muted-light:#8a9688;
-  --serif:'DM Serif Display','DM Serif Display Fallback',Georgia,serif;
-  --mono:'DM Mono','DM Mono Fallback','Courier New',monospace;
-  --sans:'DM Sans','DM Sans Fallback',system-ui,-apple-system,sans-serif;
-  --nav-h:62px;
-  --shadow-sm:0 1px 4px rgba(0,0,0,.09);
-  --shadow-md:0 4px 18px rgba(0,0,0,.1);
-}
-@font-face{font-family:'DM Serif Display Fallback';src:local('Georgia');size-adjust:103%;ascent-override:90%;descent-override:22%;line-gap-override:0%}
-@font-face{font-family:'DM Mono Fallback';src:local('Courier New');size-adjust:86%;ascent-override:92%;descent-override:24%;line-gap-override:0%}
-@font-face{font-family:'DM Sans Fallback';src:local('Arial');size-adjust:101%;ascent-override:92%;descent-override:24%;line-gap-override:0%}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;overflow-x:hidden;padding-top:var(--nav-h)}
-a{color:var(--accent);text-underline-offset:3px}
-.pre-nav{
-  position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:1000;
-  display:flex;align-items:center;justify-content:space-between;padding:0 4rem;
-  background:rgba(255,255,255,.92);
-  backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);
-  border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm);
-  font-family:var(--mono);
-}
-.pre-nav-brand{font-size:.84rem;color:var(--accent);letter-spacing:.06em;text-decoration:none;font-weight:500}
-.pre-nav-links{display:flex;gap:2.4rem;list-style:none}
-.pre-nav-links li{border-bottom:none}
-.pre-nav-links a{font-size:.75rem;color:var(--muted);text-decoration:none;letter-spacing:.09em;text-transform:uppercase}
-.pre-nav-links a.active{color:var(--accent);font-weight:500}
-.pre-burger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px;min-width:44px;min-height:44px;align-items:center;justify-content:center}
-.pre-burger span{display:block;width:21px;height:1.5px;background:var(--text);border-radius:1px}
-.pre-main{max-width:720px;margin:0 auto;padding:5rem 4rem}
-.pre-back{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.72rem;color:var(--muted);text-decoration:none;margin-bottom:2.4rem;letter-spacing:.05em}
-.pre-back:hover{color:var(--accent)}
-.pre-breadcrumb{font-family:var(--mono);font-size:.7rem;color:var(--muted-light);letter-spacing:.06em;margin-bottom:1.8rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
-.pre-breadcrumb a{color:var(--accent);text-decoration:none}
-.pre-meta{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-bottom:1.4rem;letter-spacing:.06em}
-.pre-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
-.pre-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.1;margin-bottom:1.8rem;color:var(--accent2)}
-.pre-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.6rem}
-.pre-tag{font-family:var(--mono);font-size:.68rem;padding:.22rem .65rem;border-radius:.25rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);color:var(--accent)}
-.pre-cover{width:100%;max-height:420px;object-fit:cover;border-radius:.7rem;border:1.5px solid var(--border);margin-bottom:2.2rem;display:block;aspect-ratio:720/420}
-.pre-body{line-height:1.82;font-size:.94rem}
-.pre-body h2{font-family:var(--serif);font-size:1.55rem;margin:2rem 0 1rem;color:var(--text)}
-.pre-body h3{font-family:var(--serif);font-size:1.15rem;margin:1.5rem 0 .7rem;color:var(--accent)}
-.pre-body p{color:var(--muted);line-height:1.82;margin-bottom:1.2rem;font-size:.94rem}
-.pre-body strong{color:var(--text);font-weight:500}
-.pre-body a{color:var(--accent);text-underline-offset:3px}
-.pre-body ul,.pre-body ol{padding-left:1.4rem;margin-bottom:1.2rem}
-.pre-body li{color:var(--muted);font-size:.9rem;line-height:1.8;margin-bottom:.3rem}
-.pre-body blockquote{border-left:2px solid var(--accent);padding:.4rem 0 .4rem 1.4rem;margin:1.5rem 0;background:var(--accent-bg);border-radius:0 .4rem .4rem 0}
-.pre-body blockquote p{color:var(--text);font-style:italic;margin:0}
-.pre-body code{font-family:var(--mono);font-size:.8rem;background:var(--accent-bg);border:1px solid rgba(45,106,79,.18);padding:.14rem .38rem;border-radius:.25rem;color:var(--accent)}
-.pre-body pre{background:var(--surface);border:1.5px solid var(--border);border-radius:.6rem;padding:1.4rem;overflow-x:auto;margin-bottom:1.4rem}
-.pre-body pre code{background:none;border:none;padding:0;color:var(--text)}
-.pre-body figure{margin:2rem 0}
-.pre-body figure img{display:block;width:100%;height:auto;border-radius:.6rem;border:1.5px solid var(--border);aspect-ratio:680/383;object-fit:cover}
-.pre-body figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted-light);text-align:center;margin-top:.55rem;letter-spacing:.04em;font-style:italic}
-.pre-faq{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border)}
-.pre-faq h2{font-family:var(--serif);font-size:1.55rem;margin-bottom:1.4rem;color:var(--accent2)}
-.pre-faq details{border:1.5px solid var(--border);border-radius:.6rem;margin-bottom:.75rem;overflow:hidden;background:var(--card)}
-.pre-faq details[open]{border-color:rgba(45,106,79,.3)}
-.pre-faq summary{font-family:var(--sans);font-weight:500;font-size:.92rem;padding:1rem 1.2rem;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;color:var(--text);user-select:none}
-.pre-faq summary::-webkit-details-marker{display:none}
-.pre-faq summary::after{content:'+';font-family:var(--mono);font-size:1.1rem;color:var(--accent);transition:transform .25s;flex-shrink:0;margin-left:.8rem}
-.pre-faq details[open] summary::after{transform:rotate(45deg)}
-.pre-faq .faq-answer{padding:.75rem 1.2rem 1rem;font-size:.88rem;color:var(--muted);line-height:1.75;border-top:1px solid var(--border)}
-.pre-footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted);letter-spacing:.04em;background:var(--surface);margin-top:4rem}
-@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
-@media(max-width:768px){
-  .pre-nav{padding:0 1.5rem}
-  .pre-nav-links{
-    display:none;flex-direction:column;gap:0;
-    position:fixed;top:var(--nav-h);left:0;right:0;
-    background:rgba(255,255,255,.97);
-    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border-bottom:1px solid var(--border);padding:1rem 1.5rem;z-index:999;
-  }
-  .pre-nav-links.open{display:flex}
-  .pre-nav-links li{border-bottom:1px solid var(--border)}
-  .pre-nav-links li:last-child{border-bottom:none}
-  .pre-nav-links a{display:flex;padding:.85rem 0;font-size:.82rem;min-height:44px;align-items:center}
-  .pre-burger{display:flex}
-  .pre-main{padding:3.5rem 1.5rem}
-  .pre-footer{flex-direction:column;gap:.45rem;text-align:center;padding:1.5rem}
-}
-@media(max-width:480px){.pre-main{padding:2.5rem 1.2rem}}
-`;
-
-// ─────────────────────────────────────────────────────────────────────────
-//  BLOG LIST CSS — mirrors index.html's .container/.blog-grid/.blog-card
-//  exactly, so the SSR list looks identical to the client-rendered one.
-// ─────────────────────────────────────────────────────────────────────────
-const BLOG_LIST_CSS = `
-.container{max-width:1080px;margin:0 auto;padding:5rem 4rem}
-.section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;font-weight:500}
-.section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border);max-width:64px}
-.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
-.blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.4rem}
-.blog-card{background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s;display:flex;flex-direction:column;box-shadow:var(--shadow-sm);text-decoration:none;color:inherit;contain:layout style}
-.blog-card:hover{border-color:rgba(45,106,79,.3);transform:translateY(-3px);box-shadow:var(--shadow-md)}
-.blog-card-thumb{width:100%;height:172px;overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2.4rem;border-bottom:1px solid var(--border);flex-shrink:0;aspect-ratio:310/172}
-.blog-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.blog-card-body{padding:1.4rem;flex:1;display:flex;flex-direction:column}
-.blog-card-meta{display:flex;align-items:center;gap:.7rem;font-family:var(--mono);font-size:.65rem;color:var(--muted-light);letter-spacing:.06em;margin-bottom:.7rem}
-.blog-cat{color:var(--accent);background:var(--accent-bg);border:1px solid rgba(45,106,79,.2);padding:.14rem .5rem;border-radius:1rem;font-size:.65rem;font-weight:500}
-h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem;line-height:1.25;flex:1;color:var(--accent2)}
-.blog-card-excerpt{font-size:.83rem;color:var(--muted);line-height:1.65}
-.blog-card-tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.75rem}
-.blog-tag{font-family:var(--mono);font-size:.63rem;padding:.18rem .55rem;border-radius:.25rem;background:var(--surface);border:1px solid var(--border);color:var(--muted-light);letter-spacing:.03em;transition:border-color .15s,color .15s}
-.blog-tag:hover{border-color:var(--accent);color:var(--accent)}@media(max-width:768px){
-  .container{padding:3.5rem 1.5rem}
-  .blog-grid{grid-template-columns:1fr}
-}
-`;
+const REDIRECTS = {
+  '/blog/free-domain-nepal-guide':    '/blog/get-free-domain-in-nepal',
+  '/blog/free-domain-in-nepal-guide': '/blog/get-free-domain-in-nepal',
+  '/blog/free-domain-in-nepal':       '/blog/get-free-domain-in-nepal',
+};
 
 // ─────────────────────────────────────────────────────────────────────────
 //  MAIN FETCH HANDLER
 // ─────────────────────────────────────────────────────────────────────────
 export default {
-  async fetch(request, env) {
-    const url    = new URL(request.url);
-    const path   = url.pathname;
-    const method = request.method;
+  async fetch(request, env, ctx) {
+    const url  = new URL(request.url);
+    const host = url.hostname;
 
+    // Duplicate-domain fix: <project>.pages.dev (production) → custom domain.
+    // Preview deployments (<hash>.<project>.pages.dev) stay usable but noindex.
+    const isPagesDev = host.endsWith('.pages.dev');
+    if (isPagesDev && host.split('.').length === 3) {
+      return Response.redirect(SITE_URL + url.pathname + url.search, 301);
+    }
 
-    const REDIRECTS = {
-  '/blog/free-domain-nepal-guide':    '/blog/get-free-domain-in-nepal',
-  '/blog/free-domain-in-nepal-guide': '/blog/get-free-domain-in-nepal',
-  '/blog/free-domain-in-nepal':        '/blog/get-free-domain-in-nepal',
-
-
+    const res = await route(request, env, ctx, url);
+    return finalize(res, isPagesDev);
+  },
 };
 
-// near the top of fetch(), before rate limitingg:
-const redirectLookupPath = path.replace(/\/$/, '') || '/';
-if (REDIRECTS[redirectLookupPath]) {
-  return Response.redirect('https://suman-dangal.com.np' + REDIRECTS[redirectLookupPath], 301);
-}
+async function route(request, env, ctx, url) {
+  const path   = url.pathname;
+  const method = request.method;
 
-    // Only allow GET / HEAD
-    if (method !== 'GET' && method !== 'HEAD') {
-      return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
-    }
+  const redirectLookupPath = path.replace(/\/$/, '') || '/';
+  if (REDIRECTS[redirectLookupPath]) {
+    return Response.redirect(SITE_URL + REDIRECTS[redirectLookupPath], 301);
+  }
 
-    // ── Rate limiting ──────────────────────────────────────────────────
-    // ── Exempt verified search crawlers from rate limiting ──────────────────
-    const ua = request.headers.get('User-Agent') || '';
-    const isSearchCrawler = /googlebot|bingbot|adsbot-google|google-inspectiontool|mediapartners-google/i.test(ua);
-    const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-    if (!isSearchCrawler && isRateLimited(clientIP)) {
-      return new Response('Too Many Requests', {
-        status: 429,
-        headers: {
-          'Retry-After': '60',
-          'Content-Type': 'text/plain',
-        },
-      });
-    }
+  if (method !== 'GET' && method !== 'HEAD') {
+    return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
+  }
 
-    // ── /api/data?sheet=<name> ─────────────────────────────────────────
-    // Secure named endpoint — replaces old /api/sheet proxy
-    // Sheet IDs never leave the server
-    if (path === '/api/data') {
-      return await handleDataEndpoint(url, env);
-    }
+  const ua = request.headers.get('User-Agent') || '';
+  const isSearchCrawler = /googlebot|bingbot|adsbot-google|google-inspectiontool|mediapartners-google/i.test(ua);
+  const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!isSearchCrawler && isRateLimited(clientIP)) {
+    return new Response('Too Many Requests', {
+      status: 429, headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' },
+    });
+  }
 
-    // ── Legacy /api/sheet — now returns 404 ───────────────────────────
-    // Old direct-proxy endpoint is closed. Client code updated to /api/data.
-    if (path === '/api/sheet') {
-      return new Response('This endpoint is no longer available. Use /api/data?sheet=<name>', { status: 410 });
-    }
-
-    // ── /sitemap.xml ───────────────────────────────────────────────────
-    if (path === '/sitemap.xml') return await generateSitemap(env);
-
-    // ── /robots.txt ───────────────────────────────────────────────────
-    if (path === '/robots.txt') {
-      return new Response(
-        `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${SITE_URL}/sitemap.xml\n`,
-        { status: 200, headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'public, max-age=86400' } }
-      );
-    }
-
-    // ── /llms.txt ──────────────────────────────────────────────────────
-    if (path === '/llms.txt') {
-      return new Response(
+  if (path === '/api/data')  return handleDataEndpoint(url, env, ctx);
+  if (path === '/api/sheet') {
+    return new Response('This endpoint is no longer available. Use /api/data?sheet=<name>', { status: 410 });
+  }
+  if (path === '/sitemap.xml') return generateSitemap(env, ctx);
+  if (path === '/robots.txt') {
+    return new Response(
+      `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,
+      { headers: { 'Content-Type': 'text/plain;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } }
+    );
+  }
+  if (path === '/llms.txt') {
+    return new Response(
 `# Suman Dangal — Dev & QA Engineer
 # ${SITE_URL}/
 
@@ -327,623 +173,407 @@ He specializes in full-stack development (Django, PHP, Java Android) and QA/manu
 - Email: sumandangal888@gmail.com
 - LinkedIn: https://linkedin.com/in/sumandangal963
 `,
-        { status: 200, headers: { 'Content-Type': 'text/plain;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } }
-      );
+      { status: 200, headers: { 'Content-Type': 'text/plain;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } }
+    );
+  }
+  // Static assets
+  if (/\.(png|jpg|jpeg|gif|svg|ico|webp|avif|woff2?|ttf|eot|css|js|txt|json|xml|webmanifest|pdf)$/i.test(path)) {
+    try {
+      const assetResp = await env.ASSETS.fetch(request);
+      const headers   = new Headers(assetResp.headers);
+      if (/\.(woff2?|ttf|eot)$/i.test(path)) headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      return new Response(assetResp.body, { status: assetResp.status, headers });
+    } catch {
+      return new Response('Not found', { status: 404 });
     }
-
-    // ── Static assets ──────────────────────────────────────────────────
-    if (path.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot|css|js|txt|json|xml)$/i)) {
-      try {
-        const assetResp = await env.ASSETS.fetch(request);
-        const headers   = new Headers(assetResp.headers);
-        applySecurityHeaders(headers);
-        if (path.match(/\.(woff2?|ttf|eot)$/i)) {
-          headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-        return new Response(assetResp.body, { status: assetResp.status, headers });
-      } catch {
-        return new Response('Not found', { status: 404 });
-      }
-    }
-
-
-     // ── Blog LIST page SSR (fixes GSC soft-404 on /blog) ────────────────
-    if (path === '/blog' || path === '/blog/') {
-      return await prerenderBlogList(env, request);
-    }
-    // ── Blog post SSR (for crawlers & social sharing) ──────────────────
-    const blogMatch = path.match(/^\/blog\/([^/]+)\/?$/);
-    if (blogMatch) return await prerenderBlogPost(blogMatch[1], env, request);
-
-    // ── Known SPA routes — inject correct meta tags ────────────────────
-    const normPath = path === '/' ? '/' : path.replace(/\/$/, '');
-    if (ROUTE_META[normPath]) return await serveIndexWithMeta(env, request, normPath);
-
-    // ── Everything else — serve SPA shell ─────────────────────────────
-    return await serveNotFound(env, request);
-  },
-};
-
-// ─────────────────────────────────────────────────────────────────────────
-//  /api/data?sheet=<name>  — secure named sheet endpoint
-// ─────────────────────────────────────────────────────────────────────────
-async function handleDataEndpoint(url, env) {
-  const sheetName = (url.searchParams.get('sheet') || '').toLowerCase().trim();
-  const SHEET_GIDS = getSheetGids(env);
-
-  if (!SHEET_GIDS[sheetName]) {
-    return new Response('Not found', { status: 404 });
   }
 
-  const cacheKey = `sheet_${sheetName}`;
-  const cached   = memGet(cacheKey);
-  if (cached) {
-    return new Response(cached, {
-      status: 200,
-      headers: {
-        'Content-Type':  'text/csv;charset=UTF-8',
-        'Cache-Control': 'public, max-age=600, stale-while-revalidate=3600',
-        'Access-Control-Allow-Origin': 'same-origin',
-        'X-Served-From': 'worker-cache',
-      },
-    });
-  }
+  return servePage(request, env, ctx, url);
+}
 
-  const sheetBase = env.SHEET_BASE || 'https://docs.google.com/spreadsheets/d/e';
-  const sheetId   = env.SHEET_ID   || '';
-  const gid       = SHEET_GIDS[sheetName];
+// Security headers on every response; noindex on preview hosts.
+function finalize(res, isPreview) {
+  const out = new Response(res.body, res); // unlocks immutable headers
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) out.headers.set(k, v);
+  if (isPreview) out.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return out;
+}
 
+// ─────────────────────────────────────────────────────────────────────────
+//  Google Sheets — fetch, cache, clean
+// ─────────────────────────────────────────────────────────────────────────
+
+// Returns CSV text, or null if Sheets is down and nothing is cached.
+async function getSheetCSV(name, env, ctx) {
+  const gid = getSheetGids(env)[name];
+  if (!gid) return null;
+
+  const mem = _mem[name];
+  if (mem && Date.now() - mem.at < FRESH_MS) return mem.text;
+
+  const cacheKey = new Request(`${SITE_URL}/__sheet-cache/${name}`);
+  let stale = mem ? mem.text : null;
+  try {
+    const hit = await caches.default.match(cacheKey);
+    if (hit) {
+      const at   = Number(hit.headers.get('X-Fetched-At')) || 0;
+      const text = await hit.text();
+      if (Date.now() - at < FRESH_MS) { _mem[name] = { text, at }; return text; }
+      stale = text;
+    }
+  } catch {} // Cache API unavailable (e.g. some *.pages.dev contexts)
+
+  const sheetId = env.SHEET_ID || '';
   if (!sheetId) {
-    console.warn('[/api/data] SHEET_ID secret not set');
-    return new Response('Temporarily unavailable', { status: 503 });
+    console.warn('[sheets] SHEET_ID secret not set');
+    return stale;
   }
-
-  const sheetUrl = `${sheetBase}/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
+  const sheetUrl = `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
 
   try {
     const resp = await fetch(sheetUrl, {
       redirect: 'follow',
-      headers: { 'User-Agent': 'Suman-Dangal-Worker/1.0' },
+      signal:   AbortSignal.timeout(SHEET_TIMEOUT_MS),
+      headers:  { 'User-Agent': 'Suman-Dangal-Worker/1.0' },
     });
-    if (!resp.ok) throw new Error(`Google Sheets HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const text = await resp.text();
-    memSet(cacheKey, text);
-    return new Response(text, {
-      status: 200,
-      headers: {
-        'Content-Type':  'text/csv;charset=UTF-8',
-        'Cache-Control': 'public, max-age=600, stale-while-revalidate=3600',
-        'Access-Control-Allow-Origin': 'same-origin',
-        'X-Served-From': 'google-sheets',
-      },
-    });
+    // Google returns an HTML sign-in page if the sheet is unpublished
+    if (/^\s*<!doctype html|^\s*<html/i.test(text)) throw new Error('not CSV (sheet unpublished?)');
+    const at = Date.now();
+    _mem[name] = { text, at };
+    const put = caches.default.put(cacheKey, new Response(text, {
+      headers: { 'Cache-Control': `public, max-age=${STALE_KEEP_S}`, 'X-Fetched-At': String(at) },
+    })).catch(() => {});
+    if (ctx?.waitUntil) ctx.waitUntil(put);
+    return text;
   } catch (e) {
-    console.warn('[/api/data]', sheetName, e.message);
-    return new Response('Temporarily unavailable', { status: 503 });
+    console.warn('[sheets]', name, e.message, stale ? '→ serving stale' : '→ no cache');
+    return stale;
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  Serve SPA shell as a REAL 404 — for genuinely unknown/typo paths only.
-//  Client JS still renders the visual "Page not found" UI via updateSEO(),
-//  but now the HTTP status and robots meta are correct even if a crawler
-//  doesn't execute JS in time — fixes soft-404 risk on garbage URLs.
-// ─────────────────────────────────────────────────────────────────────────
-async function serveNotFound(env, request) {
-  const indexUrl = new URL('/', new URL(request.url).origin);
-  const response = await env.ASSETS.fetch(new Request(indexUrl, request));
-  let html = await response.text();
+// Parsed + cleaned rows, or null when Sheets is unavailable.
+async function getRows(name, env, ctx) {
+  const text = await getSheetCSV(name, env, ctx);
+  if (text == null) return null;
+  const rows = parseCSV(text);
+  return name === 'blog' ? cleanBlogRows(rows) : rows;
+}
 
-  html = /<meta name="robots" content="[^"]*"/.test(html)
-    ? html.replace(/<meta name="robots" content="[^"]*"/, `<meta name="robots" content="noindex, nofollow"`)
-    : html.replace('</head>', `  <meta name="robots" content="noindex, nofollow">\n</head>`);
+// Optional "Status" (or "Published") column: draft / unpublished / hidden /
+// private / no / false hide the row everywhere. Blank = published.
+const HIDDEN_STATUS = /^(draft|unpublished|hidden|private|no|false|0)$/i;
+function isPublished(r) {
+  return !HIDDEN_STATUS.test((r.Status || r.Published || '').trim());
+}
+function cleanBlogRows(rows) {
+  const seen = new Set();
+  return rows.filter(r => {
+    const slug = (r.Slug || '').trim();
+    if (!slug || !(r.Title || '').trim() || !isPublished(r)) return false;
+    if (!/^[a-z0-9][a-z0-9._~-]*$/i.test(slug) || seen.has(slug)) return false;
+    seen.add(slug);
+    r.Slug = slug;
+    return true;
+  });
+}
 
-  const headers = applySecurityHeaders(new Headers(response.headers));
-  headers.set('Content-Type',  'text/html;charset=UTF-8');
-  headers.set('Cache-Control', 'no-store');
-  return new Response(html, { status: 404, headers });
+function toCSV(rows) {
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  return [headers.map(cell).join(','), ...rows.map(r => headers.map(h => cell(r[h])).join(','))].join('\n');
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Serve SPA index.html with route-specific meta tag injection
+//  /api/data?sheet=<name>
 // ─────────────────────────────────────────────────────────────────────────
-async function serveIndexWithMeta(env, request, normPath) {
-  const indexUrl = new URL('/', new URL(request.url).origin);
-  const response = await env.ASSETS.fetch(new Request(indexUrl, request));
-  const meta     = ROUTE_META[normPath];
-  let html       = await response.text();
+async function handleDataEndpoint(url, env, ctx) {
+  const name = (url.searchParams.get('sheet') || '').toLowerCase().trim();
+  if (!getSheetGids(env)[name]) return new Response('Not found', { status: 404 });
 
-  html = html.replace(/<title>[^<]*<\/title>/, `<title>${escHtml(meta.title)}<\/title>`);
-  html = html.replace(/<meta name="description" content="[^"]*"/, `<meta name="description" content="${escHtml(meta.description)}"`);
-  html = html.replace(/<link id="canonical" rel="canonical" href="[^"]*"/, `<link id="canonical" rel="canonical" href="${escHtml(meta.canonical)}"`);
-  html = html.replace(/<meta property="og:title"\s+content="[^"]*"/, `<meta property="og:title" content="${escHtml(meta.title)}"`);
-  html = html.replace(/<meta property="og:description"\s+content="[^"]*"/, `<meta property="og:description" content="${escHtml(meta.description)}"`);
-  html = html.replace(/<meta property="og:url"\s+content="[^"]*"/, `<meta property="og:url" content="${escHtml(meta.canonical)}"`);
-  html = html.replace(/<meta name="twitter:title"\s+content="[^"]*"/, `<meta name="twitter:title" content="${escHtml(meta.title)}"`);
-  html = html.replace(/<meta name="twitter:description"\s+content="[^"]*"/, `<meta name="twitter:description" content="${escHtml(meta.description)}"`);
+  let text = await getSheetCSV(name, env, ctx);
+  if (text == null) return new Response('Temporarily unavailable', { status: 503, headers: { 'Retry-After': '60' } });
+  if (name === 'blog') text = toCSV(cleanBlogRows(parseCSV(text))); // drafts never reach the browser
 
-  if (meta.h1) {
-    html = html.replace(
-      /<h1[^>]*id="site-h1"[^>]*>/,
-      `<h1 class="hero-title h1-hidden" id="site-h1" aria-hidden="true" style="display:none">`
-    );
-    html = html.replace(
-      /<div id="app" role="main">/,
-      `<div id="app" role="main"><h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0" data-crawler-h1>${escHtml(meta.h1)}<\/h1>`
-    );
+  return new Response(text, {
+    headers: {
+      'Content-Type':  'text/csv;charset=UTF-8',
+      'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600',
+    },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  HTML pages — index.html + HTMLRewriter
+// ─────────────────────────────────────────────────────────────────────────
+async function servePage(request, env, ctx, url) {
+  const path = url.pathname === '/' ? '/' : url.pathname.replace(/\/+$/, '');
+  let page;
+
+  const postMatch = path.match(/^\/blog\/([^/]+)$/);
+  if (path === '/blog')       page = await blogListPage(env, ctx, url);
+  else if (postMatch)         page = await blogPostPage(safeDecode(postMatch[1]), env, ctx);
+  else if (ROUTE_META[path])  page = basicPage(path);
+  else                        page = notFoundPage(path);
+
+  const shell = await env.ASSETS.fetch(new Request(new URL('/', url), { headers: { Accept: 'text/html' } }));
+  const res = new Response(shell.body, {
+    status:  page.status,
+    headers: {
+      'Content-Type':  'text/html;charset=UTF-8',
+      'Cache-Control': page.status === 200 ? 'public, max-age=300, stale-while-revalidate=86400' : 'no-store',
+      ...(page.status === 503 ? { 'Retry-After': '120' } : {}),
+    },
+  });
+  return rewriteShell(page).transform(res);
+}
+
+function basicPage(path) {
+  const m = ROUTE_META[path];
+  return { status: 200, view: m.view, title: m.title, description: m.description, canonical: SITE_URL + path, headingSelector: m.view === 'home' ? null : '.section-heading' };
+}
+
+function notFoundPage(path, status = 404) {
+  return {
+    status, view: null, robots: 'noindex, nofollow',
+    title: status === 404 ? 'Page Not Found | Suman Dangal' : 'Temporarily Unavailable | Suman Dangal',
+    description: 'This page does not exist on suman-dangal.com.np.',
+    canonical: SITE_URL + path,
+  };
+}
+
+async function blogListPage(env, ctx, url) {
+  const page  = basicPage('/blog');
+  const rows  = (await getRows('blog', env, ctx)) || [];
+  const posts = rows.sort((a, b) => dateValue(b.Date) - dateValue(a.Date));
+  const total = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
+  const n     = Math.min(Math.max(1, parseInt(url.searchParams.get('page')) || 1), total);
+  const slice = posts.slice((n - 1) * POSTS_PER_PAGE, n * POSTS_PER_PAGE);
+
+  if (n > 1) {
+    page.canonical = `${SITE_URL}/blog?page=${n}`;
+    page.title = `Blog — Page ${n} | Suman Dangal`;
   }
-
-  const headers = applySecurityHeaders(new Headers(response.headers));
-  headers.set('Content-Type',  'text/html;charset=UTF-8');
-  headers.set('Cache-Control', htmlCacheHeaders());
-  return new Response(html, { status: 200, headers });
+  page.inject = {
+    '#blogGrid': slice.length
+      ? slice.map(blogCardHTML).join('')
+      : '<p class="empty-state">No posts yet — check back soon.</p>',
+    '#blogPagination': total > 1
+      ? (n > 1 ? `<a class="btn btn-ghost" href="/blog?page=${n - 1}" data-link>← Prev</a>` : '') +
+        `<span>Page ${n} of ${total}</span>` +
+        (n < total ? `<a class="btn btn-ghost" href="/blog?page=${n + 1}" data-link>Next →</a>` : '')
+      : '',
+  };
+  page.jsonLd = [{
+    '@context': 'https://schema.org', '@type': 'Blog',
+    name: 'Suman Dangal Blog', url: `${SITE_URL}/blog`,
+    blogPost: posts.map(p => ({ '@type': 'BlogPosting', headline: p.Title, url: `${SITE_URL}/blog/${p.Slug}` })),
+  }];
+  return page;
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  Blog post SSR — full prerender for SEO + social sharing
-// ─────────────────────────────────────────────────────────────────────────
-async function prerenderBlogPost(slug, env, request) {
+async function blogPostPage(slug, env, ctx) {
   const [blogRows, faqRows, imageRows] = await Promise.all([
-    fetchSheetData('blog',   env),
-    fetchSheetData('faq',    env),
-    fetchSheetData('images', env),
+    getRows('blog', env, ctx), getRows('faq', env, ctx), getRows('images', env, ctx),
   ]);
+  if (blogRows == null) return notFoundPage(`/blog/${slug}`, 503); // Sheets down — don't claim 404
+  const post = blogRows.find(r => r.Slug === slug);
+  if (!post) return notFoundPage(`/blog/${slug}`);
 
-  const post = blogRows.find(r => (r.Slug || '').trim() === slug);
+  const title     = post.Title;
+  const desc      = post.Excerpt || plainExcerpt(post.Content) || ROUTE_META['/blog'].description;
+  const canonical = `${SITE_URL}/blog/${slug}`;
+  const image     = fixImgUrl(post.Image_URL || '');
+  const published = formatDate(post.Date);
+  const modified  = formatDate(post.Last_Modified) || published;
+  const tags      = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
 
-  if (!post) {
-    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>Post Not Found | Suman Dangal</title>
-<meta name="robots" content="noindex,nofollow">
-<style>body{font-family:sans-serif;padding:2rem;text-align:center}a{color:#2d6a4f}</style>
-</head><body>
-<h1>Post Not Found</h1>
-<p>No post with slug <code>${escHtml(slug)}</code> exists.</p>
-<a href="${SITE_URL}/blog">← Back to Blog</a>
-</body></html>`;
-    return new Response(html, {
-      status: 404,
-      headers: applySecurityHeaders(new Headers({ 'Content-Type': 'text/html;charset=UTF-8' })),
-    });
-  }
-
-  const title       = post.Title    || '';
-  const excerpt     = post.Excerpt  || '';
-  const date        = post.Date     || '';
-  const lastmod     = post.Last_Modified || date;
-  const category    = post.Category || 'Post';
-  const postUrl     = `${SITE_URL}/blog/${slug}`;
-  const imageUrl    = fixImgUrl(post.Image_URL || '');
-  const tagList     = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
-  const keywordsStr = tagList.join(', ');
-
-  // Build inline image map
+  // Inline images: [img1] … from Img1_URL columns and the images sheet
   const imgMap = {};
   for (const key of Object.keys(post)) {
-    const m = key.match(/^[Ii]mg(\d+)_[Uu][Rr][Ll]$/);
-    if (m) imgMap[`img${m[1]}`] = { url: post[key], alt: post[`Img${m[1]}_Alt`] || '' };
+    const m = key.match(/^img(\d+)_url$/i);
+    if (m && post[key]) imgMap[`img${m[1]}`] = { url: post[key], alt: post[`Img${m[1]}_Alt`] || title };
   }
-  if (imageRows?.length) {
-    imageRows
-      .filter(r  => (r.Blog_Slug || '').trim() === slug)
-      .sort((a, b) => Number(a.Img_Number || 0) - Number(b.Img_Number || 0))
-      .forEach(r => {
-        const num = Number(r.Img_Number || 0);
-        if (!num || !r.Img_URL) return;
-        imgMap[`img${num}`] = { url: (r.Img_URL || '').trim(), alt: (r.Img_Alt || '').trim() };
-      });
-  }
+  (imageRows || [])
+    .filter(r => (r.Blog_Slug || '').trim() === slug && r.Img_URL)
+    .forEach(r => { const num = Number(r.Img_Number || 0); if (num) imgMap[`img${num}`] = { url: r.Img_URL.trim(), alt: (r.Img_Alt || title).trim() }; });
 
-  const bodyHTML = renderMarkdown(post.Content || '', imgMap);
+  const faqs = (faqRows || [])
+    .filter(r => (r.Blog_Slug || '').trim() === slug && r.FAQ_Question && r.FAQ_Answer)
+    .sort((a, b) => Number(a.FAQ_Number || 0) - Number(b.FAQ_Number || 0));
 
-  const faqItems = (faqRows || [])
-    .filter(r  => (r.Blog_Slug || '').trim() === slug)
-    .sort((a, b) => Number(a.FAQ_Number) - Number(b.FAQ_Number));
+  // Same markup as renderArticle() in index.html, so hydration doesn't shift layout
+  const articleHTML =
+    `<button class="article-back" id="artBack">← Back to Blog</button>` +
+    `<div class="article-meta"><span class="blog-cat">${escHtml(post.Category || 'Post')}</span>` +
+    `<time datetime="${escHtml(post.Date || '')}">${escHtml(post.Date || '')}</time></div>` +
+    `<h1 class="article-title">${escHtml(title)}</h1>` +
+    (tags.length ? `<div class="article-tags">${tags.map(t => `<span class="article-tag">${escHtml(t)}</span>`).join('')}</div>` : '') +
+    (image ? `<img class="article-cover" src="${escHtml(image)}" alt="${escHtml(post.Image_Alt || title + ' featured image')}" loading="eager" decoding="async" fetchpriority="high" width="720" height="420">` : '') +
+    `<div class="article-body">${renderMarkdown(post.Content || '', imgMap)}</div>` +
+    `<div class="article-author"><span>Written by <a href="/about" data-link>Suman Dangal</a></span></div>` +
+    (faqs.length
+      ? `<section class="faq-section" aria-label="Frequently Asked Questions"><h2>Frequently Asked Questions</h2>` +
+        faqs.map(f => `<details class="faq-item"><summary class="faq-question">${escHtml(f.FAQ_Question)}</summary><div class="faq-answer">${escHtml(f.FAQ_Answer)}</div></details>`).join('') +
+        `</section>`
+      : '');
 
-  const faqHTML = faqItems.length ? `
-    <div class="pre-faq">
-      <h2>Frequently Asked Questions</h2>
-      ${faqItems.map(f => `
-      <details>
-        <summary>${escHtml(f.FAQ_Question || '')}</summary>
-        <div class="faq-answer">${escHtml(f.FAQ_Answer || '')}</div>
-      </details>`).join('')}
-    </div>` : '';
-
-  const faqSchemaTag = faqItems.length ? `
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-    ${faqItems.map(f =>
-      `{"@type":"Question","name":"${escJson(f.FAQ_Question || '')}","acceptedAnswer":{"@type":"Answer","text":"${escJson(f.FAQ_Answer || '')}"}}`
-    ).join(',')}
-  ]}
-  <\/script>` : '';
-
-  const tagsHTML = tagList.length
-    ? `<div class="pre-tags">${tagList.map(t => `<span class="pre-tag">${escHtml(t)}</span>`).join('')}</div>`
-    : '';
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escHtml(title)} | Suman Dangal</title>
-  <meta name="description" content="${escHtml(excerpt)}">
-  <meta name="robots" content="index, follow">
-  ${keywordsStr ? `<meta name="keywords" content="${escHtml(keywordsStr)}">` : ''}
-  <link rel="canonical" href="${postUrl}">
-  <link rel="icon" type="image/x-icon" href="${SITE_URL}/favicon.ico">
-
-  <!-- Open Graph -->
-  <meta property="og:title"       content="${escHtml(title)} | Suman Dangal">
-  <meta property="og:description" content="${escHtml(excerpt)}">
-  <meta property="og:url"         content="${postUrl}">
-  <meta property="og:type"        content="article">
-  <meta property="og:site_name"   content="Suman Dangal">
-  <meta property="article:published_time" content="${escHtml(date)}">
-  <meta property="article:modified_time" content="${escHtml(lastmod)}">
-  <meta property="article:author" content="Suman Dangal">
-  ${tagList.map(t => `<meta property="article:tag" content="${escHtml(t)}">`).join('\n  ')}
-  ${imageUrl ? `<meta property="og:image" content="${escHtml(imageUrl)}">
-  <meta property="og:image:width"  content="1200">
-  <meta property="og:image:height" content="630">` : ''}
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card"        content="summary_large_image">
-  <meta name="twitter:title"       content="${escHtml(title)} | Suman Dangal">
-  <meta name="twitter:description" content="${escHtml(excerpt)}">
-  ${imageUrl ? `<meta name="twitter:image" content="${escHtml(imageUrl)}">` : ''}
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style"
-  href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"    onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"></noscript>
-
-  <!-- Structured data: BlogPosting -->
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"BlogPosting",
-   "headline":"${escJson(title)}",
-   "description":"${escJson(excerpt)}",
-   "datePublished":"${escJson(date)}",
-   "dateModified":"${escJson(lastmod)}",
-   "url":"${postUrl}",
-   "inLanguage":"en",
-   "author":{"@type":"Person","name":"Suman Dangal","url":"${SITE_URL}/","sameAs":["https://linkedin.com/in/sumandangal963"]}
-   ${imageUrl ? `,"image":{"@type":"ImageObject","url":"${escJson(imageUrl)}","width":1200,"height":630}` : ''}
-   ${keywordsStr ? `,"keywords":"${escJson(keywordsStr)}"` : ''}
-   ,"publisher":{"@type":"Person","name":"Suman Dangal","url":"${SITE_URL}/"}}
-  <\/script>
-
-  <!-- Structured data: Person -->
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"Person",
-   "name":"Suman Dangal","url":"${SITE_URL}/","jobTitle":"Dev & QA Engineer",
-   "email":"sumandangal888@gmail.com",
-   "address":{"@type":"PostalAddress","addressLocality":"Bhaktapur","addressCountry":"NP"},
-   "sameAs":["https://linkedin.com/in/sumandangal963"]}
-  <\/script>
-
-  <!-- Structured data: BreadcrumbList -->
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
-    {"@type":"ListItem","position":1,"name":"Home","item":"${SITE_URL}/"},
-    {"@type":"ListItem","position":2,"name":"Blog","item":"${SITE_URL}/blog"},
-    {"@type":"ListItem","position":3,"name":"${escJson(title)}","item":"${postUrl}"}]}
-  <\/script>
-
-  ${faqSchemaTag}
-
-  <style>${PRERENDER_CSS}<\/style>
-</head>
-<body>
-
-  <nav class="pre-nav" role="navigation" aria-label="Main navigation">
-    <a href="${SITE_URL}/" style="display:inline-flex;align-items:center;text-decoration:none" title="Suman Dangal" aria-label="Suman Dangal home">
-      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-        <rect width="48" height="48" rx="9" fill="#1b4332"/>
-        <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle"
-          font-family="'Great Vibes','Dancing Script',Georgia,serif"
-          font-size="26" fill="#ffffff">SD</text>
-      </svg>
-    </a>
-    <button class="pre-burger" id="preBurger" aria-label="Open menu" aria-expanded="false"
-      onclick="var m=document.getElementById('preNavLinks');var o=!m.classList.contains('open');m.classList.toggle('open',o);this.setAttribute('aria-expanded',o)">
-      <span></span><span></span><span></span>
-    </button>
-    <ul class="pre-nav-links" id="preNavLinks">
-      <li><a href="${SITE_URL}/">Home</a></li>
-      <li><a href="${SITE_URL}/skills">Skills</a></li>
-      <li><a href="${SITE_URL}/projects">Projects</a></li>
-      <li><a href="${SITE_URL}/blog" class="active">Blog</a></li>
-      <li><a href="${SITE_URL}/experience">Experience</a></li>
-      <li><a href="${SITE_URL}/about">About</a></li>
-      <li><a href="${SITE_URL}/contact">Contact</a></li>
-    </ul>
-  </nav>
-
-  <main class="pre-main" itemscope itemtype="https://schema.org/BlogPosting">
-    <meta itemprop="headline"      content="${escHtml(title)}">
-    <meta itemprop="description"   content="${escHtml(excerpt)}">
-    <meta itemprop="datePublished" content="${escHtml(date)}">
-    <meta itemprop="url"           content="${postUrl}">
-
-    <!-- Breadcrumb visible -->
-    <div class="pre-breadcrumb" aria-label="Breadcrumb">
-      <a href="${SITE_URL}/">← Back to Home</a>
-      <span aria-hidden="true">›</span>
-      <a href="${SITE_URL}/blog">← Back to Blogs</a>
-      <span aria-hidden="true">›</span>
-      <span>${escHtml(title)}</span>
-    </div>
-
-    <div class="pre-meta">
-      <span class="pre-cat">${escHtml(category)}</span>
-      <time datetime="${escHtml(date)}" itemprop="datePublished">${escHtml(date)}</time>
-    </div>
-
-    <h1 class="pre-title" itemprop="name">${escHtml(title)}</h1>
-
-    ${tagsHTML}
-
-    ${imageUrl
-      ? `<img class="pre-cover" src="${escHtml(imageUrl)}"
-           alt="${escHtml(post.Image_Alt || title + ' - Suman Dangal blog')}"
-           width="720" height="400"
-           loading="eager" decoding="async" fetchpriority="high"
-           itemprop="image">`
-      : ''}
-
-    <div class="pre-body" itemprop="articleBody">${bodyHTML}</div>
-
-    ${faqHTML}
-
-    <hr style="border:none;border-top:1px solid var(--border);margin:2.5rem 0">
-
-    <!-- Author byline for SEO -->
-    <div style="display:flex;align-items:center;gap:.8rem;font-family:var(--mono);font-size:.75rem;color:var(--muted-light);margin-bottom:2rem" itemscope itemtype="https://schema.org/Person">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      <span>Written by <a href="${SITE_URL}/about" itemprop="url" style="color:var(--accent)"><span itemprop="name">Suman Dangal</span></a></span>
-    </div>
-
-    <a class="pre-back" href="${SITE_URL}/blog">← Back to all posts</a>
-  </main>
-
-  <footer class="pre-footer" role="contentinfo">
-    <span>© 2026 Suman Dangal</span>
-    <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
-  </footer>
-
-  <!-- Hydrate SPA for real users (bots keep the static HTML) -->
-  <script>
-    (function(){
-      var ua = navigator.userAgent || '';
-      var isBot = /google|bing|yandex|baidu|duckduck|slurp|facebook|twitter|linkedin|whatsapp|telegram|apple|pinterest|reddit|slack|discord|crawler|spider|bot|headless|prerender|python|curl|wget|java|ruby|go-http|node-fetch/i.test(ua);
-      var looksReal = typeof window !== 'undefined' && typeof history !== 'undefined' && navigator.cookieEnabled;
-      if (!isBot && looksReal) {
-        fetch('/').then(function(r){ return r.text(); }).then(function(html){
-          document.open(); document.write(html); document.close();
-        }).catch(function(){});
-      }
-    })();
-  <\/script>
-</body>
-</html>`;
-
-  return new Response(html, {
-    status: 200,
-    headers: applySecurityHeaders(new Headers({
-      'Content-Type':  'text/html;charset=UTF-8',
-      'Cache-Control': htmlCacheHeaders(),
-    })),
+  const author = { '@type': 'Person', name: 'Suman Dangal', url: `${SITE_URL}/`, sameAs: ['https://linkedin.com/in/sumandangal963'] };
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org', '@type': 'BlogPosting',
+      headline: title, description: desc, url: canonical, mainEntityOfPage: canonical,
+      image: image || DEFAULT_IMAGE, inLanguage: 'en', author, publisher: author,
+      ...(published ? { datePublished: published, dateModified: modified } : {}),
+      ...(tags.length ? { keywords: tags.join(', ') } : {}),
+    },
+    {
+      '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+        { '@type': 'ListItem', position: 3, name: title, item: canonical },
+      ],
+    },
+  ];
+  if (faqs.length) jsonLd.push({
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: faqs.map(f => ({ '@type': 'Question', name: f.FAQ_Question, acceptedAnswer: { '@type': 'Answer', text: f.FAQ_Answer } })),
   });
+
+  const extraHead = [
+    published && `<meta property="article:published_time" content="${escHtml(published)}">`,
+    modified  && `<meta property="article:modified_time" content="${escHtml(modified)}">`,
+    `<meta property="article:author" content="Suman Dangal">`,
+    ...tags.map(t => `<meta property="article:tag" content="${escHtml(t)}">`),
+  ].filter(Boolean).join('');
+
+  return {
+    status: 200, view: 'article', type: 'article',
+    title: `${title} | Suman Dangal`, description: desc, canonical,
+    image: image || null, jsonLd, extraHead,
+    inject: { '#articleWrap': articleHTML }, ssrSlug: slug,
+  };
+}
+
+function blogCardHTML(post) {
+  const img  = fixImgUrl(post.Image_URL || '');
+  const tags = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  return `<a href="/blog/${escHtml(post.Slug)}" data-link class="blog-card" role="article" aria-label="${escHtml(post.Title)}">` +
+    (img
+      ? `<div class="blog-card-thumb"><img src="${escHtml(img)}" alt="${escHtml(post.Image_Alt || post.Title + ' cover')}" loading="lazy" decoding="async" width="310" height="172"></div>`
+      : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`) +
+    `<div class="blog-card-body"><div class="blog-card-meta"><span class="blog-cat">${escHtml(post.Category || 'Post')}</span>` +
+    `<time datetime="${escHtml(post.Date || '')}">${escHtml(post.Date || '')}</time></div>` +
+    `<h3 class="blog-card-title">${escHtml(post.Title)}</h3>` +
+    `<p class="blog-card-excerpt">${escHtml(post.Excerpt || '')}</p>` +
+    (tags.length ? `<div class="blog-card-tags">${tags.map(t => `<span class="blog-tag">${escHtml(t)}</span>`).join('')}</div>` : '') +
+    `</div></a>`;
+}
+
+// Elements are replaced wholesale (not setAttribute) so escaping is ours.
+function rewriteShell(page) {
+  const img     = page.image || DEFAULT_IMAGE;
+  const ogType  = page.type || 'website';
+  const robots  = page.robots || 'index, follow';
+  const swap = (sel, html) => [sel, { element(el) { el.replace(html, { html: true }); } }];
+
+  const handlers = [
+    swap('title',                            `<title>${escHtml(page.title)}</title>`),
+    swap('meta[name="description"]',         `<meta name="description" content="${escHtml(page.description)}" />`),
+    swap('meta[name="robots"]',              `<meta name="robots" content="${robots}" />`),
+    swap('link#canonical',                   `<link id="canonical" rel="canonical" href="${escHtml(page.canonical)}" />`),
+    swap('meta[property="og:type"]',         `<meta property="og:type" content="${ogType}" />`),
+    swap('meta[property="og:title"]',        `<meta property="og:title" content="${escHtml(page.title)}" />`),
+    swap('meta[property="og:description"]',  `<meta property="og:description" content="${escHtml(page.description)}" />`),
+    swap('meta[property="og:url"]',          `<meta property="og:url" content="${escHtml(page.canonical)}" />`),
+    swap('meta[property="og:image"]',        `<meta property="og:image" content="${escHtml(img)}" />`),
+    swap('meta[name="twitter:card"]',        `<meta name="twitter:card" content="${page.image ? 'summary_large_image' : 'summary'}" />`),
+    swap('meta[name="twitter:title"]',       `<meta name="twitter:title" content="${escHtml(page.title)}" />`),
+    swap('meta[name="twitter:description"]', `<meta name="twitter:description" content="${escHtml(page.description)}" />`),
+    swap('meta[name="twitter:image"]',       `<meta name="twitter:image" content="${escHtml(img)}" />`),
+  ];
+  // Post cover sizes are unknown — drop the default image's 512×512 hints
+  if (page.image) {
+    handlers.push(['meta[property="og:image:width"]',  { element(el) { el.remove(); } }]);
+    handlers.push(['meta[property="og:image:height"]', { element(el) { el.remove(); } }]);
+  }
+  // Person schema belongs to the home page; posts carry author inside BlogPosting
+  if (page.view !== 'home') {
+    handlers.push(['script#static-person-schema', { element(el) { el.remove(); } }]);
+  }
+  handlers.push(['head', { element(el) {
+    const ld = (page.jsonLd || []).map(o => `<script type="application/ld+json">${jsonLd(o)}</script>`).join('');
+    el.append((page.extraHead || '') + ld, { html: true });
+  } }]);
+
+  if (page.view) {
+    handlers.push([`#view-${page.view}`, { element(el) {
+      el.setAttribute('class', (el.getAttribute('class') || '') + ' active');
+    } }]);
+    // One H1: hero heading is the H1 only on home
+    if (page.view !== 'home') {
+      handlers.push(['#site-h1', { element(el) { el.tagName = 'h2'; } }]);
+    }
+    if (page.headingSelector) {
+      handlers.push([`#view-${page.view} ${page.headingSelector}`, { element(el) { el.tagName = 'h1'; } }]);
+    }
+  }
+  for (const [sel, html] of Object.entries(page.inject || {})) {
+    handlers.push([sel, { element(el) {
+      el.setInnerContent(html, { html: true });
+      if (page.ssrSlug && sel === '#articleWrap') el.setAttribute('data-ssr', page.ssrSlug);
+    } }]);
+  }
+
+  const rw = new HTMLRewriter();
+  for (const [sel, h] of handlers) rw.on(sel, h);
+  return rw;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Blog LIST page SSR — real content so GSC stops flagging soft-404
+//  Sitemap
 // ─────────────────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────────────
-//  Blog LIST page SSR — matches client-side .blog-grid/.blog-card exactly
-// ─────────────────────────────────────────────────────────────────────────
-async function prerenderBlogList(env, request) {
-  const rows = await fetchSheetData('blog', env);
+async function generateSitemap(env, ctx) {
+  const rows  = await getRows('blog', env, ctx);
+  const posts = (rows || []).map(r => ({
+    loc: `/blog/${r.Slug}`, priority: '0.8', changefreq: 'monthly',
+    lastmod: formatDate(r.Last_Modified) || formatDate(r.Date),
+  }));
+  const newest = posts.map(p => p.lastmod).filter(Boolean).sort().pop() || null;
 
-  const sorted = (rows || [])
-    .filter(r => r.Slug && r.Slug.trim())
-    .sort((a, b) => new Date(b.Date || 0) - new Date(a.Date || 0));
-
-  const cardsHTML = sorted.map(post => {
-    const slug    = post.Slug.trim();
-    const imgUrl  = fixImgUrl(post.Image_URL || '');
-    const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
-
-    const thumb = imgUrl
-      ? `<div class="blog-card-thumb"><img src="${escHtml(imgUrl)}" alt="${escHtml(post.Image_Alt || post.Title + ' cover')}" loading="lazy" decoding="async" width="310" height="172"></div>`
-      : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`;
-
-    const tagsHTML = tagList.length
-      ? `<div class="blog-card-tags">${tagList.map(t => `<span class="blog-tag">${escHtml(t)}</span>`).join('')}</div>`
-      : '';
-
-    return `
-    <a href="${SITE_URL}/blog/${escHtml(slug)}" class="blog-card">
-      ${thumb}
-      <div class="blog-card-body">
-        <div class="blog-card-meta">
-          <span class="blog-cat">${escHtml(post.Category || 'Post')}</span>
-          <time datetime="${escHtml(post.Date || '')}">${escHtml(post.Date || '')}</time>
-        </div>
-        <h3 class="blog-card-title">${escHtml(post.Title || '')}</h3>
-        <p class="blog-card-excerpt">${escHtml(post.Excerpt || '')}</p>
-        ${tagsHTML}
-      </div>
-    </a>`;
-  }).join('');
-
-  const listSchema = `
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"Blog","name":"Suman Dangal Blog","url":"${SITE_URL}/blog",
-   "blogPost":[${sorted.map(p => `{"@type":"BlogPosting","headline":"${escJson(p.Title || '')}","url":"${SITE_URL}/blog/${escJson(p.Slug)}"}`).join(',')}]}
-  <\/script>`;
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blog | Suman Dangal</title>
-  <meta name="description" content="Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="${SITE_URL}/blog">
-  <link rel="icon" type="image/x-icon" href="${SITE_URL}/favicon.ico">
-  <meta property="og:title" content="Blog | Suman Dangal">
-  <meta property="og:description" content="Dev notes, QA tips, and tech writing by Suman Dangal.">
-  <meta property="og:url" content="${SITE_URL}/blog">
-  <meta property="og:type" content="website">
-  ${listSchema}
-  <style>${PRERENDER_CSS}${BLOG_LIST_CSS}<\/style>
-</head>
-<body>
-  <nav class="pre-nav" role="navigation" aria-label="Main navigation">
-    <a href="${SITE_URL}/" style="display:inline-flex;align-items:center;text-decoration:none" title="Suman Dangal" aria-label="Suman Dangal home">
-      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-        <rect width="48" height="48" rx="9" fill="#1b4332"/>
-        <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-family="'Great Vibes','Dancing Script',Georgia,serif" font-size="26" fill="#ffffff">SD</text>
-      </svg>
-    </a>
-    <button class="pre-burger" id="preBurger" aria-label="Open menu" aria-expanded="false"
-      onclick="var m=document.getElementById('preNavLinks');var o=!m.classList.contains('open');m.classList.toggle('open',o);this.setAttribute('aria-expanded',o)">
-      <span></span><span></span><span></span>
-    </button>
-    <ul class="pre-nav-links" id="preNavLinks">
-      <li><a href="${SITE_URL}/">Home</a></li>
-      <li><a href="${SITE_URL}/skills">Skills</a></li>
-      <li><a href="${SITE_URL}/projects">Projects</a></li>
-      <li><a href="${SITE_URL}/blog" class="active">Blog</a></li>
-      <li><a href="${SITE_URL}/experience">Experience</a></li>
-      <li><a href="${SITE_URL}/about">About</a></li>
-      <li><a href="${SITE_URL}/contact">Contact</a></li>
-    </ul>
-  </nav>
-  <main class="container">
-    <div class="section-eyebrow">Writing &amp; Notes</div>
-    <p class="section-heading">Blog</p>
-    <div class="blog-grid">
-      ${cardsHTML || '<p style="color:var(--muted)">No posts yet — check back soon.</p>'}
-    </div>
-  </main>
-  <footer class="pre-footer" role="contentinfo">
-    <span>© 2026 Suman Dangal</span>
-    <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
-  </footer>
-  <script>
-    (function(){
-      var ua = navigator.userAgent || '';
-      var isBot = /google|bing|yandex|baidu|duckduck|slurp|facebook|twitter|linkedin|whatsapp|telegram|apple|pinterest|reddit|slack|discord|crawler|spider|bot|headless|prerender|python|curl|wget|java|ruby|go-http|node-fetch/i.test(ua);
-      var looksReal = typeof window !== 'undefined' && typeof history !== 'undefined' && navigator.cookieEnabled;
-      if (!isBot && looksReal) {
-        fetch('/').then(function(r){ return r.text(); }).then(function(html){
-          document.open(); document.write(html); document.close();
-        }).catch(function(){});
-      }
-    })();
-  <\/script>
-</body>
-</html>`;
-
-  return new Response(html, {
-    status: 200,
-    headers: applySecurityHeaders(new Headers({
-      'Content-Type':  'text/html;charset=UTF-8',
-      'Cache-Control': htmlCacheHeaders(),
-    })),
-  });
-}
-// ─────────────────────────────────────────────────────────────────────────
-//  Sitemap generation
-// ─────────────────────────────────────────────────────────────────────────
-async function generateSitemap(env) {
-
-  const staticPages = [
+  const all = [
     { loc: '/',           priority: '1.0', changefreq: 'monthly' },
     { loc: '/skills',     priority: '0.7', changefreq: 'monthly' },
     { loc: '/projects',   priority: '0.8', changefreq: 'monthly' },
-    { loc: '/blog',       priority: '0.9', changefreq: 'weekly'  },
+    { loc: '/blog',       priority: '0.9', changefreq: 'weekly', lastmod: newest },
     { loc: '/experience', priority: '0.7', changefreq: 'monthly' },
     { loc: '/about',      priority: '0.6', changefreq: 'monthly' },
     { loc: '/contact',    priority: '0.5', changefreq: 'yearly'  },
+    ...posts,
   ];
-
-  let blogUrls = [];
-  try {
-    const rows = await fetchSheetData('blog', env);
-    blogUrls = rows
-      .filter(r => r.Slug && r.Slug.trim())
-      .map(r => ({
-        loc:        `/blog/${r.Slug.trim()}`,
-        priority:   '0.8',
-        changefreq: 'monthly',
-        lastmod:    formatDate(r.Last_Modified || r.Date || ''),
-      }));
-  } catch {}
-
-  const all = [...staticPages, ...blogUrls];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${all.map(p => `  <url>
-    <loc>${SITE_URL}${p.loc}</loc>
-    ${p.lastmod ? `<lastmod>${p.lastmod}</lastmod>` : ''}
+    <loc>${escHtml(SITE_URL + p.loc)}</loc>${p.lastmod ? `\n    <lastmod>${p.lastmod}</lastmod>` : ''}
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`).join('\n')}
 </urlset>`;
 
   return new Response(xml, {
-    status: 200,
     headers: {
       'Content-Type':  'application/xml;charset=UTF-8',
-      'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+      // Short cache if Sheets failed so posts reappear quickly
+      'Cache-Control': rows ? 'public, max-age=3600' : 'public, max-age=60',
     },
   });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Internal: fetch + parse a named sheet
-// ─────────────────────────────────────────────────────────────────────────
-async function fetchSheetData(sheetName, env) {
-  const cacheKey = `sheet_${sheetName}`;
-  const cached   = memGet(cacheKey);
-  if (cached) return parseCSV(cached);
-
-  const SHEET_GIDS = getSheetGids(env);
-  const gid        = SHEET_GIDS[sheetName];
-  if (!gid) return [];
-
-  const sheetBase = env.SHEET_BASE || 'https://docs.google.com/spreadsheets/d/e';
-  const sheetId   = env.SHEET_ID   || '';
-  if (!sheetId) {
-    console.warn('[fetchSheetData] SHEET_ID secret not set');
-    return [];
-  }
-
-  const sheetUrl = `${sheetBase}/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
-  try {
-    const resp = await fetch(sheetUrl, { redirect: 'follow' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const text = await resp.text();
-    memSet(cacheKey, text);
-    return parseCSV(text);
-  } catch (e) {
-    console.warn('[fetchSheetData]', sheetName, e.message);
-    return [];
-  }
-}
-// ─────────────────────────────────────────────────────────────────────────
-//  Markdown renderer (for SSR blog posts)
+//  Markdown renderer (server-side copy of md() in index.html)
 // ─────────────────────────────────────────────────────────────────────────
 function renderMarkdown(text, imgMap) {
   if (!text) return '';
@@ -955,7 +585,7 @@ function renderMarkdown(text, imgMap) {
       .replace(/\*([^*]+)\*/g,   '<em>$1</em>')
       .replace(/`([^`]+)`/g,     '<code>$1</code>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-        '<a href="$2" rel="noopener noreferrer">$1</a>');
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
   }
 
   const lines  = text.includes('\n') ? text.split(/\n/) : text.split('|');  
@@ -1004,7 +634,7 @@ function renderMarkdown(text, imgMap) {
         const altTxt = (typeof entry === 'object' && entry.alt) ? entry.alt : `image ${imgMatch[1]}`;
         if (src) {
           out.push(
-            `<figure><img src="${escHtml(src)}" alt="${escHtml(altTxt)}" ` +
+            `<figure class="blog-figure"><img class="blog-inline-img" src="${escHtml(src)}" alt="${escHtml(altTxt)}" ` +
             `width="680" height="383" loading="lazy" decoding="async">` +
             `<figcaption>${escHtml(altTxt)}</figcaption></figure>`
           );
@@ -1059,14 +689,19 @@ function parseCSV(raw) {
 //  Utilities
 // ─────────────────────────────────────────────────────────────────────────
 function escHtml(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-function escJson(s) {
-  return String(s || '')
-    .replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n').replace(/\r/g, '');
+// JSON for <script type="application/ld+json">: can't break out of the tag
+function jsonLd(obj) {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+function plainExcerpt(md) {
+  const t = String(md || '').replace(/\[img\d+\]/gi, ' ').replace(/[#>*`|_\[\]()-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return t.length > 155 ? t.slice(0, 152).replace(/\s\S*$/, '') + '…' : t;
 }
 function fixImgUrl(url) {
   if (!url) return '';
@@ -1077,12 +712,17 @@ function fixImgUrl(url) {
   if (m2) return `https://lh3.googleusercontent.com/d/${m2[1]}`;
   const m3 = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
   if (m3) return `https://lh3.googleusercontent.com/d/${m3[1]}`;
-  return url;
+  return /^https?:\/\//i.test(url) ? url : '';
+}
+function safeDecode(s) {
+  try { return decodeURIComponent(s); } catch { return s; }
+}
+function dateValue(s) {
+  const t = new Date(s || 0).getTime();
+  return isNaN(t) ? 0 : t;
 }
 function formatDate(dateStr) {
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return null;
-    return d.toISOString().split('T')[0];
-  } catch { return null; }
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
 }

@@ -1,15 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1RWJKFPG2T"></script>
+  <!-- Google tag (gtag.js) — consent defaults to denied; page views are sent by the router -->
 <script>
+  window.GA_ID = 'G-1RWJKFPG2T';
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    analytics_storage: 'denied', ad_storage: 'denied',
+    ad_user_data: 'denied', ad_personalization: 'denied'
+  });
+  try {
+    if (localStorage.getItem('sd_consent') === 'granted') {
+      gtag('consent', 'update', { analytics_storage: 'granted' });
+    }
+  } catch (e) {}
   gtag('js', new Date());
-
-  gtag('config', 'G-1RWJKFPG2T');
+  gtag('config', window.GA_ID, { send_page_view: false });
 </script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1RWJKFPG2T"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Suman Dangal — Dev &amp; QA Engineer</title>
@@ -17,7 +26,10 @@
   <meta name="robots" content="index, follow" />
   <link id="canonical" rel="canonical" href="https://suman-dangal.com.np/" />
   <link rel="icon" type="image/x-icon" href="https://suman-dangal.com.np/favicon.ico">
-  <link rel="apple-touch-icon" href="https://suman-dangal.com.np/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#1b4332">
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
@@ -25,15 +37,15 @@
   <meta property="og:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
   <meta property="og:description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships." />
   <meta property="og:url"         content="https://suman-dangal.com.np/" />
-  <meta property="og:image"       content="https://suman-dangal.com.np/og.png" />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image"       content="https://suman-dangal.com.np/android-chrome-512x512.png" />
+  <meta property="og:image:width"  content="512" />
+  <meta property="og:image:height" content="512" />
 
   <!-- Twitter Card -->
-  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:card"        content="summary" />
   <meta name="twitter:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
   <meta name="twitter:description" content="Final-year BCA student. Full-stack Dev &amp; QA." />
-  <meta name="twitter:image"       content="https://suman-dangal.com.np/og.png" />
+  <meta name="twitter:image"       content="https://suman-dangal.com.np/android-chrome-512x512.png" />
 
   <!-- Structured Data: Person -->
   <script type="application/ld+json" id="static-person-schema">
@@ -61,9 +73,9 @@
     "url": "https://suman-dangal.com.np/",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://suman-dangal.com.np/og.png",
-      "width": 1200,
-      "height": 630
+      "url": "https://suman-dangal.com.np/android-chrome-512x512.png",
+      "width": 512,
+      "height": 512
     }
   }
   </script>
@@ -165,13 +177,13 @@ nav{
 .view{display:none}
 .view.active{display:block;animation:viewIn .32s var(--ease) both}
 @keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-h1.hero-title.h1-hidden{display:none}
+.hero-title.h1-hidden{display:none}
 
 /* ── Layout ── */
 .container{max-width:var(--max);margin:0 auto;padding:5rem 4rem}
 .section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;font-weight:500}
 .section-eyebrow::after{content:'';flex:1;height:1px;background:var(--border);max-width:64px}
-.section-heading{font-family:var(--serif);font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
+.section-heading{font-family:var(--serif);font-weight:400;font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:2.8rem;color:var(--accent2)}
 
 /* ── Hero ── */
 .hero{
@@ -196,7 +208,7 @@ h1.hero-title.h1-hidden{display:none}
 }
 .hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-h1.hero-title{
+.hero-title{
   font-family:var(--serif);
   font-size:clamp(3rem,8.5vw,7rem);
   line-height:1.04;letter-spacing:-.02em;
@@ -204,7 +216,7 @@ h1.hero-title{
   animation:fadeUp .55s .08s ease both;
   color:var(--accent2)
 }
-h1.hero-title em{font-style:italic;color:var(--accent)}
+.hero-title em{font-style:italic;color:var(--accent)}
 .hero-sub{font-size:1.05rem;color:var(--muted);max-width:500px;line-height:1.75;margin-bottom:2.4rem;animation:fadeUp .55s .15s ease both}
 .hero-ctas{display:flex;gap:1rem;flex-wrap:wrap;animation:fadeUp .55s .22s ease both}
 .hero-stats{
@@ -305,7 +317,7 @@ h3.blog-card-title{font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem
 .article-back{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;margin-bottom:2.4rem;transition:color .2s;letter-spacing:.05em}
 .article-back:hover{color:var(--accent)}
 .article-meta{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;font-family:var(--mono);font-size:.7rem;color:var(--muted-light);margin-bottom:1.4rem;letter-spacing:.06em}
-h2.article-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.1;margin-bottom:1.8rem;color:var(--accent2)}
+.article-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.1;margin-bottom:1.8rem;color:var(--accent2)}
 .article-cover{width:100%;max-height:420px;object-fit:cover;border-radius:.7rem;border:1.5px solid var(--border);margin-bottom:2.2rem;display:block;aspect-ratio:720/420}
 .article-body h2{font-family:var(--serif);font-size:1.55rem;margin:2rem 0 1rem;color:var(--text)}
 .article-body h3{font-family:var(--serif);font-size:1.15rem;margin:1.5rem 0 .7rem;color:var(--accent)}
@@ -390,11 +402,20 @@ h3.edu-deg{font-family:var(--serif);font-size:1.08rem;margin-bottom:.35rem;color
 #spa-404-overlay{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:var(--bg)}
 .not-found-wrap{text-align:center;padding:2rem}
 .not-found-code{font-family:var(--serif);font-size:7rem;color:var(--accent);opacity:.1;line-height:1;margin-bottom:.5rem;display:block}
-.not-found-wrap h2{font-family:var(--serif);font-size:2rem;margin-bottom:.7rem;color:var(--accent2)}
+.not-found-wrap h1,.not-found-wrap h2{font-family:var(--serif);font-size:2rem;margin-bottom:.7rem;color:var(--accent2)}
 .not-found-wrap p{color:var(--muted);font-size:.9rem;max-width:400px;margin:0 auto 2rem}
 
 /* ── Offline banner ── */
 #offline-banner{display:none;position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--accent2);color:#fff;font-family:var(--mono);font-size:.72rem;padding:.5rem 1.2rem;border-radius:2rem;z-index:9999;letter-spacing:.05em;box-shadow:var(--shadow-md)}
+
+/* ── Cookie consent ── */
+#consent{position:fixed;left:1rem;right:1rem;bottom:1rem;max-width:560px;margin:0 auto;background:var(--card);border:1.5px solid var(--border);border-radius:.8rem;box-shadow:var(--shadow-md);padding:1.1rem 1.2rem;z-index:9998;font-size:.85rem;color:var(--muted);line-height:1.6}
+#consent[hidden]{display:none}
+#consent p{margin-bottom:.8rem}
+.consent-actions{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:flex-end}
+.consent-actions button{font-family:var(--mono);font-size:.75rem;padding:.55rem 1.1rem;min-height:44px;border-radius:.4rem;cursor:pointer;border:1.5px solid var(--accent);background:var(--card);color:var(--accent)}
+.consent-actions button.primary{background:var(--accent);color:#fff}
+.footer-link{background:none;border:none;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:0}
 
 /* ── Footer ── */
 footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.69rem;color:var(--muted);letter-spacing:.04em;background:var(--surface)}
@@ -602,7 +623,7 @@ footer{border-top:1px solid var(--border);padding:1.8rem 4rem;display:flex;justi
   .nav-links a{display:flex;padding:.85rem 0;font-size:.82rem;min-height:44px;align-items:center}
   .nav-burger{display:flex;min-width:44px;min-height:44px;align-items:center;justify-content:center}
   .container{padding:3.5rem 1.5rem}.hero{padding:3rem 1.5rem}
-  h1.hero-title{font-size:clamp(2.4rem,11vw,4rem)}.hero-stats{gap:1.8rem}
+  .hero-title{font-size:clamp(2.4rem,11vw,4rem)}.hero-stats{gap:1.8rem}
   .skills-grid,.blog-grid{grid-template-columns:1fr}
   .projects-grid{grid-template-columns:1fr}
   .proj-card.feat,.proj-card.wide{grid-column:span 1;grid-template-columns:1fr}.proj-visual{display:none}
@@ -757,7 +778,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <div id="view-skills" class="view" role="region" aria-label="Skills and stack">
     <section class="container">
       <div class="section-eyebrow">What I Work With</div>
-      <p class="section-heading" role="heading" aria-level="2">Skills &amp; Stack</p>
+      <h2 class="section-heading">Skills &amp; Stack</h2>
       <div class="skills-grid" id="skillsGrid">
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
@@ -769,7 +790,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <div id="view-projects" class="view" role="region" aria-label="Projects">
     <section class="container">
       <div class="section-eyebrow">What I've Built</div>
-      <p class="section-heading" role="heading" aria-level="2">Projects</p>
+      <h2 class="section-heading">Projects</h2>
       <div class="projects-grid" id="projectsGrid">
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
         <div class="skel skel-card"></div><div class="skel skel-card"></div>
@@ -781,7 +802,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <div id="view-blog" class="view" role="region" aria-label="Blog posts">
     <section class="container">
       <div class="section-eyebrow">Writing &amp; Notes</div>
-      <p class="section-heading" role="heading" aria-level="2">Blog</p>
+      <h2 class="section-heading">Blog</h2>
       <div class="blog-toolbar" id="blogToolbar" style="display:none" role="search" aria-label="Blog search and filters">
         <div class="blog-search-wrap">
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -817,7 +838,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <div id="view-experience" class="view" role="region" aria-label="Work experience">
     <section class="container">
       <div class="section-eyebrow">Work History</div>
-      <p class="section-heading" role="heading" aria-level="2">Experience</p>
+      <h2 class="section-heading">Experience</h2>
       <div class="timeline" id="expTimeline">
         <div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>
       </div>
@@ -828,7 +849,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <div id="view-about" class="view" role="region" aria-label="About Suman Dangal">
     <section class="container">
       <div class="section-eyebrow">Background</div>
-      <p class="section-heading" role="heading" aria-level="2">About Me</p>
+      <h2 class="section-heading">About Me</h2>
       <div class="about-grid">
         <div class="about-text" id="aboutText">
           <div class="skel skel-line" style="margin-bottom:1rem"></div>
@@ -855,7 +876,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   <div id="view-contact" class="view" role="region" aria-label="Contact">
     <section class="container">
       <div class="section-eyebrow" style="justify-content:center">Let's Connect</div>
-      <p class="section-heading" role="heading" aria-level="2" style="text-align:center">Get In Touch</p>
+      <h2 class="section-heading" style="text-align:center">Get In Touch</h2>
       <p style="color:var(--muted);text-align:center;font-size:.94rem;max-width:560px;margin:0 auto 1.5rem">
         I'm a final-year BCA student at Tribhuvan University, actively looking for Dev or QA
         internship and entry-level roles in Nepal. I usually reply within 24 hours to email
@@ -864,10 +885,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
         in between — reach out through any of the channels below.
       </p>
       <div class="contact-grid">
-        <a href="#" class="contact-tile"><span aria-hidden="true">📧</span> &#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a>
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;" class="contact-tile"><span aria-hidden="true">📧</span> &#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a>
         <a href="https://linkedin.com/in/sumandangal963" target="_blank" rel="noopener" class="contact-tile"><span aria-hidden="true">🔗</span> linkedin.com/in/sumandangal963</a>
         <a href="https://facebook.com/suman.dangal.5" target="_blank" rel="noopener" class="contact-tile"><span aria-hidden="true">🔗</span> facebook.com/suman.dangal.5</a>
-        <a href="#" class="contact-tile"><span aria-hidden="true">📞</span> +977 9803340063</a>
+        <a href="tel:+9779803340063" class="contact-tile"><span aria-hidden="true">📞</span> +977 9803340063</a>
       </div>
       <div id="contactFaq"></div>
     </section>
@@ -877,8 +898,38 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 
 <footer role="contentinfo">
   <span>© 2026 Suman Dangal</span>
-  <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
+  <span>Built with ❤️ · Balkot, Bhaktapur, Nepal · <button type="button" class="footer-link" id="consentOpen">Cookie settings</button></span>
 </footer>
+
+<div id="consent" role="region" aria-label="Cookie consent" hidden>
+  <p>I use Google Analytics cookies to see which pages are read. No ads, nothing sold. Is that okay?</p>
+  <div class="consent-actions">
+    <button type="button" id="consentDeny">Decline</button>
+    <button type="button" id="consentAccept" class="primary">Accept analytics</button>
+  </div>
+</div>
+
+<script>
+// ── Cookie consent (Consent Mode v2) ─────────────────────────────────────
+(() => {
+  const KEY = 'sd_consent';
+  const box = document.getElementById('consent');
+  const read  = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
+  const write = v  => { try { localStorage.setItem(KEY, v); } catch (e) {} };
+  function choose(v) {
+    write(v);
+    gtag('consent', 'update', { analytics_storage: v });
+    box.hidden = true;
+  }
+  document.getElementById('consentAccept').addEventListener('click', () => choose('granted'));
+  document.getElementById('consentDeny').addEventListener('click', () => choose('denied'));
+  document.getElementById('consentOpen').addEventListener('click', () => {
+    box.hidden = false;
+    document.getElementById('consentAccept').focus();
+  });
+  if (!read()) box.hidden = false;
+})();
+</script>
 
 <script>
 (() => {
@@ -911,7 +962,6 @@ const qsa = s  => document.querySelectorAll(s);
 const bar     = $('nprogress');
 const burger  = $('burger');
 const navList = $('navLinks');
-const h1El    = $('site-h1');
 
 // ── Escape HTML ────────────────────────────────────────────────────────────
 function esc(s) {
@@ -1020,6 +1070,12 @@ async function fetchSheet(endpoint, key, onRevalidate) {
   return _doFetch(endpoint, key);
 }
 
+// ── URL allow-list: blocks javascript:, data: etc. from Sheet content ─────
+function safeUrl(u) {
+  u = String(u ?? '').trim();
+  return /^(https?:|mailto:|tel:|\/(?!\/)|#)/i.test(u) ? u : '';
+}
+
 // ── HTML sanitiser (for table blocks from sheets) ──────────────────────────
 const SAFE_TAGS = new Set(['table','thead','tbody','tfoot','tr','th','td','strong','em','b','i','br','p','ul','ol','li','a','span']);
 function sanitizeHTML(raw) {
@@ -1035,6 +1091,7 @@ function sanitizeHTML(raw) {
                    (['th','td'].includes(tag) && ['colspan','rowspan','scope'].includes(a.name));
         if (!ok) kid.removeAttribute(a.name);
       });
+      if (tag === 'a' && !safeUrl(kid.getAttribute('href'))) kid.removeAttribute('href');
       if (tag === 'a') { kid.setAttribute('target','_blank'); kid.setAttribute('rel','noopener noreferrer'); }
       strip(kid);
     });
@@ -1187,6 +1244,7 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
   robotsMeta.content = title === '404 — Not Found' ? 'noindex, nofollow' : 'index, follow';
   // h1 visibility
   const isHome = !path || path === '/';
+  const h1El = $('site-h1');
   h1El.classList.toggle('h1-hidden', !isHome);
   h1El.style.display = isHome ? '' : 'none';
   // BlogPosting schema
@@ -1204,8 +1262,8 @@ function updateSEO({ title, desc, path, ogImage, articleMeta } = {}) {
       headline:         articleMeta.title,
       description:      articleMeta.excerpt,
       datePublished:    articleMeta.date,
-      dateModified:     articleMeta.date,
-      image:            articleMeta.imageUrl || `${CFG.siteUrl}/og.png`,
+      dateModified:     articleMeta.modified || articleMeta.date,
+      image:            articleMeta.imageUrl || `${CFG.siteUrl}/android-chrome-512x512.png`,
       url,
       inLanguage:       'en',
       keywords:         (articleMeta.tags || []).join(', '),
@@ -1532,6 +1590,38 @@ const FB = {
   about: `<p>I'm a <strong>final-year BCA student</strong> at Tribhuvan University, Nepal, passionate about building reliable software and catching bugs before users do.</p><p>I have hands-on experience across the full stack — from <strong>Django REST APIs</strong> and PHP backends to Android mobile apps.</p><p>I bring a <strong>testing mindset</strong> to everything I build — writing edge-case test suites, validating data across all operations, and ensuring frontend and backend always agree.</p><p>Looking for a <strong>Dev or QA Internship</strong> where I can grow fast, ship real features, and work with a team that cares about quality.</p>`,
 };
 
+// ── One H1 per page ─────────────────────────────────────────────────────
+// All views live in one document, so the active view's heading becomes <h1>
+// and every other candidate heading becomes <h2>. Styles are class-based.
+function retag(el, tag) {
+  if (el.tagName.toLowerCase() === tag) return;
+  const n = document.createElement(tag);
+  for (const a of el.attributes) n.setAttribute(a.name, a.value);
+  n.innerHTML = el.innerHTML;
+  el.replaceWith(n);
+}
+function promoteHeading(view) {
+  const main = qs('#spa-404-overlay h1, #spa-404-overlay h2') ||
+               view.querySelector('.article-title, .not-found-wrap h1, .not-found-wrap h2, .section-heading, #site-h1');
+  qsa('#app .section-heading, #site-h1, .article-title').forEach(h => { if (h !== main) retag(h, 'h2'); });
+  if (main) retag(main, 'h1');
+}
+
+// ── Analytics: one page_view per rendered route ───────────────────────────
+// Called after the view has rendered and document.title is final.
+let lastTracked = null;
+function trackPageView(routePath) {
+  routePath = routePath || (location.pathname + location.search);
+  if (routePath === lastTracked || typeof gtag !== 'function') return;
+  lastTracked = routePath;
+  gtag('event', 'page_view', {
+    page_title:    document.title,
+    page_location: location.origin + routePath,
+    page_path:     routePath,
+  });
+}
+window.trackPageView = trackPageView;
+
 // ── Router ─────────────────────────────────────────────────────────────────
 const KNOWN = new Set(['', 'skills', 'projects', 'blog', 'experience', 'about', 'contact']);
 const VIEWS = {
@@ -1625,7 +1715,7 @@ async function navigate(rawPath, push = true) {
       ov.innerHTML =
         `<div class="not-found-wrap">` +
           `<span class="not-found-code" aria-hidden="true">404</span>` +
-          `<h2>Page not found</h2>` +
+          `<h1>Page not found</h1>` +
           `<p>The path <code style="font-family:var(--mono);color:var(--accent)">${esc(path)}</code> doesn't exist.</p>` +
           `<a href="/" class="btn btn-solid" data-link>← Back to Home</a>` +
         `</div>`;
@@ -1634,6 +1724,9 @@ async function navigate(rawPath, push = true) {
     VIEWS.home.classList.add('active');
     updateSEO({ title: '404 — Not Found', path });
   }
+  const active = Object.values(VIEWS).find(v => v.classList.contains('active'));
+  if (active) promoteHeading(active);
+  trackPageView(full);
   pEnd();
 }
 
@@ -1685,8 +1778,9 @@ async function renderProjects() {
     art.className = 'proj-card reveal' + (r.featured === 'true' ? ' feat' : '') + (r.wide === 'true' ? ' wide' : '');
     const buls  = (r.bullets || '').split('|').filter(Boolean).map(b => `<li>${esc(b.trim())}</li>`).join('');
     const stack = (r.stack || '').split(',').filter(Boolean).map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
-    const linkHTML = (r.link && r.link.trim())
-      ? `<div class="proj-links"><a href="${esc(r.link.trim())}" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div>` : '';
+    const link = safeUrl(r.link);
+    const linkHTML = link
+      ? `<div class="proj-links"><a href="${esc(link)}" class="btn btn-solid" target="_blank" rel="noopener noreferrer">View Project ↗</a></div>` : '';
     const vis = r.featured === 'true' ? `<div class="proj-visual" aria-hidden="true">🛒</div>` : '';
     art.innerHTML =
       `<div><div class="proj-num">${String(i + 1).padStart(2, '0')}${r.featured === 'true' ? ' / Featured' : ''}</div>` +
@@ -1701,7 +1795,7 @@ async function renderProjects() {
 
 async function renderBlogList() {
   const g = $('blogGrid');
-  g.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
+  if (!g.querySelector('.blog-card')) g.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
   blogRows = await fetchSheet(CFG.api.blog, 'blog', fresh => {
     blogRows = fresh;
     if ($('view-blog').classList.contains('active')) { initBlogToolbar(fresh); renderFilteredBlog(); }
@@ -1717,7 +1811,7 @@ async function renderBlogList() {
 
 async function renderArticle(slug) {
   const wrap = $('articleWrap');
-  wrap.innerHTML =
+  if (wrap.dataset.ssr !== slug) wrap.innerHTML =
     `<div class="skel skel-line m" style="margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-line" style="height:36px;margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-card" style="height:320px;margin-bottom:1.5rem"></div>` +
@@ -1735,7 +1829,7 @@ async function renderArticle(slug) {
     wrap.innerHTML =
       `<button class="article-back" id="artBack">← Back to Blog</button>` +
       `<div class="not-found-wrap"><span class="not-found-code" aria-hidden="true">404</span>` +
-      `<h2>Post not found</h2>` +
+      `<h1>Post not found</h1>` +
       `<p>No post with slug <code style="font-family:var(--mono);color:var(--accent)">${esc(slug)}</code> exists.</p>` +
       `<a href="/blog" class="btn btn-solid" data-link>← Browse all posts</a></div>`;
     $('artBack').addEventListener('click', () => navigate('/blog'));
@@ -1760,7 +1854,7 @@ async function renderArticle(slug) {
     desc:        post.Excerpt,
     path:        `/blog/${post.Slug}`,
     ogImage:     coverUrl || '',
-    articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, imageUrl: coverUrl, tags: tagList },
+    articleMeta: { title: post.Title, excerpt: post.Excerpt, date: post.Date, modified: post.Last_Modified, imageUrl: coverUrl, tags: tagList },
   });
 
   const faqHTML = await buildFAQ(slug, faqData);
@@ -1778,10 +1872,11 @@ async function renderArticle(slug) {
     `<button class="article-back" id="artBack">← Back to Blog</button>` +
     `<div class="article-meta"><span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
     `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time></div>` +
-    `<h2 class="article-title">${esc(post.Title || '')}</h2>` +
+    `<h1 class="article-title">${esc(post.Title || '')}</h1>` +
     tagsHTML + cover +
     `<div class="article-body">${md(post.Content || '', imgMap)}${tableHTML}</div>` +
     authorLine + faqHTML;
+  delete wrap.dataset.ssr;
 
   $('artBack').addEventListener('click', () => navigate('/blog'));
 }
