@@ -1800,6 +1800,7 @@ async function renderBlogList() {
     blogRows = fresh;
     if ($('view-blog').classList.contains('active')) { initBlogToolbar(fresh); renderFilteredBlog(); }
   });
+  if (!blogRows?.length && g.querySelector('.blog-card')) return; // keep server-rendered cards
   if (!blogRows?.length) {
     $('blogToolbar').style.display = 'none';
     g.innerHTML = '<p class="empty-state">No posts yet — check back soon.</p>';
@@ -1825,6 +1826,12 @@ async function renderArticle(slug) {
   if (!blogRows) blogRows = blogData;
   const post = blogRows?.find(p => p.Slug === slug);
 
+  if (!post && wrap.dataset.ssr === slug) {
+    // Data unavailable (blocked, offline, Sheets down): keep the server-rendered post
+    delete wrap.dataset.ssr;
+    $('artBack').addEventListener('click', () => navigate('/blog'));
+    return;
+  }
   if (!post) {
     wrap.innerHTML =
       `<button class="article-back" id="artBack">← Back to Blog</button>` +

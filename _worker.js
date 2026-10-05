@@ -139,10 +139,12 @@ async function route(request, env, ctx, url) {
     return new Response('This endpoint is no longer available. Use /api/data?sheet=<name>', { status: 410 });
   }
   if (path === '/sitemap.xml') return generateSitemap(env, ctx);
+  // Don't Disallow /api/ — Googlebot renders the SPA, which loads posts from
+  // /api/data; blocking it made posts render as "not found" (soft 404).
   if (path === '/robots.txt') {
     return new Response(
-      `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,
-      { headers: { 'Content-Type': 'text/plain;charset=UTF-8', 'Cache-Control': 'public, max-age=86400' } }
+      `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,
+      { headers: { 'Content-Type': 'text/plain;charset=UTF-8', 'Cache-Control': 'public, max-age=3600' } }
     );
   }
   if (path === '/llms.txt') {
@@ -301,6 +303,7 @@ async function handleDataEndpoint(url, env, ctx) {
     headers: {
       'Content-Type':  'text/csv;charset=UTF-8',
       'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600',
+      'X-Robots-Tag':  'noindex', // crawlable for rendering, never indexed itself
     },
   });
 }
