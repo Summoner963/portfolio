@@ -1,0 +1,10 @@
+{
+  "name": "suman-dangal-portfolio",
+  "private": true,
+  "type": "module",
+  "description": "Portfolio + blog on Cloudflare Pages. No runtime or dev dependencies.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\"",
+    "mock-sheets": "node tests/mock-sheets.mjs 8899"
+  }
+}
