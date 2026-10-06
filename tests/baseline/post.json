@@ -1,0 +1,159 @@
+{
+  "path": "/blog/cloudflare-hosting-nepal",
+  "requestHeaders": {},
+  "status": 200,
+  "headers": {
+    "content-type": "text/html;charset=UTF-8",
+    "cache-control": "public, max-age=300, stale-while-revalidate=86400",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "strict-transport-security": "max-age=31536000",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "cross-origin-opener-policy": "same-origin-allow-popups"
+  },
+  "lang": "en",
+  "title": "Cloudflare Hosting in Nepal | Suman Dangal",
+  "canonical": "https://suman-dangal.com.np/blog/cloudflare-hosting-nepal",
+  "themeColor": "#1b4332",
+  "manifest": true,
+  "meta": {
+    "description": "How to host a site on Cloudflare Pages from Nepal.",
+    "robots": "index, follow",
+    "theme-color": "#1b4332",
+    "og:type": "article",
+    "og:site_name": "Suman Dangal",
+    "og:title": "Cloudflare Hosting in Nepal | Suman Dangal",
+    "og:description": "How to host a site on Cloudflare Pages from Nepal.",
+    "og:url": "https://suman-dangal.com.np/blog/cloudflare-hosting-nepal",
+    "og:image": "https://lh3.googleusercontent.com/d/fixture-cover-1",
+    "twitter:card": "summary_large_image",
+    "twitter:title": "Cloudflare Hosting in Nepal | Suman Dangal",
+    "twitter:description": "How to host a site on Cloudflare Pages from Nepal.",
+    "twitter:image": "https://lh3.googleusercontent.com/d/fixture-cover-1",
+    "article:published_time": "2026-04-17",
+    "article:modified_time": "2026-05-02",
+    "article:author": "Suman Dangal",
+    "article:tag": [
+      "cloudflare",
+      "hosting",
+      "nepal"
+    ]
+  },
+  "jsonLdTypes": [
+    "Organization",
+    "WebSite",
+    "BlogPosting",
+    "BreadcrumbList",
+    "FAQPage"
+  ],
+  "jsonLd": [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Suman Dangal",
+      "url": "https://suman-dangal.com.np/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://suman-dangal.com.np/android-chrome-512x512.png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Suman Dangal",
+      "url": "https://suman-dangal.com.np/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://suman-dangal.com.np/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Cloudflare Hosting in Nepal",
+      "description": "How to host a site on Cloudflare Pages from Nepal.",
+      "url": "https://suman-dangal.com.np/blog/cloudflare-hosting-nepal",
+      "mainEntityOfPage": "https://suman-dangal.com.np/blog/cloudflare-hosting-nepal",
+      "image": "https://lh3.googleusercontent.com/d/fixture-cover-1",
+      "inLanguage": "en",
+      "author": {
+        "@type": "Person",
+        "name": "Suman Dangal",
+        "url": "https://suman-dangal.com.np/",
+        "sameAs": [
+          "https://linkedin.com/in/sumandangal963"
+        ]
+      },
+      "publisher": {
+        "@type": "Person",
+        "name": "Suman Dangal",
+        "url": "https://suman-dangal.com.np/",
+        "sameAs": [
+          "https://linkedin.com/in/sumandangal963"
+        ]
+      },
+      "datePublished": "2026-04-17",
+      "dateModified": "2026-05-02",
+      "keywords": "cloudflare, hosting, nepal"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://suman-dangal.com.np/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://suman-dangal.com.np/blog"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Cloudflare Hosting in Nepal",
+          "item": "https://suman-dangal.com.np/blog/cloudflare-hosting-nepal"
+        }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Cloudflare Pages free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — the free plan covers personal sites."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it support \"custom\" domains?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes & it is easy."
+          }
+        }
+      ]
+    }
+  ],
+  "h1": [
+    "Cloudflare Hosting in Nepal"
+  ],
+  "activeView": "article",
+  "hasGtag": true,
+  "usesDocumentWrite": false,
+  "bodyExcerpt": "← Back to Blog Guides 2026-04-17 Cloudflare Hosting in Nepal cloudflare hosting nepal Why Cloudflare Free hosting with a custom domain. DNS settings page Step one Step two Written by Suman Dangal Frequently Asked Questions Is Cloudflare Pages free? Yes — the free plan covers personal sites. Does it ",
+  "scriptInjection": false
+}

@@ -1,0 +1,75 @@
+{
+  "path": "/back-lab",
+  "requestHeaders": {},
+  "status": 404,
+  "headers": {
+    "content-type": "text/html;charset=UTF-8",
+    "cache-control": "no-store",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "strict-transport-security": "max-age=31536000",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "cross-origin-opener-policy": "same-origin-allow-popups"
+  },
+  "lang": "en",
+  "title": "Page Not Found | Suman Dangal",
+  "canonical": "https://suman-dangal.com.np/back-lab",
+  "themeColor": "#1b4332",
+  "manifest": true,
+  "meta": {
+    "description": "This page does not exist on suman-dangal.com.np.",
+    "robots": "noindex, nofollow",
+    "theme-color": "#1b4332",
+    "og:type": "website",
+    "og:site_name": "Suman Dangal",
+    "og:title": "Page Not Found | Suman Dangal",
+    "og:description": "This page does not exist on suman-dangal.com.np.",
+    "og:url": "https://suman-dangal.com.np/back-lab",
+    "og:image": "https://suman-dangal.com.np/android-chrome-512x512.png",
+    "og:image:width": "512",
+    "og:image:height": "512",
+    "twitter:card": "summary",
+    "twitter:title": "Page Not Found | Suman Dangal",
+    "twitter:description": "This page does not exist on suman-dangal.com.np.",
+    "twitter:image": "https://suman-dangal.com.np/android-chrome-512x512.png"
+  },
+  "jsonLdTypes": [
+    "Organization",
+    "WebSite"
+  ],
+  "jsonLd": [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Suman Dangal",
+      "url": "https://suman-dangal.com.np/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://suman-dangal.com.np/android-chrome-512x512.png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Suman Dangal",
+      "url": "https://suman-dangal.com.np/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://suman-dangal.com.np/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ],
+  "h1": [
+    "Dev & QA Engineer"
+  ],
+  "activeView": null,
+  "hasGtag": true,
+  "usesDocumentWrite": false,
+  "bodyExcerpt": "",
+  "scriptInjection": false
+}

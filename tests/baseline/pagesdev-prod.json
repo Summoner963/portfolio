@@ -1,0 +1,11 @@
+{
+  "path": "/blog",
+  "requestHeaders": {
+    "Host": "portfolio-1e6.pages.dev"
+  },
+  "status": 301,
+  "headers": {
+    "location": "https://suman-dangal.com.np/blog"
+  },
+  "body": ""
+}

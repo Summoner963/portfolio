@@ -1,0 +1,17 @@
+{
+  "path": "/sitemap.xml",
+  "requestHeaders": {},
+  "status": 200,
+  "headers": {
+    "content-type": "application/xml;charset=UTF-8",
+    "cache-control": "public, max-age=3600",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "strict-transport-security": "max-age=31536000",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "cross-origin-opener-policy": "same-origin-allow-popups"
+  },
+  "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url>\n    <loc>https://suman-dangal.com.np/</loc>\n    <changefreq>monthly</changefreq>\n    <priority>1.0</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/skills</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/projects</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog</loc>\n    <lastmod>2026-05-02</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/experience</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/about</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/contact</loc>\n    <changefreq>yearly</changefreq>\n    <priority>0.5</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog/cloudflare-hosting-nepal</loc>\n    <lastmod>2026-05-02</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog/qa-edge-cases</loc>\n    <lastmod>2026-03-01</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog/get-free-domain-in-nepal</loc>\n    <lastmod>2026-02-12</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog/post-five</loc>\n    <lastmod>2026-01-05</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog/post-six</loc>\n    <lastmod>2025-12-05</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog/post-seven</loc>\n    <lastmod>2025-11-05</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n  <url>\n    <loc>https://suman-dangal.com.np/blog/post-eight</loc>\n    <lastmod>2025-10-05</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n</urlset>"
+}

@@ -1,0 +1,119 @@
+{
+  "path": "/blog?page=2",
+  "requestHeaders": {},
+  "status": 200,
+  "headers": {
+    "content-type": "text/html;charset=UTF-8",
+    "cache-control": "public, max-age=300, stale-while-revalidate=86400",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "strict-transport-security": "max-age=31536000",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "cross-origin-opener-policy": "same-origin-allow-popups"
+  },
+  "lang": "en",
+  "title": "Blog — Page 2 | Suman Dangal",
+  "canonical": "https://suman-dangal.com.np/blog?page=2",
+  "themeColor": "#1b4332",
+  "manifest": true,
+  "meta": {
+    "description": "Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.",
+    "robots": "index, follow",
+    "theme-color": "#1b4332",
+    "og:type": "website",
+    "og:site_name": "Suman Dangal",
+    "og:title": "Blog — Page 2 | Suman Dangal",
+    "og:description": "Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.",
+    "og:url": "https://suman-dangal.com.np/blog?page=2",
+    "og:image": "https://suman-dangal.com.np/android-chrome-512x512.png",
+    "og:image:width": "512",
+    "og:image:height": "512",
+    "twitter:card": "summary",
+    "twitter:title": "Blog — Page 2 | Suman Dangal",
+    "twitter:description": "Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student in Nepal.",
+    "twitter:image": "https://suman-dangal.com.np/android-chrome-512x512.png"
+  },
+  "jsonLdTypes": [
+    "Organization",
+    "WebSite",
+    "Blog"
+  ],
+  "jsonLd": [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Suman Dangal",
+      "url": "https://suman-dangal.com.np/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://suman-dangal.com.np/android-chrome-512x512.png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Suman Dangal",
+      "url": "https://suman-dangal.com.np/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://suman-dangal.com.np/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      "name": "Suman Dangal Blog",
+      "url": "https://suman-dangal.com.np/blog",
+      "blogPost": [
+        {
+          "@type": "BlogPosting",
+          "headline": "Cloudflare Hosting in Nepal",
+          "url": "https://suman-dangal.com.np/blog/cloudflare-hosting-nepal"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "Testing & QA: \"Edge\" cases <b>bold</b>",
+          "url": "https://suman-dangal.com.np/blog/qa-edge-cases"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "Get a Free Domain in Nepal",
+          "url": "https://suman-dangal.com.np/blog/get-free-domain-in-nepal"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "Post Five",
+          "url": "https://suman-dangal.com.np/blog/post-five"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "Post Six",
+          "url": "https://suman-dangal.com.np/blog/post-six"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "Post Seven",
+          "url": "https://suman-dangal.com.np/blog/post-seven"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "Post Eight",
+          "url": "https://suman-dangal.com.np/blog/post-eight"
+        }
+      ]
+    }
+  ],
+  "h1": [
+    "Blog"
+  ],
+  "activeView": "blog",
+  "hasGtag": true,
+  "usesDocumentWrite": false,
+  "bodyExcerpt": "",
+  "scriptInjection": false
+}

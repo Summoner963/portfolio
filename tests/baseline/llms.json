@@ -1,0 +1,17 @@
+{
+  "path": "/llms.txt",
+  "requestHeaders": {},
+  "status": 200,
+  "headers": {
+    "content-type": "text/plain;charset=UTF-8",
+    "cache-control": "public, max-age=86400",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "strict-transport-security": "max-age=31536000",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "cross-origin-opener-policy": "same-origin-allow-popups"
+  },
+  "body": "# Suman Dangal — Dev & QA Engineer\n# https://suman-dangal.com.np/\n\n> Final-year BCA student building and testing full-stack web and mobile applications.\n> Open to Dev and QA internship opportunities in Nepal.\n\n## About\n\nSuman Dangal is a final-year BCA student at Tribhuvan University, Bhaktapur, Nepal.\nHe specializes in full-stack development (Django, PHP, Java Android) and QA/manual testing.\n\n## Pages\n\n- [Home](https://suman-dangal.com.np/)\n- [Skills](https://suman-dangal.com.np/skills/)\n- [Projects](https://suman-dangal.com.np/projects/)\n- [Blog](https://suman-dangal.com.np/blog/)\n- [Experience](https://suman-dangal.com.np/experience/)\n- [About](https://suman-dangal.com.np/about/)\n- [Contact](https://suman-dangal.com.np/contact/)\n\n## Contact\n\n- Email: sumandangal888@gmail.com\n- LinkedIn: https://linkedin.com/in/sumandangal963\n"
+}
