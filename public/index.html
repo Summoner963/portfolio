@@ -44,6 +44,14 @@
 
   <!-- Base styles (only blocking stylesheet — all section CSS loaded lazily) -->
   <link rel="stylesheet" href="/css/base.css" />
+
+  <!-- Fetch the core module graph in parallel instead of one import at a time -->
+  <link rel="modulepreload" href="/js/main.js" />
+  <link rel="modulepreload" href="/js/router.js" />
+  <link rel="modulepreload" href="/js/api.js" />
+  <link rel="modulepreload" href="/js/seo.js" />
+  <link rel="modulepreload" href="/js/utils.js" />
+  <link rel="modulepreload" href="/js/shared/render.js" />
 </head>
 <body>
 
