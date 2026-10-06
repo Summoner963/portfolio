@@ -45,6 +45,10 @@ test('Access JWT rejected: forged signature, alg tampering, unknown kid, garbage
   assert.equal(await verifyAccessJwt(`${t[0]}.${b64url(JSON.stringify({ ...good, email: 'x@y' }))}.${t[2]}`, opts), null);
   for (const bad of ['', 'a.b', 'a.b.c', null]) assert.equal(await verifyAccessJwt(bad, opts), null);
 });
+test('ACCESS_AUD may list several apps (custom domain + previews)', async () => {
+  assert.ok(await verifyAccessJwt(await sign(good), { ...opts, aud: 'preview-aud, aud-tag-123' }));
+  assert.equal(await verifyAccessJwt(await sign(good), { ...opts, aud: 'preview-aud,other' }), null);
+});
 test('missing Access config fails closed', async () => {
   assert.equal(await verifyAccessJwt(await sign(good), { ...opts, aud: '' }), null);
   assert.equal(await verifyAccessJwt(await sign(good), { ...opts, domain: '' }), null);

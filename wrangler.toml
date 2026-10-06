@@ -37,7 +37,8 @@ FEATURED_GID = "980532084"
 # Cloudflare Access (admin /back-lab and /api/cms/*). Not secrets.
 # Zero Trust → Access → Applications → your app:
 #   ACCESS_TEAM_DOMAIN  e.g. "https://<team>.cloudflareaccess.com"
-#   ACCESS_AUD          "Application Audience (AUD) Tag"
+#   ACCESS_AUD          "Application Audience (AUD) Tag" — comma-separate several
+#                       (the custom-domain app + the Pages preview-protection app)
 # Left empty ⇒ the admin is locked (fails closed) until you fill them in.
 ACCESS_TEAM_DOMAIN = ""
 ACCESS_AUD         = ""

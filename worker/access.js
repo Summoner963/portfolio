@@ -10,7 +10,8 @@
 //
 //  Config (Cloudflare Pages → Settings → Variables):
 //    ACCESS_TEAM_DOMAIN  https://<team>.cloudflareaccess.com   (plain var)
-//    ACCESS_AUD          Application Audience (AUD) tag        (plain var)
+//    ACCESS_AUD          Application Audience (AUD) tag(s), comma-separated
+//                        (custom-domain app, and the Pages preview app)
 //  Missing config ⇒ every admin request is refused (fail closed).
 //
 //  Docs: developers.cloudflare.com/cloudflare-one/identity/authorization-cookie/validating-json/
@@ -43,10 +44,11 @@ export function teamOrigin(v) {
 /**
  * Verify an Access JWT. Returns the claims (incl. email) or null.
  * @param {string} token
- * @param {{ domain: string, aud: string, now?: number, keys?: object[] }} opts
+ * @param {{ domain: string, aud: string|string[], now?: number, keys?: object[] }} opts
  */
 export async function verifyAccessJwt(token, { domain, aud, now = Date.now() / 1000, keys } = {}) {
-  if (!token || !domain || !aud) return null;
+  const allowed = (Array.isArray(aud) ? aud : String(aud || '').split(',')).map(a => a.trim()).filter(Boolean);
+  if (!token || !domain || !allowed.length) return null;
   const parts = token.split('.');
   if (parts.length !== 3) return null;
   let header, claims;
@@ -64,7 +66,7 @@ export async function verifyAccessJwt(token, { domain, aud, now = Date.now() / 1
   if (!ok) return null;
 
   const auds = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-  if (claims.iss !== domain || !auds.includes(aud)) return null;
+  if (claims.iss !== domain || !auds.some(a => allowed.includes(a))) return null;
   if (typeof claims.exp !== 'number' || claims.exp + LEEWAY_S < now) return null;
   if (typeof claims.nbf === 'number' && claims.nbf - LEEWAY_S > now) return null;
   return claims;
@@ -79,7 +81,7 @@ export async function adminIdentity(request, env) {
   }
   try {
     return await verifyAccessJwt(request.headers.get('Cf-Access-Jwt-Assertion'), {
-      domain: teamOrigin(env.ACCESS_TEAM_DOMAIN), aud: String(env.ACCESS_AUD || '').trim(),
+      domain: teamOrigin(env.ACCESS_TEAM_DOMAIN), aud: String(env.ACCESS_AUD || ''),
     });
   } catch (e) {
     console.warn('[access] verification error:', e.message);
