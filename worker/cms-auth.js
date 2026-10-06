@@ -2,7 +2,6 @@
 // Handles /api/cms/auth (login) and token verification.
 // All credentials come from Cloudflare secrets — never from wrangler.toml.
 
-import { escHtml } from './utils.js';
 
 const TOKEN_EXPIRY_MS = 8 * 60 * 60 * 1000; // 8 hours
 

@@ -1,426 +1,154 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  worker/index.js — Thin fetch() router
+//  worker/index.js — Cloudflare Pages advanced-mode entry (via public/_worker.js)
 //
-//  Responsibilities:
-//    • Rate limiting (in-memory, 120 req/min per IP)
-//    • Security headers on every response
-//    • Route dispatch — delegates 100% to imported handlers
-//    • Asset pass-through
-//    • /api/data?sheet=<name>  — proxies named sheets (GIDs server-side only)
-//    • /sitemap.xml, /robots.txt, /llms.txt
-//    • /blog/:slug  — SSR prerender
-//    • Known SPA routes — meta-tag injection
-//    • Everything else — bare SPA shell
-//
-//  Open/Closed:
-//    Adding a new section = one new import + one new route block here.
-//    Zero changes to any other file.
-//
-//  Security (non-negotiable):
-//    • Sheet IDs/GIDs never reach the browser — only /api/data?sheet=<name>
-//    • All sheet names whitelisted in worker/sheets.js
-//    • CORS: Access-Control-Allow-Origin: same-origin on /api/data
-//    • CSP: connect-src 'self' only
-//    • Rate limit: 120 req/min per IP (in-memory, resets on Worker cold start)
+//  Order of decisions for every request:
+//    1. Host policy   — pages.dev / www → 301 custom domain; previews noindex
+//    2. Method check  — GET/HEAD (+ POST on CMS endpoints only)
+//    3. Rate limit    — per-isolate, crawlers exempt
+//    4. API + files   — /api/data, CMS API, sitemap, robots, llms
+//    5. Static assets — anything with a file extension → env.ASSETS
+//    6. Canonical URL — trailing slash, //, /index.html, legacy slugs → 301
+//    7. Pages         — index.html + HTMLRewriter (worker/shell.js)
+//  Security headers are added to every response in finalize().
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { getSheetGids }        from './sheets.js';
-import {
-  escHtml, parseCSV, fixImgUrl, formatDate,
-  SECURITY_HEADERS, applySecurityHeaders,
-}                              from './utils.js';
-import { handleCMSAuth }       from './cms-auth.js';
+import { ROUTES } from '../public/js/shared/render.js';
+import { finalize, hostPolicy, canonicalPath, redirect, isRateLimited, isSearchCrawler } from './http.js';
+import { getSheetGids, getSheetCSV, getRows, toCSV } from './sheets.js';
+import { rewriteShell } from './shell.js';
+import { homePage, sectionPage, blogListPage, blogPostPage, adminPage, notFoundPage } from './pages.js';
+import { robotsTxt, sitemapXml, llmsTxt } from './seo-files.js';
+import { handleCMSAuth } from './cms-auth.js';
 import { handleCMSRead, handleCMSWrite } from './cms-proxy.js';
-import { prerenderBlogPost }   from './ssr/blog.js';
-import {
-  SITE_URL,
-  ROUTE_META,
-  buildSSRHead,
-  preNavHTML,
-  preFooterHTML,
-  hydrationScript,
-  serveIndex,
-  serveIndexWithMeta,
-  serveNotFound,
-  generateSitemap,
-  htmlCacheHeaders,
-}                              from './ssr/meta.js';
 
-// ─────────────────────────────────────────────────────────────────────────
-//  In-memory caches (per Worker instance lifetime)
-// ─────────────────────────────────────────────────────────────────────────
-
-/** @type {Record<string, {data: string, exp: number}>} */
-const _memCache = {};
-
-const CACHE_MS = 10 * 60 * 1000; // 10 minutes
-
-// ── Legacy blog slug redirects ───────────────────────────────────────────
-const REDIRECTS = {
-  '/blog/free-domain-nepal-guide':    '/blog/get-free-domain-in-nepal',
-  '/blog/free-domain-in-nepal-guide': '/blog/get-free-domain-in-nepal',
-};
-
-function memGet(key) {
-  const it = _memCache[key];
-  if (!it) return null;
-  if (Date.now() > it.exp) { delete _memCache[key]; return null; }
-  return it.data;
-}
-
-function memSet(key, data) {
-  _memCache[key] = { data, exp: Date.now() + CACHE_MS };
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Rate limiting (in-memory, per IP, 120 req/min)
-// ─────────────────────────────────────────────────────────────────────────
-
-const RL_WINDOW_MS = 60_000;
-const RL_MAX       = 300;
-
-/** @type {Record<string, {count: number, windowStart: number}>} */
-const _rl = {};
-
-function isRateLimited(ip) {
-  const now   = Date.now();
-  const entry = _rl[ip];
-  if (!entry || now - entry.windowStart > RL_WINDOW_MS) {
-    _rl[ip] = { count: 1, windowStart: now };
-    return false;
-  }
-  entry.count++;
-  return entry.count > RL_MAX;
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Dedicated rate limit for CMS login — stricter than the general API limit,
-//  since brute-force protection needs a much tighter window than normal traffic.
-// ─────────────────────────────────────────────────────────────────────────
-
-const CMS_AUTH_RL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const CMS_AUTH_RL_MAX       = 8;              // max login attempts per IP per window
-
-/** @type {Record<string, {count: number, windowStart: number}>} */
-const _cmsAuthRl = {};
-
-function isCmsAuthRateLimited(ip) {
-  const now   = Date.now();
-  const entry = _cmsAuthRl[ip];
-  if (!entry || now - entry.windowStart > CMS_AUTH_RL_WINDOW_MS) {
-    _cmsAuthRl[ip] = { count: 1, windowStart: now };
-    return false;
-  }
-  entry.count++;
-  return entry.count > CMS_AUTH_RL_MAX;
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Internal sheet fetcher
-// ─────────────────────────────────────────────────────────────────────────
-
-async function fetchSheetData(sheetName, env) {
-  const cacheKey = `sheet_${sheetName}`;
-  const cached   = memGet(cacheKey);
-  if (cached) return parseCSV(cached);
-
-  const gids = getSheetGids(env);
-  const gid  = gids[sheetName];
-  if (!gid) return [];
-
-  const sheetBase = env.SHEET_BASE || 'https://docs.google.com/spreadsheets/d/e';
-  const sheetId   = env.SHEET_ID   || '';
-  if (!sheetId) {
-    console.warn('[fetchSheetData] SHEET_ID env var not set');
-    return [];
-  }
-
-  const sheetUrl = `${sheetBase}/${sheetId}/pub?gid=${gid}&single=true&output=csv`;
-  try {
-    const resp = await fetch(sheetUrl, {
-      redirect: 'follow',
-      headers: { 'User-Agent': 'Suman-Dangal-Worker/2.0' },
-    });
-    if (!resp.ok) throw new Error(`Google Sheets HTTP ${resp.status}`);
-    const text = await resp.text();
-    memSet(cacheKey, text);
-    return parseCSV(text);
-  } catch (e) {
-    console.warn('[fetchSheetData]', sheetName, e.message);
-    return [];
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  /api/data?sheet=<name>  handler
-// ─────────────────────────────────────────────────────────────────────────
-
-async function handleDataEndpoint(url, env) {
-  const sheetName = (url.searchParams.get('sheet') || '').toLowerCase().trim();
-  const gids      = getSheetGids(env);
-
-  if (!gids[sheetName]) {
-    return new Response('Not found', { status: 404 });
-  }
-
-  const cacheKey = `sheet_${sheetName}`;
-  const cached   = memGet(cacheKey);
-  if (cached) {
-    return new Response(cached, {
-      status: 200,
-      headers: {
-        'Content-Type':                'text/csv;charset=UTF-8',
-        'Cache-Control':               'public, max-age=600, stale-while-revalidate=3600',
-        'Access-Control-Allow-Origin': 'same-origin',
-        'X-Served-From':               'worker-cache',
-      },
-    });
-  }
-
-  const sheetBase = env.SHEET_BASE || 'https://docs.google.com/spreadsheets/d/e';
-  const sheetId   = env.SHEET_ID   || '';
-
-  if (!sheetId) {
-    console.warn('[/api/data] SHEET_ID env var not set');
-    return new Response('Temporarily unavailable', { status: 503 });
-  }
-
-  const sheetUrl = `${sheetBase}/${sheetId}/pub?gid=${gids[sheetName]}&single=true&output=csv`;
-
-  try {
-    const resp = await fetch(sheetUrl, {
-      redirect: 'follow',
-      headers: { 'User-Agent': 'Suman-Dangal-Worker/2.0' },
-    });
-    if (!resp.ok) throw new Error(`Google Sheets HTTP ${resp.status}`);
-    const text = await resp.text();
-    memSet(cacheKey, text);
-    return new Response(text, {
-      status: 200,
-      headers: {
-        'Content-Type':                'text/csv;charset=UTF-8',
-        'Cache-Control':               'public, max-age=600, stale-while-revalidate=3600',
-        'Access-Control-Allow-Origin': 'same-origin',
-        'X-Served-From':               'google-sheets',
-      },
-    });
-  } catch (e) {
-    console.warn('[/api/data]', sheetName, e.message);
-    return new Response('Temporarily unavailable', { status: 503 });
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  /robots.txt
-// ─────────────────────────────────────────────────────────────────────────
-
-function handleRobotsTxt() {
-  const body =
-    `User-agent: *\n` +
-    `Allow: /\n` +
-    `Disallow: /api/\n` +
-    `Disallow: /back-lab\n` +
-    `Sitemap: ${SITE_URL}/sitemap.xml\n`;
-  return new Response(body, {
-    status: 200,
-    headers: {
-      'Content-Type':  'text/plain;charset=UTF-8',
-      'Cache-Control': 'public, max-age=86400',
-    },
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  /llms.txt
-// ─────────────────────────────────────────────────────────────────────────
-
-function handleLlmsTxt() {
-  const body =
-`# Suman Dangal — Dev & QA Engineer
-# ${SITE_URL}/
-
-> Final-year BCA student building and testing full-stack web and mobile applications.
-> Open to Dev and QA internship opportunities in Nepal.
-
-## About
-
-Suman Dangal is a final-year BCA student at Tribhuvan University, Bhaktapur, Nepal.
-He specializes in full-stack development (Django, PHP, Java Android) and QA/manual testing.
-
-## Pages
-
-- [Home](${SITE_URL}/)
-- [Skills](${SITE_URL}/skills/)
-- [Projects](${SITE_URL}/projects/)
-- [Blog](${SITE_URL}/blog/)
-- [Experience](${SITE_URL}/experience/)
-- [About](${SITE_URL}/about/)
-- [Contact](${SITE_URL}/contact/)
-
-
-## Contact
-
-- Email: sumandangal888@gmail.com
-- LinkedIn: https://linkedin.com/in/sumandangal963
-`;
-  return new Response(body, {
-    status: 200,
-    headers: {
-      'Content-Type':  'text/plain;charset=UTF-8',
-      'Cache-Control': 'public, max-age=86400',
-    },
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Static asset pass-through
-// ─────────────────────────────────────────────────────────────────────────
-
-const STATIC_EXT_RE = /\.(png|jpg|jpeg|gif|svg|ico|webp|avif|woff2?|ttf|eot|css|js|txt|json|xml|map)$/i;
-const FONT_EXT_RE   = /\.(woff2?|ttf|eot)$/i;
-
-async function handleStaticAsset(request, path, env) {
-  try {
-    const assetResp = await env.ASSETS.fetch(request);
-    const headers   = applySecurityHeaders(new Headers(assetResp.headers));
-    if (FONT_EXT_RE.test(path)) {
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-    }
-    return new Response(assetResp.body, { status: assetResp.status, headers });
-  } catch {
-    return new Response('Not found', { status: 404 });
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Main fetch handler
-// ─────────────────────────────────────────────────────────────────────────
+const ADMIN_PATH = '/back-lab';
+const CMS_POST = new Set(['/api/cms/auth', '/api/cms/read', '/api/cms/write']);
+const _cmsAuthRl = new Map();
+const json = (obj, status, extra = {}) => new Response(JSON.stringify(obj), {
+  status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra },
+});
 
 export default {
   async fetch(request, env, ctx) {
-    const url    = new URL(request.url);
-    const path   = url.pathname;
-    const method = request.method;
-
-       // ── Legacy blog slug redirects ─────────────────────────────────────────
-   const redirectLookupPath = path.replace(/\/$/, '') || '/';
-   if (REDIRECTS[redirectLookupPath]) {
-     return Response.redirect(SITE_URL + REDIRECTS[redirectLookupPath], 301);
-   }
-
-
-
-    // ── Method check ──────────────────────────────────────────────────────
-    const CMS_POST_PATHS = new Set(['/api/cms/auth', '/api/cms/read', '/api/cms/write']);
-
-    if (method !== 'GET' && method !== 'HEAD') {
-      if (method === 'POST' && CMS_POST_PATHS.has(path)) {
-        // allowed — falls through to route handlers below
-      } else {
-        return new Response('Method Not Allowed', {
-          status: 405,
-          headers: { Allow: 'GET, HEAD' },
-        });
-      }
-    }
-
-    // ── Rate limiting ──────────────────────────────────────────────────────
-    const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-    if (isRateLimited(clientIP)) {
-      return new Response('Too Many Requests', {
-        status: 429,
-        headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' },
-      });
-    }
-
-    // ── /api/data?sheet=<name> ─────────────────────────────────────────────
-    if (path === '/api/data') {
-      const resp    = await handleDataEndpoint(url, env);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── CMS auth ───────────────────────────────────────────────────────────
-    if (path === '/api/cms/auth') {
-        if (isCmsAuthRateLimited(clientIP)) {
-       return new Response(JSON.stringify({ ok: false, error: 'Too many login attempts — try again in 15 minutes' }), {
-         status: 429,
-         headers: { 'Retry-After': '900', 'Content-Type': 'application/json' },
-       });
-     }
-
-      const resp    = await handleCMSAuth(request, env);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── CMS read ───────────────────────────────────────────────────────────
-    if (path === '/api/cms/read') {
-      const resp    = await handleCMSRead(request, env);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── CMS write ──────────────────────────────────────────────────────────
-    if (path === '/api/cms/write') {
-      const resp    = await handleCMSWrite(request, env);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── Legacy endpoint ────────────────────────────────────────────────────
-    if (path === '/api/sheet') {
-      return new Response(
-        'This endpoint has been removed. Use /api/data?sheet=<name>',
-        { status: 410 },
-      );
-    }
-
-    // ── /sitemap.xml ───────────────────────────────────────────────────────
-    if (path === '/sitemap.xml') {
-      return await generateSitemap(env, fetchSheetData);
-    }
-
-    // ── /robots.txt ────────────────────────────────────────────────────────
-    if (path === '/robots.txt') return handleRobotsTxt();
-
-    // ── /llms.txt ──────────────────────────────────────────────────────────
-    if (path === '/llms.txt') return handleLlmsTxt();
-
-    // ── Static assets ──────────────────────────────────────────────────────
-    if (STATIC_EXT_RE.test(path)) {
-      return await handleStaticAsset(request, path, env);
-    }
-
-    // ── Blog post SSR — /blog/:slug ────────────────────────────────────────
-    const blogMatch = path.match(/^\/blog\/([^/]+)\/?$/);
-    if (blogMatch) {
-      const slug    = decodeURIComponent(blogMatch[1]);
-      const resp    = await prerenderBlogPost(slug, env, request, fetchSheetData);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── Known SPA routes — inject per-route meta tags ──────────────────────
-    const normPath = path === '/' ? '/' : path.replace(/\/$/, '');
-    if (ROUTE_META[normPath]) {
-      const resp    = await serveIndexWithMeta(env, request, normPath);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── /back-lab — serve SPA shell with noindex ──────────────────────────
-    if (path === '/back-lab') {
-      const resp    = await serveIndex(env, request);
-      const headers = applySecurityHeaders(new Headers(resp.headers));
-      // Prevent search engines from indexing the admin CMS
-      headers.set('X-Robots-Tag', 'noindex, nofollow');
-      return new Response(resp.body, { status: resp.status, headers });
-    }
-
-    // ── Everything else — bare SPA shell ──────────────────────────────────
-    const resp    = await serveNotFound(env, request);
-    const headers = applySecurityHeaders(new Headers(resp.headers));
-    return new Response(resp.body, { status: resp.status, headers });
+    const url = new URL(request.url);
+    const host = hostPolicy(url);
+    if (host.redirectTo) return finalize(redirect(host.redirectTo));
+    const res = await route(request, env, ctx, url);
+    return finalize(res, { noindex: host.noindex });
   },
 };
+
+async function route(request, env, ctx, url) {
+  const path = url.pathname;
+  const method = request.method;
+
+  if (method !== 'GET' && method !== 'HEAD' && !(method === 'POST' && CMS_POST.has(path))) {
+    return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
+  }
+
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!isSearchCrawler(request.headers.get('User-Agent')) && isRateLimited(ip)) {
+    return new Response('Too Many Requests', { status: 429, headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' } });
+  }
+
+  // ── API ──────────────────────────────────────────────────────────────
+  if (path === '/api/data') return dataEndpoint(url, env, ctx);
+  if (path.startsWith('/api/cms/')) return cmsEndpoint(path, request, env, ip);
+  if (path === '/api/sheet') return new Response('Gone', { status: 410 });
+  if (path.startsWith('/api/')) return new Response('Not found', { status: 404 });
+
+  // ── Generated files ──────────────────────────────────────────────────
+  if (path === '/sitemap.xml') return sitemapXml(env, ctx);
+  if (path === '/robots.txt')  return robotsTxt();
+  if (path === '/llms.txt')    return llmsTxt(env, ctx);
+
+  // ── Static assets (Phase 6 moves most of these out via _routes.json) ─
+  // Slugs may contain dots, so /blog/<slug> is always a page
+  const isAsset = /\.[a-z0-9]{1,12}$/i.test(path) && !/^\/blog\/[^/]+$/.test(path) && !/\/index\.html?$/i.test(path);
+  if (isAsset) return staticAsset(request, env, path);
+
+  // ── Canonical URL ────────────────────────────────────────────────────
+  const canon = canonicalPath(url);
+  if (canon) return redirect(canon);
+
+  return renderPage(env, ctx, url);
+}
+
+async function staticAsset(request, env, path) {
+  const res = await env.ASSETS.fetch(request);
+  // Without a matching file, Pages answers with the SPA shell (200 text/html).
+  // A missing .js/.png/… must be a real 404, not a soft-404 page.
+  if (res.ok && /text\/html/i.test(res.headers.get('Content-Type') || '') && !/\.html?$/i.test(path)) {
+    return new Response('Not found', { status: 404, headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' } });
+  }
+  return res;
+}
+
+async function renderPage(env, ctx, url) {
+  const path = url.pathname;
+  let page;
+  const post = path.match(/^\/blog\/([^/]+)$/);
+  if (path === '/')                 page = await homePage(env, ctx);
+  else if (path === '/blog')        page = await blogListPage(url, env, ctx);
+  else if (post)                    page = await blogPostPage(safeDecode(post[1]), env, ctx);
+  else if (ROUTES[path])            page = await sectionPage(path, env, ctx);
+  else if (path === ADMIN_PATH)     page = adminPage();
+  else                              page = notFoundPage(path);
+
+  const shell = await env.ASSETS.fetch(new Request(new URL('/', url), { headers: { Accept: 'text/html' } }));
+  const headers = {
+    'Content-Type': 'text/html;charset=UTF-8',
+    'Cache-Control': page.status === 200 && page.robots !== 'noindex, nofollow'
+      ? 'public, max-age=300, stale-while-revalidate=86400' : 'no-store',
+    ...(page.status === 503 ? { 'Retry-After': '120' } : {}),
+    ...(page.robots === 'noindex, nofollow' ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
+  };
+  return rewriteShell(page).transform(new Response(shell.body, { status: page.status, headers }));
+}
+
+// ── /api/data?sheet=<name> — allow-listed, drafts removed ──────────────
+async function dataEndpoint(url, env, ctx) {
+  const name = (url.searchParams.get('sheet') || '').toLowerCase().trim();
+  if (!getSheetGids(env)[name]) return new Response('Not found', { status: 404 });
+
+  let body;
+  if (name === 'blog' || name === 'faq' || name === 'images') {
+    const [rows, blog] = await Promise.all([getRows(name, env, ctx), name === 'blog' ? null : getRows('blog', env, ctx)]);
+    if (rows == null || (name !== 'blog' && blog == null)) body = null;
+    else if (name === 'blog') body = toCSV(rows);
+    else {
+      // FAQ/images rows of unpublished posts never leave the worker ('contact' FAQ is page-level)
+      const live = new Set([...blog.map(p => p.Slug), 'contact']);
+      body = toCSV(rows.filter(r => live.has(String(r.Blog_Slug || '').trim())));
+    }
+  } else {
+    body = await getSheetCSV(name, env, ctx);
+  }
+  if (body == null) return new Response('Temporarily unavailable', { status: 503, headers: { 'Retry-After': '60' } });
+  return new Response(body, {
+    headers: {
+      'Content-Type': 'text/csv;charset=UTF-8',
+      'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600',
+      'X-Robots-Tag': 'noindex', // crawlable for rendering, never indexed itself
+    },
+  });
+}
+
+// ── CMS API (hardened in Phase 5) ──────────────────────────────────────
+async function cmsEndpoint(path, request, env, ip) {
+  if (!CMS_POST.has(path) || request.method !== 'POST') return json({ ok: false, error: 'Not found' }, 404);
+  if (path === '/api/cms/auth' && isRateLimited(ip, 8, 15 * 60 * 1000, _cmsAuthRl)) {
+    return json({ ok: false, error: 'Too many login attempts — try again later' }, 429, { 'Retry-After': '900' });
+  }
+  const res = path === '/api/cms/auth' ? await handleCMSAuth(request, env)
+            : path === '/api/cms/read' ? await handleCMSRead(request, env)
+            : await handleCMSWrite(request, env);
+  const out = new Response(res.body, res);
+  out.headers.set('Cache-Control', 'no-store');
+  out.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return out;
+}
+
+function safeDecode(s) {
+  try { return decodeURIComponent(s); } catch { return s; }
+}
