@@ -1,13 +1,22 @@
-# wrangler files
-.dev.vars
-node_modules/
-.wrangler/
-dist/
-.wrangler
+# ── Secrets & local tooling ──────────────────────────────
 .dev.vars*
 !.dev.vars.example
 .env*
 !.env.example
-node_modules
+.wrangler/
+node_modules/
+dist/
+
+# ── Private, never committed (local context only) ────────
 _archive/
 build-notes/
+# Reference copies of LIVE main; regenerate with:
+#   git show main:index.html > reference/main_index.html
+#   git show main:_worker.js > reference/main_worker.js
+reference/
+
+# ── OS / editor junk ─────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
