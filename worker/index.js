@@ -14,16 +14,16 @@
 
 import { ROUTES } from '../public/js/shared/render.js';
 import { finalize, hostPolicy, canonicalPath, redirect, isRateLimited, isSearchCrawler } from './http.js';
-import { getSheetGids, getSheetCSV, getRows, toCSV } from './sheets.js';
+import { getSheetGids, getSheetCSV, getRows, toCSV, invalidateSheet } from './sheets.js';
 import { rewriteShell } from './shell.js';
 import { homePage, sectionPage, blogListPage, blogPostPage, adminPage, notFoundPage } from './pages.js';
 import { robotsTxt, sitemapXml, llmsTxt } from './seo-files.js';
-import { handleCMSAuth } from './cms-auth.js';
 import { handleCMSRead, handleCMSWrite } from './cms-proxy.js';
+import { adminIdentity, isSameOriginJson } from './access.js';
 
 const ADMIN_PATH = '/back-lab';
-const CMS_POST = new Set(['/api/cms/auth', '/api/cms/read', '/api/cms/write']);
-const _cmsAuthRl = new Map();
+const CMS_POST = new Set(['/api/cms/read', '/api/cms/write']);
+const _cmsRl = new Map();
 const json = (obj, status, extra = {}) => new Response(JSON.stringify(obj), {
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra },
 });
@@ -53,7 +53,7 @@ async function route(request, env, ctx, url) {
 
   // ── API ──────────────────────────────────────────────────────────────
   if (path === '/api/data') return dataEndpoint(url, env, ctx);
-  if (path.startsWith('/api/cms/')) return cmsEndpoint(path, request, env, ip);
+  if (path.startsWith('/api/cms/')) return cmsEndpoint(path, request, env, ctx, ip);
   if (path === '/api/sheet') return new Response('Gone', { status: 410 });
   if (path.startsWith('/api/')) return new Response('Not found', { status: 404 });
 
@@ -71,7 +71,7 @@ async function route(request, env, ctx, url) {
   const canon = canonicalPath(url);
   if (canon) return redirect(canon);
 
-  return renderPage(env, ctx, url);
+  return renderPage(request, env, ctx, url);
 }
 
 async function staticAsset(request, env, path) {
@@ -84,7 +84,7 @@ async function staticAsset(request, env, path) {
   return res;
 }
 
-async function renderPage(env, ctx, url) {
+async function renderPage(request, env, ctx, url) {
   const path = url.pathname;
   let page;
   const post = path.match(/^\/blog\/([^/]+)$/);
@@ -92,7 +92,7 @@ async function renderPage(env, ctx, url) {
   else if (path === '/blog')        page = await blogListPage(url, env, ctx);
   else if (post)                    page = await blogPostPage(safeDecode(post[1]), env, ctx);
   else if (ROUTES[path])            page = await sectionPage(path, env, ctx);
-  else if (path === ADMIN_PATH)     page = adminPage();
+  else if (path === ADMIN_PATH)     page = (await adminIdentity(request, env)) ? adminPage() : notFoundPage(path);
   else                              page = notFoundPage(path);
 
   const shell = await env.ASSETS.fetch(new Request(new URL('/', url), { headers: { Accept: 'text/html' } }));
@@ -134,19 +134,25 @@ async function dataEndpoint(url, env, ctx) {
   });
 }
 
-// ── CMS API (hardened in Phase 5) ──────────────────────────────────────
-async function cmsEndpoint(path, request, env, ip) {
-  if (!CMS_POST.has(path) || request.method !== 'POST') return json({ ok: false, error: 'Not found' }, 404);
-  if (path === '/api/cms/auth' && isRateLimited(ip, 8, 15 * 60 * 1000, _cmsAuthRl)) {
-    return json({ ok: false, error: 'Too many login attempts — try again later' }, 429, { 'Retry-After': '900' });
+// ── CMS API — Cloudflare Access + same-origin JSON, then validated proxy ─
+async function cmsEndpoint(path, request, env, ctx, ip) {
+  const headers = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' };
+  if (!CMS_POST.has(path) || request.method !== 'POST') return json({ ok: false, error: 'Not found' }, 404, headers);
+  if (!(await adminIdentity(request, env))) return json({ ok: false, error: 'Unauthorized' }, 401, headers);
+  if (!isSameOriginJson(request)) return json({ ok: false, error: 'Forbidden' }, 403, headers);
+  if (isRateLimited(ip, 60, 60_000, _cmsRl)) return json({ ok: false, error: 'Too many requests' }, 429, { ...headers, 'Retry-After': '60' });
+
+  let res;
+  if (path === '/api/cms/read') {
+    res = await handleCMSRead(request, env);
+  } else {
+    const out = await handleCMSWrite(request, env);
+    res = out.res;
+    if (out.sheet) ctx.waitUntil(invalidateSheet(out.sheet));
   }
-  const res = path === '/api/cms/auth' ? await handleCMSAuth(request, env)
-            : path === '/api/cms/read' ? await handleCMSRead(request, env)
-            : await handleCMSWrite(request, env);
-  const out = new Response(res.body, res);
-  out.headers.set('Cache-Control', 'no-store');
-  out.headers.set('X-Robots-Tag', 'noindex, nofollow');
-  return out;
+  const final = new Response(res.body, res);
+  for (const [k, v] of Object.entries(headers)) final.headers.set(k, v);
+  return final;
 }
 
 function safeDecode(s) {

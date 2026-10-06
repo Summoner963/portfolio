@@ -118,3 +118,13 @@ export function toCSV(rows) {
   const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   return [headers.map(cell).join(','), ...rows.map(r => headers.map(h => cell(r[h])).join(','))].join('\n');
 }
+
+/**
+ * After a CMS save: drop this isolate's copy and this data centre's cached CSV
+ * so the editor sees the change soonest. Other data centres refresh on their
+ * normal TTL (Phase 3 option A); Google's own republish delay still applies.
+ */
+export async function invalidateSheet(name) {
+  _mem.delete(name);
+  try { await caches.default.delete(new Request(`${CACHE_ORIGIN}/${name}`)); } catch {}
+}

@@ -15,73 +15,31 @@
 
 import { esc, loadCSS, showToast, md } from '../utils.js';
 
-const SESSION_KEY = 'sd_cms_token';
-
-function getToken()  { return sessionStorage.getItem(SESSION_KEY); }
-function setToken(t) { sessionStorage.setItem(SESSION_KEY, t); }
-function clearToken(){ sessionStorage.removeItem(SESSION_KEY); }
-function isLoggedIn(){ return !!sessionStorage.getItem(SESSION_KEY); }
-
 // ── API helpers ────────────────────────────────────────────────────────────
+// Authentication is Cloudflare Access: the browser sends Access's HttpOnly
+// cookie automatically and the worker verifies the Access JWT on every call.
+// No password, token or secret ever lives in this file or in storage.
 
-async function apiLogin(username, password) {
-  const r = await fetch('/api/cms/auth', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ username, password }),
+async function cmsCall(path, body) {
+  const r = await fetch(path, {
+    method:      'POST',
+    credentials: 'same-origin',
+    headers:     { 'Content-Type': 'application/json' },
+    body:        JSON.stringify(body),
   });
-  return r.json();
+  if (r.status === 401) {
+    showToast('Your sign-in expired — reloading…', 'error');
+    setTimeout(() => location.reload(), 1200); // Access shows its login again
+    return { ok: false, error: 'Signed out' };
+  }
+  try { return await r.json(); } catch { return { ok: false, error: 'Unexpected response' }; }
 }
 
-async function apiRead(sheet) {
-  const r = await fetch('/api/cms/read', {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': 'Bearer ' + getToken(),
-    },
-    body: JSON.stringify({ action: 'read', sheet }),
-  });
-  return r.json();
-}
-
-async function apiAppend(sheet, row) {
-  const r = await fetch('/api/cms/write', {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': 'Bearer ' + getToken(),
-    },
-    body: JSON.stringify({ action: 'append', sheet, row }),
-  });
-  return r.json();
-}
-
-async function apiUpdate(sheet, slug, row, slugField) {
-  if (!slugField) slugField = 'Slug';
-  const r = await fetch('/api/cms/write', {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': 'Bearer ' + getToken(),
-    },
-    body: JSON.stringify({ action: 'update', sheet, slug, slugField, row }),
-  });
-  return r.json();
-}
-
-async function apiDelete(sheet, slug, slugField) {
-  if (!slugField) slugField = 'Slug';
-  const r = await fetch('/api/cms/write', {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': 'Bearer ' + getToken(),
-    },
-    body: JSON.stringify({ action: 'delete', sheet, slug, slugField }),
-  });
-  return r.json();
-}
+const apiRead   = sheet => cmsCall('/api/cms/read', { sheet });
+const apiAppend = (sheet, row) => cmsCall('/api/cms/write', { action: 'append', sheet, row });
+// The key column (Slug / Blog_Slug) is decided by the worker, not the client.
+const apiUpdate = (sheet, slug, row) => cmsCall('/api/cms/write', { action: 'update', sheet, slug, row });
+const apiDelete = (sheet, slug) => cmsCall('/api/cms/write', { action: 'delete', sheet, slug });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -132,74 +90,7 @@ export async function renderCMS() {
   await loadCSS('/css/cms.css');
   const view = document.getElementById('view-cms');
   if (!view) return;
-  if (isLoggedIn()) {
-    renderDashboard(view);
-  } else {
-    renderLogin(view);
-  }
-}
-
-// ── LOGIN ─────────────────────────────────────────────────────────────────
-
-function renderLogin(view) {
-  view.innerHTML = `
-    <div class="cms-login-wrap">
-      <div class="cms-login-card">
-        <div class="cms-login-logo">
-          <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-            <rect width="48" height="48" rx="9" fill="#1b4332"/>
-            <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle"
-              font-family="Georgia,serif" font-size="26" fill="#fff">SD</text>
-          </svg>
-        </div>
-        <h2 class="cms-login-title">Content Studio</h2>
-        <p class="cms-login-sub">Sign in to manage your content</p>
-        <form class="cms-login-form" id="cmsLoginForm" autocomplete="on">
-          <div class="cms-field">
-            <label class="cms-label" for="cmsUser">Username</label>
-            <input class="cms-input" type="text" id="cmsUser"
-              name="username" autocomplete="username" required placeholder="your username" />
-          </div>
-          <div class="cms-field">
-            <label class="cms-label" for="cmsPw">Password</label>
-            <input class="cms-input" type="password" id="cmsPw"
-              name="password" autocomplete="current-password" required placeholder="••••••••" />
-          </div>
-          <div class="cms-login-error" id="cmsLoginError" hidden></div>
-          <button class="cms-btn cms-btn-primary" type="submit" id="cmsLoginBtn">Sign in</button>
-        </form>
-      </div>
-    </div>`;
-
-  const form     = document.getElementById('cmsLoginForm');
-  const errEl    = document.getElementById('cmsLoginError');
-  const loginBtn = document.getElementById('cmsLoginBtn');
-
-  form.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const username = document.getElementById('cmsUser').value.trim();
-    const password = document.getElementById('cmsPw').value;
-    loginBtn.disabled    = true;
-    loginBtn.textContent = 'Signing in\u2026';
-    errEl.hidden         = true;
-    try {
-      const result = await apiLogin(username, password);
-      if (result.ok && result.token) {
-        setToken(result.token);
-        renderDashboard(view);
-      } else {
-        errEl.textContent    = result.error || 'Invalid credentials';
-        errEl.hidden         = false;
-        loginBtn.disabled    = false;
-        loginBtn.textContent = 'Sign in';
-      }
-    } catch (err) {
-      errEl.textContent    = 'Network error \u2014 try again';
-      errEl.hidden         = false;
-      loginBtn.disabled    = false;
-      loginBtn.textContent = 'Sign in';
-    }
-  });
+  renderDashboard(view);
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
@@ -245,8 +136,7 @@ function renderDashboard(view, activeTab) {
   });
 
   document.getElementById('cmsSignOut').addEventListener('click', function() {
-    clearToken();
-    renderLogin(view);
+    location.href = '/cdn-cgi/access/logout'; // ends the Cloudflare Access session
   });
 
   renderBlogList(document.getElementById('panel-blog'), view);
@@ -720,7 +610,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
 
       // Save blogimage rows
       if (isEdit && biRows.length) {
-        await apiDelete('blogimage', slug, 'Blog_Slug');
+        await apiDelete('blogimage', slug);
       }
       for (let i = 0; i < imageRows.length; i++) {
         if (imageRows[i].url) {
@@ -735,7 +625,7 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
 
       // Save FAQ rows
       if (isEdit && faqRows.length) {
-        await apiDelete('faq', slug, 'Blog_Slug');
+        await apiDelete('faq', slug);
       }
       for (let i = 0; i < faqItems.length; i++) {
         if (faqItems[i].q) {

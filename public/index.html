@@ -29,12 +29,14 @@
   <meta name="twitter:description" content="Final-year BCA student. Full-stack Dev &amp; QA." />
   <meta name="twitter:image"       content="https://suman-dangal.com.np/android-chrome-512x512.png" />
 
-  <!-- Fonts — preconnect + preload (non-render-blocking) -->
+  <!-- Fonts — preconnect + preload, applied by js/main.js (no inline handler,
+       so the CSP needs no 'unsafe-inline' for scripts) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" as="style"
-    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
-    onload="this.onload=null;this.rel='stylesheet'" />
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" />
+  <link id="font-css" rel="stylesheet" media="print"
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" />
   <noscript>
     <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" />

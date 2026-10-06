@@ -44,6 +44,11 @@ import { fetchSheet, CFG }                     from './api.js';
 import { updateSEO }                            from './seo.js';
 import { ROUTES, SITE_URL }                     from './shared/render.js';
 
+// Apply the font stylesheet that index.html loads with media="print"
+// (non-blocking without an inline onload handler — keeps the CSP strict).
+const fontCss = document.getElementById('font-css');
+if (fontCss) fontCss.media = 'all';
+
 // ─────────────────────────────────────────────────────────────────────────
 //  ROUTE REGISTRATIONS
 //

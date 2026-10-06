@@ -4,7 +4,15 @@ import { SITE_URL } from '../public/js/shared/render.js';
 
 const CANONICAL_HOST = new URL(SITE_URL).host;
 
-// Ported from LIVE (main). Phase 5 tightens script-src once inline scripts are gone.
+// CSP decisions:
+//  script-src  'self' + Google tag + Cloudflare Web Analytics only. No
+//              'unsafe-inline': the site has no inline scripts or on*= handlers
+//              (JSON-LD blocks are data and are not affected by CSP).
+//  style-src   keeps 'unsafe-inline' — templates and the CMS editor use style
+//              attributes; style injection is far lower risk than script.
+//  img-src     https: because Sheet rows may point images at any host.
+//  connect-src GA4 collection endpoints (region-specific subdomains → wildcards).
+//  frame-ancestors 'none' + X-Frame-Options DENY: no framing (clickjacking).
 export const SECURITY_HEADERS = {
   'X-Frame-Options':            'DENY',
   'X-Content-Type-Options':     'nosniff',
@@ -14,7 +22,7 @@ export const SECURITY_HEADERS = {
   'Permissions-Policy':         'camera=(), microphone=(), geolocation=(), payment=()',
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com",
+    "script-src 'self' https://www.googletagmanager.com https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https:",
@@ -23,6 +31,8 @@ export const SECURITY_HEADERS = {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    "manifest-src 'self'",
+    "worker-src 'none'",
     'upgrade-insecure-requests',
   ].join('; '),
 };
