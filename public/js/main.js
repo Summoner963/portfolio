@@ -83,6 +83,7 @@ const SECTIONS = {
   '/experience': () => import('./views/experience.js').then(m => m.renderExperience()),
   '/about':      () => import('./views/about.js').then(m => m.renderAbout()),
   '/contact':    () => import('./views/contact.js').then(m => m.renderContact()),
+  '/privacy':    async () => {},  // static HTML in index.html
 };
 for (const [path, render] of Object.entries(SECTIONS)) {
   registerRoute(path, async () => {

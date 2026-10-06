@@ -38,6 +38,9 @@ export const ROUTES = {
   '/contact':    { view: 'contact',    css: ['/css/about.css'],    heading: 'Contact',
                    title: 'Contact | Suman Dangal',
                    description: 'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.' },
+  '/privacy':    { view: 'privacy',    css: [],                    heading: 'Privacy',
+                   title: 'Privacy | Suman Dangal',
+                   description: 'How suman-dangal.com.np uses analytics cookies and browser storage, and how to change your choice.' },
 };
 export const ARTICLE_CSS = ['/css/blog.css'];
 

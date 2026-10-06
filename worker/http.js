@@ -11,7 +11,8 @@ const CANONICAL_HOST = new URL(SITE_URL).host;
 //  style-src   keeps 'unsafe-inline' — templates and the CMS editor use style
 //              attributes; style injection is far lower risk than script.
 //  img-src     https: because Sheet rows may point images at any host.
-//  connect-src GA4 collection endpoints (region-specific subdomains → wildcards).
+//  connect-src GA4 endpoints per Google's CSP guide (no ads features) +
+//              Cloudflare Web Analytics.
 //  frame-ancestors 'none' + X-Frame-Options DENY: no framing (clickjacking).
 export const SECURITY_HEADERS = {
   'X-Frame-Options':            'DENY',
@@ -26,7 +27,7 @@ export const SECURITY_HEADERS = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https:",
-    "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://cloudflareinsights.com",
+    "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.google.com https://cloudflareinsights.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

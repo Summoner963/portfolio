@@ -45,6 +45,9 @@
   <!-- Base styles (only blocking stylesheet — all section CSS loaded lazily) -->
   <link rel="stylesheet" href="/css/base.css" />
 
+  <!-- Google Analytics 4: consent defaults to denied; loads gtag.js itself -->
+  <script defer src="/js/consent.js"></script>
+
   <!-- Fetch the core module graph in parallel instead of one import at a time -->
   <link rel="modulepreload" href="/js/main.js" />
   <link rel="modulepreload" href="/js/router.js" />
@@ -340,6 +343,30 @@
     </section>
   </div>
 
+  <!-- PRIVACY — draft text: edit to match how you actually use data -->
+  <div id="view-privacy" class="view" role="region" aria-label="Privacy">
+    <section class="container" style="max-width:760px">
+      <div class="section-eyebrow">Your data</div>
+      <h2 class="section-heading">Privacy</h2>
+      <div class="privacy-text">
+        <p><strong>Last updated:</strong> October 2026</p>
+        <p>This is a personal portfolio and blog. It has no accounts, no ads and no contact form, and I never sell data.</p>
+        <h3>Analytics (only if you accept)</h3>
+        <p>With your permission, I use Google Analytics 4 to see which pages are read and roughly where visitors come from. Until you click <em>Accept analytics</em>, Google Analytics stores no cookies on your device. Google Analytics 4 does not log or store IP addresses.</p>
+        <p>You can change your choice at any time with <button type="button" class="footer-link" data-consent-open>Cookie settings</button>.</p>
+        <h3>Stored in your browser</h3>
+        <ul>
+          <li><code>sd_consent</code> — remembers your analytics choice.</li>
+          <li>Short-lived copies of blog and portfolio data (keys starting with <code>sd6_</code>) so pages load faster. Nothing personal.</li>
+        </ul>
+        <h3>Hosting</h3>
+        <p>The site runs on Cloudflare, which processes requests (including IP addresses) to deliver and protect it.</p>
+        <h3>Contact</h3>
+        <p>Questions about this page: <a href="mailto:sumandangal888@gmail.com">sumandangal888@gmail.com</a>.</p>
+      </div>
+    </section>
+  </div>
+
   <!-- CMS — Content Studio -->
   <div id="view-cms" class="view" role="region" aria-label="Content Studio">
   </div>
@@ -349,8 +376,20 @@
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer role="contentinfo">
   <span>© 2026 Suman Dangal</span>
-  <span>Built with ❤️ · Balkot, Bhaktapur, Nepal</span>
+  <span>Built with ❤️ · Balkot, Bhaktapur, Nepal ·
+    <a href="/privacy" data-link class="footer-link">Privacy</a> ·
+    <button type="button" class="footer-link" id="consentOpen">Cookie settings</button></span>
 </footer>
+
+<!-- ── Cookie consent (logic in js/consent.js) ─────────────────────────── -->
+<div id="consent" role="region" aria-label="Cookie consent" hidden>
+  <p>I use Google Analytics cookies to see which pages are read. No ads, nothing sold.
+     <a href="/privacy" data-link>Privacy</a></p>
+  <div class="consent-actions">
+    <button type="button" id="consentDeny">Decline</button>
+    <button type="button" id="consentAccept" class="primary">Accept analytics</button>
+  </div>
+</div>
 
 <!-- ── SPA entry point ───────────────────────────────────────────────────── -->
 <script type="module" src="/js/main.js"></script>

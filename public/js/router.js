@@ -182,6 +182,7 @@ function _getViewIdForPath(path) {
     '/experience': 'view-experience',
     '/about':      'view-about',
     '/contact':    'view-contact',
+    '/privacy':    'view-privacy',
     '/back-lab':   'view-cms',
   };
 
@@ -287,6 +288,8 @@ if (handler) {
   }
 
   _promoteHeading();
+  // Analytics: one page_view per rendered route, after title + content are final
+  if (typeof window.trackPageView === 'function') window.trackPageView(path + u.search);
   pEnd();
 }
 
