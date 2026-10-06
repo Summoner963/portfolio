@@ -42,7 +42,7 @@
 import { registerRoute, registerPrefix, boot } from './router.js';
 import { fetchSheet, CFG }                     from './api.js';
 import { updateSEO }                            from './seo.js';
-import { watchReveals }                         from './utils.js';
+import { ROUTES, SITE_URL }                     from './shared/render.js';
 
 // ─────────────────────────────────────────────────────────────────────────
 //  ROUTE REGISTRATIONS
@@ -58,106 +58,57 @@ import { watchReveals }                         from './utils.js';
 //  The router calls the first match it finds (in registration order).
 // ─────────────────────────────────────────────────────────────────────────
 
-// ── Home (/') ──────────────────────────────────────────────────────────────
+// Head metadata for list routes comes from the shared ROUTES table, so the
+// SPA sets exactly what the worker rendered for the same URL.
+const sectionSEO = path => updateSEO({
+  path, crumbs: [{ name: ROUTES[path].heading, url: SITE_URL + path }],
+});
+
+// ── Home (/) ───────────────────────────────────────────────────────────────
 registerRoute('/', async () => {
   const { renderHome } = await import('./views/home.js');
   updateSEO({ path: '/' });
   await renderHome();
-  watchReveals();
-  // renderFeaturedPosts is called inside renderHome() — no separate call needed.
 });
 
-// ── Skills (/skills) ───────────────────────────────────────────────────────
-registerRoute('/skills', async () => {
-  const { renderSkills } = await import('./views/skills.js');
-  updateSEO({
-    title: 'Skills & Stack',
-    desc:  'Python, Django, PHP, Java, Android Studio, manual QA — skills of Suman Dangal.',
-    path:  '/skills',
+// ── Sections ───────────────────────────────────────────────────────────────
+const SECTIONS = {
+  '/skills':     () => import('./views/skills.js').then(m => m.renderSkills()),
+  '/projects':   () => import('./views/projects.js').then(m => m.renderProjects()),
+  '/experience': () => import('./views/experience.js').then(m => m.renderExperience()),
+  '/about':      () => import('./views/about.js').then(m => m.renderAbout()),
+  '/contact':    () => import('./views/contact.js').then(m => m.renderContact()),
+};
+for (const [path, render] of Object.entries(SECTIONS)) {
+  registerRoute(path, async () => {
+    sectionSEO(path);
+    await render();
   });
-  await renderSkills();
-  watchReveals();
-});
+}
 
-// ── Projects (/projects) ───────────────────────────────────────────────────
-registerRoute('/projects', async () => {
-  const { renderProjects } = await import('./views/projects.js');
-  updateSEO({
-    title: 'Projects',
-    desc:  'Django e-commerce, PHP library system, Android Bluetooth app — projects by Suman Dangal.',
-    path:  '/projects',
-  });
-  await renderProjects();
-  watchReveals();
-});
-
-// ── Blog list (/blog) ──────────────────────────────────────────────────────
+// ── Blog list (/blog, /blog?page=N) ────────────────────────────────────────
 registerRoute('/blog', async ({ searchParams } = {}) => {
   const { renderBlogList } = await import('./views/blog.js');
+  const page = Math.max(1, parseInt(searchParams?.get?.('page') || '1', 10) || 1);
+  const path = page > 1 ? `/blog?page=${page}` : '/blog';
   updateSEO({
-    title: 'Blog',
-    desc:  'Dev notes, QA tips, and tech writing by Suman Dangal — final-year BCA student.',
-    path:  '/blog',
+    path,
+    title: page > 1 ? `Blog — Page ${page} | Suman Dangal` : undefined,
+    crumbs: [{ name: 'Blog', url: `${SITE_URL}/blog` }],
   });
-  const page = parseInt(searchParams?.get?.('page') || '1') || 1;
   await renderBlogList(page);
-  watchReveals();
 });
 
-// ── Blog article (/blog/:slug) ─────────────────────────────────────────────
-// Must be registered AFTER /blog so the prefix match doesn't swallow /blog.
-// The router checks exact routes first, so ordering here is just for clarity.
+// ── Blog article (/blog/:slug) — SEO is set by renderArticle ───────────────
 registerPrefix('/blog/', async ({ slug }) => {
   const { renderArticle } = await import('./views/blog.js');
-  // SEO is set inside renderArticle once the post data is known
   await renderArticle(slug);
-  watchReveals();
 });
 
-// ── Experience (/experience) ───────────────────────────────────────────────
-registerRoute('/experience', async () => {
-  const { renderExperience } = await import('./views/experience.js');
-  updateSEO({
-    title: 'Experience',
-    desc:  'SEO Intern at Sathi Edtech and QA/testing projects — work experience of Suman Dangal.',
-    path:  '/experience',
-  });
-  await renderExperience();
-  watchReveals();
-});
-
-// ── About (/about) ─────────────────────────────────────────────────────────
-registerRoute('/about', async () => {
-  const { renderAbout } = await import('./views/about.js');
-  updateSEO({
-    title: 'About Suman Dangal',
-    desc:  'BCA student at Tribhuvan University, Bhaktapur, Nepal. Full-stack dev and QA tester.',
-    path:  '/about',
-  });
-  await renderAbout();
-  watchReveals();
-});
-
-// ── Contact (/contact) ─────────────────────────────────────────────────────
-registerRoute('/contact', async () => {
-  const { renderContact } = await import('./views/contact.js');
-  updateSEO({
-    title: 'Contact',
-    desc:  'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.',
-    path:  '/contact',
-  });
-  await renderContact();
-  watchReveals();
-});
-
-
-
-
-// After the last registerPrefix call, before boot():
-
+// ── Admin (never indexed; the worker also sends X-Robots-Tag) ──────────────
 registerRoute('/back-lab', async () => {
   const { renderCMS } = await import('./views/cms.js');
-  updateSEO({ title: 'Content Studio', path: '/back-lab' });
+  updateSEO({ path: '/back-lab', title: 'Content Studio | Suman Dangal', desc: 'Private content management.', noindex: true });
   await renderCMS();
 });
 

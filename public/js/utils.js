@@ -4,54 +4,30 @@
 //  Imported by js/api.js, js/seo.js, js/router.js, and all view modules.
 //
 //  Rules:
-//   - No imports from other js/ files — this is the leaf node.
+//   - Only imports js/shared/render.js (pure, shared with the worker).
 //   - No side effects at module level except the IntersectionObserver setup
 //     (which is deferred until watchReveals() is first called).
 //   - All DOM output goes through esc() before innerHTML insertion.
 //   - Pure functions where possible; stateful helpers are clearly marked.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { esc, fixImgUrl, md, safeUrl } from './shared/render.js';
 
-// ─────────────────────────────────────────────────────────────────────────
-//  HTML escaping
-//  Must be called on ALL sheet data before it touches any HTML string.
-// ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Escape a value for safe insertion into HTML text nodes or attribute values.
- * @param {*} s
- * @returns {string}
- */
-export function esc(s) {
-  return String(s ?? '')
-    .replace(/&/g,  '&amp;')
-    .replace(/</g,  '&lt;')
-    .replace(/>/g,  '&gt;')
-    .replace(/"/g,  '&quot;')
-    .replace(/'/g,  '&#39;');
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Google Drive image URL normaliser
-// ─────────────────────────────────────────────────────────────────────────
+// Escaping, image URLs and markdown live in the shared module (also used by
+// the worker); re-exported so existing imports keep working.
+export { esc, fixImgUrl, md, safeUrl };
 
 /**
- * Convert any Google Drive share URL to its direct-serve lh3 equivalent.
- * Non-Drive URLs are returned unchanged.
- * @param {string} url
- * @returns {string}
+ * True once per element when the server already rendered it for `key`
+ * (data-ssr attribute set by the worker). The view then keeps that DOM
+ * instead of re-rendering: no flash, and crawlers see the same content.
+ * @param {HTMLElement|null} el
+ * @param {string} key  route key, e.g. '/blog' or '/blog?page=2'
  */
-export function fixImgUrl(url) {
-  if (!url) return '';
-  url = url.trim();
-  const m1 = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
-  if (m1) return `https://lh3.googleusercontent.com/d/${m1[1]}`;
-  const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-  if (m2) return `https://lh3.googleusercontent.com/d/${m2[1]}`;
-  const m3 = url.match(/drive\.google\.com\/uc\?.*?id=([^&]+)/);
-  if (m3) return `https://lh3.googleusercontent.com/d/${m3[1]}`;
-  return url;
+export function takeSSR(el, key) {
+  if (!el || el.dataset.ssr !== key) return false;
+  delete el.dataset.ssr;
+  return true;
 }
 
 
@@ -63,7 +39,7 @@ export function fixImgUrl(url) {
 // ─────────────────────────────────────────────────────────────────────────
 
 const _SAFE_TAGS = new Set([
-  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption',
   'strong', 'em', 'b', 'i', 'br', 'p',
   'ul', 'ol', 'li',
   'a', 'span', 'code', 'pre', 'blockquote',
@@ -97,164 +73,16 @@ export function sanitizeHTML(raw) {
       if (tag === 'a') {
         kid.setAttribute('target', '_blank');
         kid.setAttribute('rel', 'noopener noreferrer');
-        // Block javascript: hrefs
-        const href = kid.getAttribute('href') || '';
-        if (/^\s*javascript:/i.test(href)) kid.removeAttribute('href');
+        // Only http(s) links survive (blocks javascript:, data:, vbscript:…)
+        const href = safeUrl(kid.getAttribute('href'));
+        if (/^https?:/i.test(href)) kid.setAttribute('href', href);
+        else kid.removeAttribute('href');
       }
       strip(kid);
     });
   })(doc.body);
 
   return doc.body.innerHTML;
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────
-//  Markdown renderer
-//  Converts pipe-delimited or newline-delimited markdown (as stored in
-//  Google Sheets) to safe HTML for innerHTML insertion.
-//
-//  Supported syntax:
-//   ## H2  ### H3  > blockquote
-//   - unordered list   1. ordered list
-//   **bold**  *italic*  `code`  [text](url)
-//   ``` code fence ```
-//   [img1] [img2] … inline image placeholders (resolved via imgMap)
-//   blank line → paragraph break
-// ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Render a markdown-ish content string to HTML.
- *
- * @param {string}  text    — raw content from sheet
- * @param {Record<string, string>} [imgMap]
- *        — map of "[img1]" → full <figure>…</figure> HTML string
- *          (built by api.js buildImgMap() before calling md())
- * @returns {string}        — HTML string, safe for innerHTML
- */
-// ── REPLACEMENT for the md() function in js/utils.js ──
-// Replace the entire md() function body with this version.
-// Adds callout blocks: > [!NOTE], > [!TIP], > [!WARNING], > [!IMPORTANT]
-// Everything else is unchanged.
-
-export function md(text, imgMap = {}) {
-  if (!text) return '';
-
-  // ── Step 1: tokenise image placeholders ─────────────────────────────
-  const toks  = {};
-  let   tokIdx = 0;
-  for (const [code, html] of Object.entries(imgMap)) {
-    const tok  = '\x00SD' + tokIdx++ + '\x00';
-    toks[tok]  = html;
-    text       = text.split(code).join(tok);
-  }
-
-  // ── Step 2: inline formatter ─────────────────────────────────────────
-  function inlineFmt(raw) {
-    return esc(raw)
-      .replace(/&#124;/g, '|')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g,     '<code>$1</code>')
-      .replace(
-        /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-        (_, t, u) => '<a href="' + u.replace(/&amp;/g, '&') + '" target="_blank" rel="noopener">' + t + '</a>'
-      );
-  }
-
-  function restoreToks(s) {
-    for (const [tok, html] of Object.entries(toks)) {
-      if (s.includes(tok)) s = s.split(tok).join(html);
-    }
-    return s;
-  }
-
-  // ── Callout type config ───────────────────────────────────────────────
-  const CALLOUT_TYPES = {
-    'NOTE':      { icon: '\u2139\uFE0F', cls: 'callout-note',      label: 'Note'      },
-    'TIP':       { icon: '\uD83D\uDCA1', cls: 'callout-tip',       label: 'Tip'       },
-    'WARNING':   { icon: '\u26A0\uFE0F', cls: 'callout-warning',   label: 'Warning'   },
-    'IMPORTANT': { icon: '\uD83D\uDD25', cls: 'callout-important', label: 'Important' },
-    'INFO':      { icon: '\uD83D\uDCCC', cls: 'callout-info',      label: 'Info'      },
-  };
-
-  let out   = '';
-  let inUL  = false;
-  let inOL  = false;
-  let inPRE = false;
-
-  function closeList() {
-    if (inUL) { out += '</ul>'; inUL = false; }
-    if (inOL) { out += '</ol>'; inOL = false; }
-  }
-
-  const lines = text.includes('\n')
-    ? text.split('\n').map(l => l.startsWith('|') ? l.slice(1) : l)
-    : text.split('|');
-
-  for (const raw of lines) {
-    // ── Code fence ───────────────────────────────────────────────────
-    if (raw.trim() === '```') {
-      if (inPRE) { out += '</code></pre>'; inPRE = false; }
-      else       { closeList(); out += '<pre><code>'; inPRE = true; }
-      continue;
-    }
-    if (inPRE) { out += esc(raw) + '\n'; continue; }
-
-    // ── Image token (standalone line) ────────────────────────────────
-    if (raw.trim() in toks) {
-      closeList();
-      out += toks[raw.trim()];
-      continue;
-    }
-
-    let l = inlineFmt(raw);
-    l     = restoreToks(l);
-
-    // ── Callout blocks: > [!NOTE] text  ──────────────────────────────
-    // Syntax: > [!NOTE] Your message here
-    // Also supports multiline: > [!NOTE]\n> continued text
-    const calloutMatch = l.match(/^&gt;\s*\[!(NOTE|TIP|WARNING|IMPORTANT|INFO)\]\s*(.*)/i);
-    if (calloutMatch) {
-      closeList();
-      const type    = calloutMatch[1].toUpperCase();
-      const content = calloutMatch[2];
-      const cfg     = CALLOUT_TYPES[type] || CALLOUT_TYPES['NOTE'];
-      out += '<div class="callout ' + cfg.cls + '">' +
-             '<div class="callout-header"><span class="callout-icon">' + cfg.icon + '</span>' +
-             '<span class="callout-label">' + cfg.label + '</span></div>' +
-             (content ? '<div class="callout-body"><p>' + content + '</p></div>' : '<div class="callout-body">') +
-             '</div>';
-      continue;
-    }
-
-    // ── Regular blockquote: > text ───────────────────────────────────
-    if (/^&gt; /.test(l)) {
-      closeList();
-      out += '<blockquote><p>' + l.slice(5) + '</p></blockquote>';
-      continue;
-    }
-
-    // ── Block elements ───────────────────────────────────────────────
-    if      (/^## /.test(l))    { closeList(); out += '<h2>' + l.slice(3) + '</h2>'; }
-    else if (/^### /.test(l))   { closeList(); out += '<h3>' + l.slice(4) + '</h3>'; }
-    else if (/^- /.test(l)) {
-      if (inOL)  { out += '</ol>'; inOL = false; }
-      if (!inUL) { out += '<ul>';  inUL = true;  }
-      out += '<li>' + l.slice(2) + '</li>';
-    }
-    else if (/^\d+\. /.test(l)) {
-      if (inUL)  { out += '</ul>'; inUL = false; }
-      if (!inOL) { out += '<ol>';  inOL = true;  }
-      out += '<li>' + l.replace(/^\d+\. /, '') + '</li>';
-    }
-    else if (l.trim() === '') { closeList(); }
-    else                      { closeList(); out += '<p>' + l + '</p>'; }
-  }
-
-  if (inPRE) out += '</code></pre>';
-  closeList();
-  return out;
 }
 
 
@@ -450,6 +278,11 @@ const _loadedCSS = new Set();
  */
 export function loadCSS(href) {
   if (_loadedCSS.has(href)) return Promise.resolve();
+  // Already linked by the server-rendered page
+  if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
+    _loadedCSS.add(href);
+    return Promise.resolve();
+  }
   _loadedCSS.add(href);
 
   return new Promise((resolve, reject) => {

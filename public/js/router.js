@@ -15,11 +15,14 @@
  *   - This file knows ZERO view names. All routing logic lives in js/main.js.
  *   - Handlers receive a context object: { path, parts, slug, params, searchParams }
  *   - Progress bar (pStart / pEnd) imported from js/utils.js
- *   - updateSEO NOT called here — each handler is responsible for its own SEO
- *   - 404 fallback renders into #heroSection overlay (preserves existing pattern)
+ *   - updateSEO is called by each handler (and here only for the 404 overlay)
+ *   - 404 fallback renders into #heroSection overlay; one <h1> per page is
+ *     enforced after every navigation (_promoteHeading)
  */
 
-import { pStart, pEnd, esc, watchReveals } from './utils.js';
+import { pStart, pEnd, watchReveals } from './utils.js';
+import { notFoundHTML } from './shared/render.js';
+import { updateSEO } from './seo.js';
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Route registry
@@ -110,14 +113,34 @@ function _show404(path) {
   heroSec.style.position = 'relative';
   const ov = document.createElement('div');
   ov.id = 'spa-404-overlay';
-  ov.innerHTML =
-    `<div class="not-found-wrap">` +
-      `<span class="not-found-code" aria-hidden="true">404</span>` +
-      `<h2>Page not found</h2>` +
-      `<p>The path <code style="font-family:var(--mono);color:var(--accent)">${esc(path)}</code> doesn't exist.</p>` +
-      `<a href="/" class="btn btn-solid" data-link>← Back to Home</a>` +
-    `</div>`;
+  ov.innerHTML = notFoundHTML(path);
   heroSec.appendChild(ov);
+  updateSEO({ path, title: 'Page Not Found | Suman Dangal', desc: 'This page does not exist.', noindex: true });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  One H1 per page
+//  All views live in one document, so the active view's main heading is
+//  promoted to <h1> and every other candidate becomes <h2>. Styles are
+//  class-based, so re-tagging does not change the look.
+// ─────────────────────────────────────────────────────────────────────────
+
+function _retag(node, tag) {
+  if (node.tagName.toLowerCase() === tag) return node;
+  const n = document.createElement(tag);
+  for (const a of node.attributes) n.setAttribute(a.name, a.value);
+  n.innerHTML = node.innerHTML;
+  node.replaceWith(n);
+  return n;
+}
+
+function _promoteHeading() {
+  const view = document.querySelector('#app .view.active');
+  const main = document.querySelector('#spa-404-overlay h1, #spa-404-overlay h2') ||
+    view?.querySelector('.article-title, .not-found-wrap h1, .not-found-wrap h2, .section-heading, #site-h1');
+  document.querySelectorAll('#app .section-heading, #site-h1, #app .article-title')
+    .forEach(h => { if (h !== main) _retag(h, 'h2'); });
+  if (main) _retag(main, 'h1');
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -263,6 +286,7 @@ if (handler) {
     watchReveals();
   }
 
+  _promoteHeading();
   pEnd();
 }
 

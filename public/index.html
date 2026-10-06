@@ -8,7 +8,10 @@
   <meta name="robots" content="index, follow" />
   <link id="canonical" rel="canonical" href="https://suman-dangal.com.np/" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#1b4332" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
@@ -16,15 +19,15 @@
   <meta property="og:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
   <meta property="og:description" content="Final-year BCA student. Full-stack Dev &amp; QA. Open to internships." />
   <meta property="og:url"         content="https://suman-dangal.com.np/" />
-  <meta property="og:image"       content="https://suman-dangal.com.np/og.png" />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image"       content="https://suman-dangal.com.np/android-chrome-512x512.png" />
+  <meta property="og:image:width"  content="512" />
+  <meta property="og:image:height" content="512" />
 
   <!-- Twitter Card -->
-  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:card"        content="summary" />
   <meta name="twitter:title"       content="Suman Dangal — Dev &amp; QA Engineer" />
   <meta name="twitter:description" content="Final-year BCA student. Full-stack Dev &amp; QA." />
-  <meta name="twitter:image"       content="https://suman-dangal.com.np/og.png" />
+  <meta name="twitter:image"       content="https://suman-dangal.com.np/android-chrome-512x512.png" />
 
   <!-- Fonts — preconnect + preload (non-render-blocking) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -41,6 +44,8 @@
   <link rel="stylesheet" href="/css/base.css" />
 </head>
 <body>
+
+<a class="skip-link" href="#app">Skip to content</a>
 
 <!-- ── Progress bar ─────────────────────────────────────────────────────── -->
 <div id="nprogress" aria-hidden="true"></div>
@@ -84,7 +89,7 @@
 </nav>
 
 <!-- ── App shell ────────────────────────────────────────────────────────── -->
-<div id="app" role="main">
+<main id="app" tabindex="-1">
 
   <!-- HOME -->
   <div id="view-home" class="view" role="region" aria-label="Home">
@@ -124,7 +129,7 @@
           <a href="/blog" class="featured-view-all" data-link
              aria-label="View all blog posts">View all posts →</a>
         </div>
-        <div class="featured-grid" id="featuredGrid" role="list">
+        <div class="featured-grid" id="featuredGrid">
           <!-- Skeleton cards — replaced by real cards once data loads -->
           <div class="fp-skel-card" aria-hidden="true">
             <div class="fp-skel-thumb"></div>
@@ -329,7 +334,7 @@
   <div id="view-cms" class="view" role="region" aria-label="Content Studio">
   </div>
 
-</div><!-- #appp -->
+</main><!-- #app -->
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer role="contentinfo">

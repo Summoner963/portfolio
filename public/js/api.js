@@ -7,18 +7,15 @@
 //   - parseCSV: parse raw CSV text → array of row objects.
 //   - cGet / cSet: localStorage cache (10-minute TTL, namespaced).
 //   - fetchSheet: stale-while-revalidate fetch with fallback to cache.
-//   - buildImgMap: resolve Img1_URL…ImgN_URL columns + images sheet rows
-//     into the imgMap object consumed by md() in js/utils.js.
-//   - buildFAQ: fetch FAQ rows for a blog slug, inject FAQPage schema,
-//     return rendered HTML string.
+//   (Image maps, FAQ markup and schemas live in js/shared/render.js.)
 //
 //  Security:
 //   - NO Google Sheet URLs or GIDs ever appear here.
 //   - Every fetch goes to /api/data?sheet=<name> — the Worker proxies it.
-//   - CSP connect-src 'self' enforces this at the browser level too.
+//   - The worker strips draft posts (and their FAQ/image rows) before
+//     anything reaches the browser.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { esc, fixImgUrl, md } from './utils.js';
 
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -62,8 +59,7 @@ export const CFG = {
 // ─────────────────────────────────────────────────────────────────────────
 //  CSV parser
 //  Handles: quoted fields, escaped quotes (""), CRLF + LF, trailing commas.
-//  Identical algorithm to worker/utils.js — kept in sync manually because
-//  the two environments (browser / Worker) cannot share modules directly.
+//  Same algorithm as worker/utils.js parseCSV().
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
@@ -117,12 +113,12 @@ export function parseCSV(raw) {
 
 // ─────────────────────────────────────────────────────────────────────────
 //  localStorage cache
-//  Namespace: 'sd5_' — bumped from sd4_ to clear stale cache on deploy.
+//  Namespace: 'sd6_' — bump to clear every visitor's cache on deploy.
 //  TTL: CFG.cacheMins (10 minutes).
 //  Errors are swallowed — private browsing / storage-full never throws.
 // ─────────────────────────────────────────────────────────────────────────
 
-const NS = 'sd5_';
+const NS = 'sd6_'; // bumped: drafts are now filtered server-side
 
 /**
  * Read a cached value from localStorage.
@@ -226,145 +222,6 @@ export async function fetchSheet(endpoint, key, onRevalidate) {
 
   // No cache — must await network
   return _doFetch(endpoint, key);
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────
-//  buildImgMap
-//  Resolves all inline image references for a blog post into a map of
-//  "[imgN]" → full <figure>…</figure> HTML string consumed by md().
-//
-//  Sources (in priority order):
-//   1. Img1_URL … ImgN_URL columns on the post row itself.
-//   2. Rows from the "images" sheet where Blog_Slug matches post.Slug.
-//      (Allows adding images without editing the main blog sheet.)
-// ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Build an image map for a blog post.
- *
- * @param {Record<string, string>} post       — one blog row object
- * @param {Array<Record<string, string>>} [imageRows] — rows from images sheet
- * @returns {Record<string, string>}          — { '[img1]': '<figure>…</figure>', … }
- */
-export function buildImgMap(post, imageRows) {
-  const map = {};
-
-  // ── Source 1: Img1_URL, Img2_URL … columns on the post row ─────────
-  let n = 1;
-  while (post[`Img${n}_URL`]) {
-    const url = fixImgUrl(post[`Img${n}_URL`]);
-    const alt = esc(post[`Img${n}_Alt`] || post.Title || '');
-    if (url) {
-      map[`[img${n}]`] =
-        `<figure class="blog-figure">` +
-          `<img class="blog-inline-img"` +
-          ` src="${esc(url)}"` +
-          ` alt="${alt}"` +
-          ` loading="lazy"` +
-          ` decoding="async"` +
-          ` width="680"` +
-          ` height="383">` +
-          `<figcaption>${alt}</figcaption>` +
-        `</figure>`;
-    }
-    n++;
-  }
-
-  // ── Source 2: separate images sheet (Blog_Slug + Img_Number columns) ─
-  if (imageRows?.length) {
-    const slug = (post.Slug || '').trim();
-    imageRows
-      .filter(r => (r.Blog_Slug || '').trim() === slug)
-      .sort((a, b) => Number(a.Img_Number || 0) - Number(b.Img_Number || 0))
-      .forEach(r => {
-        const num = Number(r.Img_Number || 0);
-        if (!num) return;
-        const url = fixImgUrl((r.Img_URL || '').trim());
-        const alt = esc((r.Img_Alt || post.Title || '').trim());
-        if (!url) return;
-        // Images sheet takes priority over inline columns for same index
-        map[`[img${num}]`] =
-          `<figure class="blog-figure">` +
-            `<img class="blog-inline-img"` +
-            ` src="${esc(url)}"` +
-            ` alt="${alt}"` +
-            ` loading="lazy"` +
-            ` decoding="async"` +
-            ` width="680"` +
-            ` height="383">` +
-            `<figcaption>${alt}</figcaption>` +
-          `</figure>`;
-      });
-  }
-
-  return map;
-}
-
-
-// ─────────────────────────────────────────────────────────────────────────
-//  buildFAQ
-//  Fetch FAQ rows for a given blog slug, inject FAQPage structured data
-//  into <head>, and return a rendered HTML string for the article footer.
-// ─────────────────────────────────────────────────────────────────────────
-
-/**
- * Build and inject FAQ content for a blog article.
- *
- * @param {string} slug                          — blog post slug
- * @param {Array<Record<string,string>>} [prefetchedRows]
- *        — already-fetched FAQ rows (avoids a second network call when
- *          renderArticle() pre-fetched them in parallel)
- * @returns {Promise<string>}                    — FAQ HTML or empty string
- */
-export async function buildFAQ(slug, prefetchedRows) {
-  // Remove any schema injected by a previous article navigation
-  const old = document.getElementById('faq-schema');
-  if (old) old.remove();
-
-  const allFaqs = prefetchedRows
-    ?? await fetchSheet(CFG.api.faq, 'faq');
-
-  if (!allFaqs?.length) return '';
-
-  const pairs = allFaqs
-    .filter(r => (r.Blog_Slug || '').trim() === slug)
-    .sort((a, b) => Number(a.FAQ_Number || 0) - Number(b.FAQ_Number || 0))
-    .map(r => ({
-      q: (r.FAQ_Question || '').trim(),
-      a: (r.FAQ_Answer   || '').trim(),
-    }))
-    .filter(p => p.q && p.a);
-
-  if (!pairs.length) return '';
-
-  // ── Inject FAQPage structured data ───────────────────────────────────
-  const sd   = document.createElement('script');
-  sd.id      = 'faq-schema';
-  sd.type    = 'application/ld+json';
-  sd.textContent = JSON.stringify({
-    '@context':  'https://schema.org',
-    '@type':     'FAQPage',
-    mainEntity: pairs.map(p => ({
-      '@type':         'Question',
-      name:             p.q,
-      acceptedAnswer: { '@type': 'Answer', text: p.a },
-    })),
-  });
-  document.head.appendChild(sd);
-
-  // ── Render accordion items ────────────────────────────────────────────
-  const items = pairs.map(p => `
-    <details class="faq-item">
-      <summary class="faq-question">${esc(p.q)}</summary>
-      <div class="faq-answer">${esc(p.a)}</div>
-    </details>`).join('');
-
-  return `
-    <section class="faq-section" aria-label="Frequently Asked Questions">
-      <h2>Frequently Asked Questions</h2>
-      ${items}
-    </section>`;
 }
 
 

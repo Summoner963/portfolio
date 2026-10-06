@@ -1,339 +1,117 @@
 /**
- * js/views/blog.js
+ * js/views/blog.js — blog list (#view-blog) and single article (#view-article).
  *
- * Handles BOTH the blog list view (#view-blog) and the single
- * article view (#view-article).
+ * Markup comes from js/shared/render.js (the worker renders the same HTML),
+ * cards and pagination are real <a href> links, and on the first page load
+ * the server-rendered DOM is kept (takeSSR) instead of being re-rendered.
  *
- * Exports (all named):
- *   renderBlogList()       — called by main.js for /blog route
- *   renderArticle(slug)    — called by main.js for /blog/:slug route
- *   setBlogRows(rows)      — called by home.js so its parallel fetch
- *                            populates the module cache before /blog loads
- *   blogState              — { query, category, sort, page } object;
- *                            exposed so main.js can read/reset page from URL
- *   initBlogToolbar(rows)  — sets up search, chips, sort; called internally
- *                            but exported for future external use
- *   renderFilteredBlog()   — applies blogState filters and re-renders grid;
- *                            exported for future external use
- *   buildCategoryChips(rows) — builds filter chip row; exported for reuse
- *
- * Design decisions:
- *   - blogRows is module-scoped; both renderBlogList and renderArticle share it
- *   - Direct /blog/:slug navigation (no prior /blog visit) works: renderArticle
- *     fetches the sheet itself when blogRows is null
- *   - onRevalidate callback keeps the list live: if stale cache was shown,
- *     fresh data re-renders without a full navigation
- *   - All DOM manipulation uses createElement where practical; innerHTML only
- *     for already-escaped template strings
- *   - FAQ and image data are fetched in parallel with blog data in renderArticle
- *   - loadCSS('/css/blog.css') is awaited once; subsequent calls are no-ops
- *     (loadCSS guards double-injection internally)
+ * Exports: renderBlogList(page), renderArticle(slug), setBlogRows(rows),
+ *          blogState, initBlogToolbar(rows), renderFilteredBlog()
  */
 
-import { fetchSheet, CFG }              from '../api.js';
-import { esc, md, fixImgUrl,
-         sanitizeHTML, loadCSS,
-         watchReveals, showToast }      from '../utils.js';
-import { updateSEO, removeSchemas }   from '../seo.js';
-import { buildFAQ, buildImgMap }      from '../api.js';
+import { fetchSheet, CFG } from '../api.js';
+import { sanitizeHTML, loadCSS, watchReveals, takeSSR } from '../utils.js';
+import { updateSEO } from '../seo.js';
+import {
+  SITE_URL, POSTS_PER_PAGE, dateValue, blogCardHTML, paginationHTML,
+  articleHTML, notFoundHTML, faqPairs, fixImgUrl, plainExcerpt,
+} from '../shared/render.js';
 
-// ── Module-level state ──────────────────────────────────────────────────────
-
-/**
- * Cached blog rows shared between renderBlogList and renderArticle.
- * home.js can pre-populate this via setBlogRows() so the blog list
- * view never has to re-fetch data already loaded by the home page.
- * @type {Array<Object>|null}
- */
+/** Blog rows shared by list + article (home.js pre-fills via setBlogRows). */
 let blogRows = null;
 
-/**
- * Live filter + sort + pagination state.
- * Exported so main.js can read `blogState.page` and inject the
- * page number from the URL query string before calling renderBlogList.
- */
-export const blogState = {
-  query:    '',
-  category: 'all',
-  sort:     'newest',
-  page:     1,
-};
+/** Live filter/sort/page state (page comes from ?page= in the URL). */
+export const blogState = { query: '', category: 'all', sort: 'newest', page: 1 };
 
-/** Debounce timer handle for the search input */
 let _searchTimer = null;
+const ensureCSS = () => loadCSS('/css/blog.css');
 
-/** CSS load promise — cached so loadCSS is only awaited once */
-let _cssPromise = null;
-
-function ensureCSS() {
-  if (!_cssPromise) _cssPromise = loadCSS('/css/blog.css');
-  return _cssPromise;
-}
-
-// ── Public setter for home.js pre-population ────────────────────────────────
-
-/**
- * Pre-populate the module cache from an external fetch (e.g. home.js
- * fetches blog + featured in parallel). Prevents a redundant network
- * request when the user navigates home → /blog.
- * @param {Array<Object>} rows
- */
 export function setBlogRows(rows) {
   if (rows?.length) blogRows = rows;
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Parse a date string to a sortable timestamp.
- * Returns 0 for unparseable strings so those rows sort last.
- * @param {string} dateStr
- * @returns {number}
- */
-function parseDateMs(dateStr) {
-  if (!dateStr) return 0;
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? 0 : d.getTime();
-}
-
-/**
- * Apply current blogState (query/category/sort) to the full rows array
- * and return the filtered+sorted result. Does NOT paginate — caller slices.
- * @param {Array<Object>} rows
- * @returns {Array<Object>}
- */
 function applyFilters(rows) {
   let result = [...rows];
-
-  // Text search: title + excerpt + category + tags
   if (blogState.query) {
     const q = blogState.query.toLowerCase();
-    result = result.filter(p =>
-      (p.Title    || '').toLowerCase().includes(q) ||
-      (p.Excerpt  || '').toLowerCase().includes(q) ||
-      (p.Category || '').toLowerCase().includes(q) ||
-      (p.Tags     || '').toLowerCase().includes(q)
-    );
+    result = result.filter(p => ['Title', 'Excerpt', 'Category', 'Tags']
+      .some(k => (p[k] || '').toLowerCase().includes(q)));
   }
-
-  // Category filter
   if (blogState.category !== 'all') {
     const cat = blogState.category.toLowerCase();
-    result = result.filter(p =>
-      (p.Category || '').trim().toLowerCase() === cat
-    );
+    result = result.filter(p => (p.Category || '').trim().toLowerCase() === cat);
   }
-
-  // Sort
   switch (blogState.sort) {
-    case 'newest': result.sort((a, b) => parseDateMs(b.Date) - parseDateMs(a.Date)); break;
-    case 'oldest': result.sort((a, b) => parseDateMs(a.Date) - parseDateMs(b.Date)); break;
+    case 'newest': result.sort((a, b) => dateValue(b.Date) - dateValue(a.Date)); break;
+    case 'oldest': result.sort((a, b) => dateValue(a.Date) - dateValue(b.Date)); break;
     case 'az':     result.sort((a, b) => (a.Title || '').localeCompare(b.Title || '')); break;
     case 'za':     result.sort((a, b) => (b.Title || '').localeCompare(a.Title || '')); break;
   }
-
   return result;
 }
 
-/**
- * Build a single blog card <article> element.
- * Uses createElement for the outer element; innerHTML only for the
- * already-escaped inner template string.
- * @param {Object} post
- * @returns {HTMLElement}
- */
-function buildCard(post) {
-  const imgUrl  = fixImgUrl(post.Image_URL || '');
-  const tagList = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
+// ── Toolbar ──────────────────────────────────────────────────────────────
 
-  const thumb = imgUrl
-    ? `<div class="blog-card-thumb">
-         <img src="${esc(imgUrl)}"
-              alt="${esc(post.Image_Alt || (post.Title || '') + ' cover')}"
-              loading="lazy" decoding="async"
-              width="310" height="172">
-       </div>`
-    : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`;
-
-  const tagsHTML = tagList.length
-    ? `<div class="blog-card-tags">${
-        tagList.map(t => `<span class="blog-tag">${esc(t)}</span>`).join('')
-      }</div>`
-    : '';
-
-  const card = document.createElement('article');
-  card.className = 'blog-card reveal';
-  card.setAttribute('tabindex', '0');
-  card.setAttribute('role', 'article');
-  card.setAttribute('aria-label', esc(post.Title || 'Blog post'));
-
-  card.innerHTML =
-    thumb +
-    `<div class="blog-card-body">` +
-      `<div class="blog-card-meta">` +
-        `<span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
-        `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
-      `</div>` +
-      `<h3 class="blog-card-title">${esc(post.Title || '')}</h3>` +
-      `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>` +
-      tagsHTML +
-    `</div>`;
-
-  const slug = (post.Slug || '').trim();
-  const go = () => {
-    // Use router navigate via dynamic import to avoid circular dep.
-    // navigate is re-imported lazily so the module graph stays acyclic.
-    import('../router.js').then(({ navigate }) => navigate(`/blog/${slug}`));
-  };
-  card.addEventListener('click', go);
-  card.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
-  });
-
-  return card;
-}
-
-/**
- * Build the pagination controls and inject them into #blogPagination.
- * @param {number} currentPage  1-based
- * @param {number} totalPages
- */
-function renderPagination(currentPage, totalPages) {
-  const nav = document.getElementById('blogPagination');
-  if (!nav) return;
-  nav.innerHTML = '';
-  if (totalPages <= 1) return;
-
-  if (currentPage > 1) {
-    const prev = document.createElement('button');
-    prev.className = 'btn btn-ghost';
-    prev.setAttribute('aria-label', 'Previous page');
-    prev.textContent = '← Prev';
-    prev.addEventListener('click', () => {
-      blogState.page = currentPage - 1;
-      renderFilteredBlog();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    nav.appendChild(prev);
-  }
-
-  const info = document.createElement('span');
-  info.setAttribute('aria-live', 'polite');
-  info.setAttribute('aria-atomic', 'true');
-  info.textContent = `Page ${currentPage} of ${totalPages}`;
-  nav.appendChild(info);
-
-  if (currentPage < totalPages) {
-    const next = document.createElement('button');
-    next.className = 'btn btn-ghost';
-    next.setAttribute('aria-label', 'Next page');
-    next.textContent = 'Next →';
-    next.addEventListener('click', () => {
-      blogState.page = currentPage + 1;
-      renderFilteredBlog();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    nav.appendChild(next);
-  }
-}
-
-// ── Toolbar ──────────────────────────────────────────────────────────────────
-
-/**
- * Build and wire the category filter chips row.
- * Clears the #blogFilters container first so repeated calls are safe.
- * @param {Array<Object>} rows
- */
-export function buildCategoryChips(rows) {
-  const container = document.getElementById('blogFilters');
-  if (!container) return;
-
-  // Collect unique categories preserving sheet order
-  const seen = new Set();
-  const cats = [];
-  rows.forEach(r => {
-    const c = (r.Category || '').trim();
-    if (c && !seen.has(c)) { seen.add(c); cats.push(c); }
-  });
-
-  container.innerHTML = '';
-
-  // "All" chip
-  const allChip = document.createElement('button');
-  allChip.className = 'filter-chip' + (blogState.category === 'all' ? ' active' : '');
-  allChip.textContent = 'All';
-  allChip.setAttribute('aria-pressed', String(blogState.category === 'all'));
-  allChip.addEventListener('click', () => {
-    blogState.category = 'all';
-    blogState.page = 1;
-    syncChipActive(container, 'all');
-    renderFilteredBlog();
-  });
-  container.appendChild(allChip);
-
-  // One chip per category
-  cats.sort().forEach(cat => {
-    const chip = document.createElement('button');
-    chip.className = 'filter-chip' + (blogState.category === cat ? ' active' : '');
-    chip.textContent = cat;
-    chip.dataset.cat = cat;
-    chip.setAttribute('aria-pressed', String(blogState.category === cat));
-    chip.addEventListener('click', () => {
-      blogState.category = cat;
-      blogState.page = 1;
-      syncChipActive(container, cat);
-      renderFilteredBlog();
-    });
-    container.appendChild(chip);
-  });
-}
-
-/** Update aria-pressed + .active class on all chips in a container. */
 function syncChipActive(container, activeCat) {
   container.querySelectorAll('.filter-chip').forEach(chip => {
-    const cat = chip.dataset.cat || 'all';
-    const active = cat === activeCat;
+    const active = (chip.dataset.cat || 'all') === activeCat;
     chip.classList.toggle('active', active);
     chip.setAttribute('aria-pressed', String(active));
   });
 }
 
-/**
- * Wire up the blog toolbar: show it, build chips, bind search + sort.
- * Clones search + sort nodes to strip any previous event listeners before
- * re-attaching, so calling initBlogToolbar more than once is safe.
- * @param {Array<Object>} rows
- */
+function chip(label, cat, container) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'filter-chip' + (blogState.category === cat ? ' active' : '');
+  b.textContent = label;
+  if (cat !== 'all') b.dataset.cat = cat;
+  b.setAttribute('aria-pressed', String(blogState.category === cat));
+  b.addEventListener('click', () => {
+    blogState.category = cat;
+    blogState.page = 1;
+    syncChipActive(container, cat);
+    renderFilteredBlog();
+  });
+  return b;
+}
+
+export function buildCategoryChips(rows) {
+  const container = document.getElementById('blogFilters');
+  if (!container) return;
+  const cats = [...new Set(rows.map(r => (r.Category || '').trim()).filter(Boolean))].sort();
+  container.innerHTML = '';
+  container.appendChild(chip('All', 'all', container));
+  cats.forEach(c => container.appendChild(chip(c, c, container)));
+}
+
+/** Show + wire search, chips and sort. Safe to call repeatedly. */
 export function initBlogToolbar(rows) {
   const toolbar = document.getElementById('blogToolbar');
   if (!toolbar) return;
   toolbar.style.display = '';
-
   buildCategoryChips(rows);
 
-  // ── Search ──
   const oldSearch = document.getElementById('blogSearch');
   if (oldSearch) {
-    const freshSearch = oldSearch.cloneNode(true);
-    freshSearch.value = blogState.query;
-    oldSearch.parentNode.replaceChild(freshSearch, oldSearch);
-    freshSearch.addEventListener('input', e => {
+    const search = oldSearch.cloneNode(true); // drops previous listeners
+    search.value = blogState.query;
+    oldSearch.replaceWith(search);
+    search.addEventListener('input', e => {
       clearTimeout(_searchTimer);
       _searchTimer = setTimeout(() => {
         blogState.query = e.target.value.trim();
-        blogState.page  = 1;
+        blogState.page = 1;
         renderFilteredBlog();
       }, 260);
     });
   }
-
-  // ── Sort ──
   const oldSort = document.getElementById('blogSort');
   if (oldSort) {
-    const freshSort = oldSort.cloneNode(true);
-    freshSort.value = blogState.sort;
-    oldSort.parentNode.replaceChild(freshSort, oldSort);
-    freshSort.addEventListener('change', e => {
+    const sort = oldSort.cloneNode(true);
+    sort.value = blogState.sort;
+    oldSort.replaceWith(sort);
+    sort.addEventListener('change', e => {
       blogState.sort = e.target.value;
       blogState.page = 1;
       renderFilteredBlog();
@@ -341,263 +119,111 @@ export function initBlogToolbar(rows) {
   }
 }
 
-// ── Core render functions ────────────────────────────────────────────────────
+// ── List ─────────────────────────────────────────────────────────────────
 
-/**
- * Apply current blogState to blogRows and re-render the card grid +
- * pagination + results count. Safe to call repeatedly.
- * Requires blogRows to be non-null (called only after data is loaded).
- */
+/** Re-render grid + pagination + count from blogState. */
 export function renderFilteredBlog() {
-  if (!blogRows?.length) return;
+  const grid = document.getElementById('blogGrid');
+  if (!grid || !blogRows?.length) return;
+  const filtered = applyFilters(blogRows);
+  const total = Math.max(1, Math.ceil(filtered.length / POSTS_PER_PAGE));
+  const page = Math.max(1, Math.min(blogState.page, total));
+  const slice = filtered.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE);
 
-  const grid     = document.getElementById('blogGrid');
-  const countEl  = document.getElementById('blogResultsCount');
-  if (!grid) return;
-
-  const filtered   = applyFilters(blogRows);
-  const perPage    = CFG.postsPerPage || 6;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-  const safePage   = Math.max(1, Math.min(blogState.page, totalPages));
-  const slice      = filtered.slice((safePage - 1) * perPage, safePage * perPage);
-
-  // Results count — only shown when a filter/search is active
-  if (countEl) {
-    const active = blogState.query || blogState.category !== 'all';
-    countEl.textContent = active
-      ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`
-      : '';
+  const count = document.getElementById('blogResultsCount');
+  if (count) {
+    count.textContent = (blogState.query || blogState.category !== 'all')
+      ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}` : '';
   }
-
-  // Empty state
-  if (!slice.length) {
-    grid.innerHTML =
-      '<p class="empty-state">No posts match your search — try different keywords or filters.</p>';
-    renderPagination(1, 0);
-    return;
-  }
-
-  // Build card fragment
-  const frag = document.createDocumentFragment();
-  slice.forEach(post => frag.appendChild(buildCard(post)));
-
-  grid.innerHTML = '';
-  grid.appendChild(frag);
-
-  renderPagination(safePage, totalPages);
+  grid.innerHTML = slice.length
+    ? slice.map(p => blogCardHTML(p)).join('')
+    : '<p class="empty-state">No posts match your search — try different keywords or filters.</p>';
+  const nav = document.getElementById('blogPagination');
+  if (nav) nav.innerHTML = slice.length ? paginationHTML(page, total) : '';
   watchReveals();
 }
 
-/**
- * Entry point for the /blog route.
- * Fetches data (or reuses cache), wires toolbar, renders initial grid.
- * Handles revalidation: if stale cache was shown, onRevalidate re-renders
- * with fresh data without requiring a navigation.
- */
-export async function renderBlogList() {
+/** /blog and /blog?page=N */
+export async function renderBlogList(page = 1) {
   await ensureCSS();
-
   const grid = document.getElementById('blogGrid');
   if (!grid) return;
+  blogState.page = page;
+  const key = page > 1 ? `/blog?page=${page}` : '/blog';
+  const keepSSR = takeSSR(grid, key);
+  takeSSR(document.getElementById('blogPagination'), key);
 
-  // Show skeleton while loading
-  if (!blogRows) {
+  if (!keepSSR && !blogRows) {
     grid.innerHTML = '<div class="skel skel-card"></div>'.repeat(3);
     const toolbar = document.getElementById('blogToolbar');
     if (toolbar) toolbar.style.display = 'none';
   }
 
-  blogRows = await fetchSheet(
-    CFG.api.blog,
-    'blog',
-    fresh => {
-      // Revalidation callback: update cache and re-render if blog view is active
-      blogRows = fresh;
-      const view = document.getElementById('view-blog');
-      if (view?.classList.contains('active')) {
-        initBlogToolbar(fresh);
-        renderFilteredBlog();
-      }
+  const rows = await fetchSheet(CFG.api.blog, 'blog', fresh => {
+    blogRows = fresh;
+    if (document.getElementById('view-blog')?.classList.contains('active')) {
+      initBlogToolbar(fresh);
+      renderFilteredBlog();
     }
-  );
+  });
+  if (rows?.length) blogRows = rows;
 
   if (!blogRows?.length) {
+    if (keepSSR) return; // data unavailable: keep the server-rendered cards
     const toolbar = document.getElementById('blogToolbar');
     if (toolbar) toolbar.style.display = 'none';
-    if (grid) {
-      grid.innerHTML =
-        '<p class="empty-state">No posts yet — check back soon.</p>';
-    }
+    grid.innerHTML = '<p class="empty-state">No posts yet — check back soon.</p>';
     return;
   }
-
   initBlogToolbar(blogRows);
-  renderFilteredBlog();
+  if (!keepSSR) renderFilteredBlog(); // server cards already match this page
 }
 
-// ── Article view ─────────────────────────────────────────────────────────────
+// ── Article ──────────────────────────────────────────────────────────────
 
-/**
- * Entry point for the /blog/:slug route.
- * Fetches blog data (reuses cache if available), renders full article with
- * cover image, body markdown, FAQ accordion, author byline, structured data.
- * @param {string} slug
- */
+/** /blog/:slug */
 export async function renderArticle(slug) {
   await ensureCSS();
-
   const wrap = document.getElementById('articleWrap');
   if (!wrap) return;
+  const path = `/blog/${slug}`;
+  // First load: the worker rendered the article and its <head>; keep both.
+  if (takeSSR(wrap, path)) return;
 
-  // Skeleton while loading
   wrap.innerHTML =
     `<div class="skel skel-line m" style="margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-line" style="height:36px;margin-bottom:1.5rem"></div>` +
     `<div class="skel skel-card" style="height:320px;margin-bottom:1.5rem"></div>` +
-    `<div class="skel skel-line"></div>` +
-    `<div class="skel skel-line m"></div>` +
-    `<div class="skel skel-line s"></div>`;
+    `<div class="skel skel-line"></div><div class="skel skel-line m"></div><div class="skel skel-line s"></div>`;
 
-  // Fetch blog, FAQ and image data in parallel.
-  // If blogRows already populated (from cache or home.js pre-fetch), skip refetch.
-  const [freshBlog, faqData, imageData] = await Promise.all([
-    blogRows
-      ? Promise.resolve(blogRows)
-      : fetchSheet(CFG.api.blog, 'blog'),
-    fetchSheet(CFG.api.faq,    'faq'),
+  const [fresh, faqRows, imageRows] = await Promise.all([
+    blogRows ? Promise.resolve(blogRows) : fetchSheet(CFG.api.blog, 'blog'),
+    fetchSheet(CFG.api.faq, 'faq'),
     fetchSheet(CFG.api.images, 'images'),
   ]);
-
-  // Populate module cache if this was the first fetch
-  if (!blogRows && freshBlog?.length) blogRows = freshBlog;
-
+  if (!blogRows && fresh?.length) blogRows = fresh;
   const post = blogRows?.find(p => (p.Slug || '').trim() === slug);
 
-  // ── 404 ──────────────────────────────────────────────────────────────────
   if (!post) {
-    removeSchemas();
-    updateSEO({
-      title: `${slug} — Not Found`,
-      desc:  'Blog post not found.',
-      path:  `/blog/${slug}`,
-    });
-
-    // Back button
-    const backBtn = document.createElement('button');
-    backBtn.className = 'article-back';
-    backBtn.textContent = '← Back to Blog';
-    backBtn.addEventListener('click', () => {
-      import('../router.js').then(({ navigate }) => navigate('/blog'));
-    });
-
-    const notFound = document.createElement('div');
-    notFound.className = 'not-found-wrap';
-    notFound.innerHTML =
-      `<span class="not-found-code" aria-hidden="true">404</span>` +
-      `<h2>Post not found</h2>` +
-      `<p>No post with slug <code style="font-family:var(--mono);color:var(--accent)">${esc(slug)}</code> exists.</p>`;
-
-    const homeLink = document.createElement('a');
-    homeLink.className = 'btn btn-solid';
-    homeLink.setAttribute('data-link', '');
-    homeLink.setAttribute('href', '/blog');
-    homeLink.textContent = '← Browse all posts';
-    notFound.appendChild(homeLink);
-
-    wrap.innerHTML = '';
-    wrap.appendChild(backBtn);
-    wrap.appendChild(notFound);
+    updateSEO({ path, title: 'Page Not Found | Suman Dangal', desc: 'This page does not exist.', noindex: true });
+    wrap.innerHTML = blogRows
+      ? notFoundHTML(path, { article: true })
+      : `<div class="not-found-wrap"><h1>Couldn't load this post</h1><p>Please check your connection and try again.</p></div>`;
     return;
   }
 
-  // ── Build article ─────────────────────────────────────────────────────────
-  const coverUrl  = fixImgUrl(post.Image_URL || '');
-  const tagList   = (post.Tags || '').split(',').map(t => t.trim()).filter(Boolean);
-  const imgMap    = buildImgMap(post, imageData);
-
-  // Update SEO + structured data (also injects BlogPosting + BreadcrumbList)
-  removeSchemas();
+  const pairs = faqPairs(faqRows, post.Slug);
+  wrap.innerHTML = articleHTML(post, {
+    imageRows: imageRows || [], faqRows: faqRows || [],
+    tableHTML: sanitizeHTML(post.Table_HTML),
+  });
   updateSEO({
-    title:       post.Title || '',
-    desc:        post.Excerpt || '',
-    path:        `/blog/${slug}`,
-    ogImage:     coverUrl,
-    articleMeta: {
-      title:    post.Title    || '',
-      excerpt:  post.Excerpt  || '',
-      date:     post.Date     || '',
-      imageUrl: coverUrl,
-      tags:     tagList,
-    },
+    path,
+    title: `${post.Title} | Suman Dangal`,
+    desc: post.Excerpt || plainExcerpt(post.Content),
+    image: fixImgUrl(post.Image_URL) || undefined,
+    post, faq: pairs,
+    crumbs: [{ name: 'Blog', url: `${SITE_URL}/blog` }, { name: post.Title, url: SITE_URL + path }],
   });
-
-  // Build FAQ HTML + inject FAQPage schema
-  const faqHTML = await buildFAQ(slug, faqData);
-
-  // ── Tags row ──
-  const tagsHTML = tagList.length
-    ? `<div class="article-tags">${
-        tagList.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')
-      }</div>`
-    : '';
-
-  // ── Cover image ──
-  const coverHTML = coverUrl
-    ? `<img class="article-cover"
-           src="${esc(coverUrl)}"
-           alt="${esc(post.Image_Alt || (post.Title || '') + ' featured image')}"
-           loading="eager" decoding="async" fetchpriority="high"
-           width="720" height="420">`
-    : '';
-
-  // ── Table HTML (optional sanitized block from sheet) ──
-  const tableHTML = post.Table_HTML
-    ? `<div class="sheet-html-block">${sanitizeHTML(post.Table_HTML)}</div>`
-    : '';
-
-  // ── Article body ──
-  const bodyHTML = md(post.Content || '', imgMap);
-
-  // ── Author byline ──
-  const authorHTML =
-    `<div class="article-author" itemscope itemtype="https://schema.org/Person">` +
-      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-         <circle cx="12" cy="8" r="4"/>
-         <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-       </svg>` +
-      `<span>Written by <a href="/about" data-link itemprop="url">` +
-        `<span itemprop="name">Suman Dangal</span></a>` +
-      `</span>` +
-    `</div>`;
-
-  // ── Assemble wrap ──────────────────────────────────────────────────────────
-  wrap.innerHTML = '';
-
-  // Back button (built with createElement so event listener works without data-link)
-  const backBtn = document.createElement('button');
-  backBtn.className = 'article-back';
-  backBtn.setAttribute('aria-label', 'Back to blog list');
-  backBtn.textContent = '← Back to Blog';
-  backBtn.addEventListener('click', () => {
-    import('../router.js').then(({ navigate }) => navigate('/blog'));
-  });
-  wrap.appendChild(backBtn);
-
-  // The rest of the article is trusted escaped HTML
-  const articleContent = document.createElement('div');
-  articleContent.innerHTML =
-    `<div class="article-meta">` +
-      `<span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
-      `<time datetime="${esc(post.Date || '')}">${esc(post.Date || '')}</time>` +
-    `</div>` +
-    `<h2 class="article-title">${esc(post.Title || '')}</h2>` +
-    tagsHTML +
-    coverHTML +
-    `<div class="article-body">${bodyHTML}${tableHTML}</div>` +
-    authorHTML +
-    faqHTML;
-
-  wrap.appendChild(articleContent);
   watchReveals();
 }

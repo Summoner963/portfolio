@@ -433,7 +433,7 @@ h3.blog-card-title {
 }
 
 /* ── Article title ─────────────────────────────────────────────────────── */
-h2.article-title {
+.article-title {
   font-family: var(--serif);
   font-size: clamp(1.8rem, 4vw, 2.8rem);
   line-height: 1.1;
@@ -770,7 +770,7 @@ summary.faq-question:focus-visible {
   }
 
   /* Article: slightly smaller title */
-  h2.article-title {
+  .article-title {
     font-size: clamp(1.5rem, 7vw, 2.2rem);
   }
 

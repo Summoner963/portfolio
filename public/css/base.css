@@ -265,7 +265,7 @@ nav {
 }
 
 /* Hidden on-page h1 for home (visible to crawlers via SSR) */
-h1.hero-title.h1-hidden { display: none; }
+.hero-title.h1-hidden { display: none; }
 
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -369,7 +369,7 @@ h1.hero-title.h1-hidden { display: none; }
   50%       { opacity: .3; }
 }
 
-h1.hero-title {
+.hero-title {
   font-family:    var(--serif);
   font-size:      clamp(3rem, 8.5vw, 7rem);
   line-height:    1.04;
@@ -379,7 +379,7 @@ h1.hero-title {
   color:          var(--accent2);
 }
 
-h1.hero-title em {
+.hero-title em {
   font-style: italic;
   color:      var(--accent);
 }
@@ -597,6 +597,7 @@ h1.hero-title em {
   display:       block;
 }
 
+.not-found-wrap h1,
 .not-found-wrap h2 {
   font-family:   var(--serif);
   font-size:     2rem;
@@ -770,7 +771,7 @@ a:focus-visible {
   /* Hero */
   .hero { padding: 3rem 1.5rem; }
 
-  h1.hero-title { font-size: clamp(2.4rem, 11vw, 4rem); }
+  .hero-title { font-size: clamp(2.4rem, 11vw, 4rem); }
 
   .hero-stats { gap: 1.8rem; }
 
@@ -833,3 +834,32 @@ a:focus-visible {
 
   html { scroll-behavior: auto; }
 }
+/* ─────────────────────────────────────────────────────────────────────────
+   14. LINKED CARDS + SKIP LINK
+   Cards and the article back control are real <a href> links (crawlable,
+   keyboard-native); keep them looking exactly like the old elements.
+   ───────────────────────────────────────────────────────────────────────── */
+
+a.blog-card,
+a.fp-card,
+a.article-back {
+  color:           inherit;
+  text-decoration: none;
+}
+a.article-back { color: var(--muted); }
+
+.skip-link {
+  position:      absolute;
+  left:          1rem;
+  top:           -100px;
+  z-index:       2000;
+  padding:       .6rem 1rem;
+  background:    var(--accent2);
+  color:         #fff;
+  font-family:   var(--mono);
+  font-size:     .8rem;
+  border-radius: .4rem;
+  text-decoration: none;
+}
+.skip-link:focus { top: .75rem; }
+#app:focus { outline: none; }
