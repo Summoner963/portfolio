@@ -20,3 +20,6 @@ reference/
 Thumbs.db
 desktop.ini
 *.swp
+
+# Local snapshot output (compare with tests/baseline)
+tests/latest/

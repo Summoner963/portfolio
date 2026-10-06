@@ -2,9 +2,13 @@
   "name": "suman-dangal-portfolio",
   "private": true,
   "type": "module",
-  "description": "Portfolio + blog on Cloudflare Pages. No runtime or dev dependencies.",
+  "description": "Portfolio + blog on Cloudflare Pages. No runtime or dev dependencies (wrangler runs via npx).",
   "scripts": {
     "test": "node --test \"tests/*.test.mjs\"",
-    "mock-sheets": "node tests/mock-sheets.mjs 8899"
+    "mock-sheets": "node tests/mock-sheets.mjs 8899",
+    "dev": "npx --yes wrangler@3 pages dev",
+    "dev:mock": "npx --yes wrangler@3 pages dev --binding SHEET_ID=FIXTURE --binding SHEET_BASE=http://127.0.0.1:8899/d/e",
+    "snapshot": "node tests/snapshot.mjs http://127.0.0.1:8788 tests/latest",
+    "secrets": "node tools/make-cms-secrets.mjs"
   }
 }
