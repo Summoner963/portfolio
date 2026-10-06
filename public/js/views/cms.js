@@ -16,25 +16,44 @@
 import { esc, loadCSS, showToast, md } from '../utils.js';
 
 // ── API helpers ────────────────────────────────────────────────────────────
-// Authentication is Cloudflare Access: the browser sends Access's HttpOnly
-// cookie automatically and the worker verifies the Access JWT on every call.
-// No password, token or secret ever lives in this file or in storage.
+// Sessions are an HttpOnly cookie set by the worker (JavaScript can't read
+// it). The CSRF token is kept only in memory and sent on every call.
+
+let csrfToken = '';
 
 async function cmsCall(path, body) {
   const r = await fetch(path, {
     method:      'POST',
     credentials: 'same-origin',
-    headers:     { 'Content-Type': 'application/json' },
+    headers:     { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
     body:        JSON.stringify(body),
   });
-  if (r.status === 401) {
-    showToast('Your sign-in expired — reloading…', 'error');
-    setTimeout(() => location.reload(), 1200); // Access shows its login again
-    return { ok: false, error: 'Signed out' };
+  const rotated = r.headers.get('X-CSRF-Token');
+  if (rotated) csrfToken = rotated; // session was refreshed
+  if (r.status === 401 && path !== '/api/cms/login') {
+    showToast('Session expired — please sign in again', 'error');
+    const view = document.getElementById('view-cms');
+    if (view) renderLogin(view);
   }
   try { return await r.json(); } catch { return { ok: false, error: 'Unexpected response' }; }
 }
 
+async function apiSession() {
+  try {
+    const r = await fetch('/api/cms/session', { credentials: 'same-origin' });
+    const data = await r.json();
+    if (data.ok) csrfToken = data.csrf;
+    return data.ok === true;
+  } catch { return false; }
+}
+
+async function apiLogin(username, password) {
+  const result = await cmsCall('/api/cms/login', { username, password });
+  if (result.ok) csrfToken = result.csrf || '';
+  return result;
+}
+
+const apiLogout = () => cmsCall('/api/cms/logout', {}).finally(() => { csrfToken = ''; });
 const apiRead   = sheet => cmsCall('/api/cms/read', { sheet });
 const apiAppend = (sheet, row) => cmsCall('/api/cms/write', { action: 'append', sheet, row });
 // The key column (Slug / Blog_Slug) is decided by the worker, not the client.
@@ -90,8 +109,72 @@ export async function renderCMS() {
   await loadCSS('/css/cms.css');
   const view = document.getElementById('view-cms');
   if (!view) return;
-  renderDashboard(view);
+  if (await apiSession()) renderDashboard(view);
+  else renderLogin(view);
 }
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────
+
+function renderLogin(view) {
+  view.innerHTML = `
+    <div class="cms-login-wrap">
+      <div class="cms-login-card">
+        <div class="cms-login-logo">
+          <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+            <rect width="48" height="48" rx="9" fill="#1b4332"/>
+            <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle"
+              font-family="Georgia,serif" font-size="26" fill="#fff">SD</text>
+          </svg>
+        </div>
+        <h2 class="cms-login-title">Content Studio</h2>
+        <p class="cms-login-sub">Sign in to manage your content</p>
+        <form class="cms-login-form" id="cmsLoginForm" autocomplete="on">
+          <div class="cms-field">
+            <label class="cms-label" for="cmsUser">Username</label>
+            <input class="cms-input" type="text" id="cmsUser"
+              name="username" autocomplete="username" required placeholder="your username" />
+          </div>
+          <div class="cms-field">
+            <label class="cms-label" for="cmsPw">Password</label>
+            <input class="cms-input" type="password" id="cmsPw"
+              name="password" autocomplete="current-password" required placeholder="••••••••" />
+          </div>
+          <div class="cms-login-error" id="cmsLoginError" hidden></div>
+          <button class="cms-btn cms-btn-primary" type="submit" id="cmsLoginBtn">Sign in</button>
+        </form>
+      </div>
+    </div>`;
+
+  const form     = document.getElementById('cmsLoginForm');
+  const errEl    = document.getElementById('cmsLoginError');
+  const loginBtn = document.getElementById('cmsLoginBtn');
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const username = document.getElementById('cmsUser').value.trim();
+    const password = document.getElementById('cmsPw').value;
+    loginBtn.disabled    = true;
+    loginBtn.textContent = 'Signing in\u2026';
+    errEl.hidden         = true;
+    try {
+      const result = await apiLogin(username, password);
+      if (result.ok) {
+        renderDashboard(view);
+      } else {
+        errEl.textContent    = result.error || 'Invalid username or password';
+        errEl.hidden         = false;
+        loginBtn.disabled    = false;
+        loginBtn.textContent = 'Sign in';
+      }
+    } catch (err) {
+      errEl.textContent    = 'Network error \u2014 try again';
+      errEl.hidden         = false;
+      loginBtn.disabled    = false;
+      loginBtn.textContent = 'Sign in';
+    }
+  });
+}
+
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
 
@@ -135,8 +218,9 @@ function renderDashboard(view, activeTab) {
     });
   });
 
-  document.getElementById('cmsSignOut').addEventListener('click', function() {
-    location.href = '/cdn-cgi/access/logout'; // ends the Cloudflare Access session
+  document.getElementById('cmsSignOut').addEventListener('click', async function() {
+    await apiLogout();
+    renderLogin(view);
   });
 
   renderBlogList(document.getElementById('panel-blog'), view);

@@ -1,7 +1,7 @@
 // worker/cms-proxy.js
 // ═══════════════════════════════════════════════════════════════════════════
-//  CMS API → Google Apps Script. Called only after Cloudflare Access
-//  verification + same-origin check in worker/index.js.
+//  CMS API → Google Apps Script. Called only after the session cookie,
+//  CSRF token and same-origin checks in worker/index.js (worker/auth.js).
 //
 //  Nothing from the client is trusted:
 //   - sheet names, actions and slug columns are fixed server-side

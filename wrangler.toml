@@ -11,6 +11,9 @@
 #    SHEET_ID                 "Publish to web" ID (between /d/e/ and /pub)
 #    CMS_APPS_SCRIPT_URL      Apps Script web-app URL used by the CMS
 #    CMS_APPS_SCRIPT_SECRET   shared secret checked by the Apps Script
+#    CMS_USERNAME             } create all three with:
+#    CMS_PASSWORD_HASH        }   node tools/make-cms-secrets.mjs <username>
+#    CMS_SESSION_SECRET       }
 #  Local development: copy .dev.vars.example to .dev.vars (git-ignored).
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -33,12 +36,3 @@ ABOUT_GID    = "1066410604"
 FAQ_GID      = "303688554"
 IMAGES_GID   = "1267436347"
 FEATURED_GID = "980532084"
-
-# Cloudflare Access (admin /back-lab and /api/cms/*). Not secrets.
-# Zero Trust → Access → Applications → your app:
-#   ACCESS_TEAM_DOMAIN  e.g. "https://<team>.cloudflareaccess.com"
-#   ACCESS_AUD          "Application Audience (AUD) Tag" — comma-separate several
-#                       (the custom-domain app + the Pages preview-protection app)
-# Left empty ⇒ the admin is locked (fails closed) until you fill them in.
-ACCESS_TEAM_DOMAIN = ""
-ACCESS_AUD         = ""

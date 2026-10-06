@@ -2,62 +2,89 @@
 // aren't available in Node, so only pure modules are imported here.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { verifyAccessJwt, teamOrigin, isSameOriginJson } from '../worker/access.js';
+import {
+  hashPassword, parseHash, checkCredentials, issueSession, getSession,
+  isSameOriginJson, csrfOk, safeEqual, COOKIE,
+} from '../worker/auth.js';
 import { cleanCell, validateRow } from '../worker/cms-proxy.js';
 import { hostPolicy, canonicalPath, isRateLimited } from '../worker/http.js';
 
-// ── Access JWT ────────────────────────────────────────────────────────────
-const DOMAIN = 'https://team.cloudflareaccess.com';
-const AUD = 'aud-tag-123';
-const b64url = buf => Buffer.from(buf).toString('base64url');
-const { publicKey, privateKey } = await crypto.subtle.generateKey(
-  { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
-  true, ['sign', 'verify']);
-const jwk = { ...(await crypto.subtle.exportKey('jwk', publicKey)), kid: 'k1' };
-const otherPair = await crypto.subtle.generateKey(
-  { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
-  true, ['sign', 'verify']);
+// ── Password hashing ──────────────────────────────────────────────────────
+const PW = 'Correct-Horse-Battery-Staple-42';
+const env = {
+  CMS_USERNAME: 'suman',
+  CMS_PASSWORD_HASH: await hashPassword(PW),
+  CMS_SESSION_SECRET: 'x'.repeat(43),
+};
 
-async function sign(claims, { header = { alg: 'RS256', kid: 'k1' }, key = privateKey } = {}) {
-  const h = b64url(JSON.stringify(header)), p = b64url(JSON.stringify(claims));
-  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(`${h}.${p}`));
-  return `${h}.${p}.${b64url(sig)}`;
-}
-const now = Math.floor(Date.now() / 1000);
-const good = { iss: DOMAIN, aud: [AUD], exp: now + 600, nbf: now - 10, email: 'me@example.com' };
-const opts = { domain: DOMAIN, aud: AUD, keys: [jwk] };
+test('hashPassword produces a salted PBKDF2 string that parses', async () => {
+  assert.match(env.CMS_PASSWORD_HASH, /^pbkdf2-sha256\$20000\$[\w-]{22}\$[\w-]{43}$/);
+  assert.notEqual(await hashPassword(PW), env.CMS_PASSWORD_HASH, 'random salt');
+  assert.ok(parseHash(env.CMS_PASSWORD_HASH));
+});
+test('old unsalted SHA-256 hashes and junk are refused (login disabled)', async () => {
+  const old = 'a'.repeat(64);
+  assert.equal(parseHash(old), null);
+  assert.equal(await checkCredentials('suman', PW, { ...env, CMS_PASSWORD_HASH: old }), false);
+  assert.equal(parseHash('pbkdf2-sha256$500$AAAAAAAAAAAAAAAAAAAAAA$' + 'A'.repeat(43)), null, 'too few iterations');
+  assert.equal(parseHash('pbkdf2-sha256$900000$AAAAAAAAAAAAAAAAAAAAAA$' + 'A'.repeat(43)), null, 'over Workers limit');
+});
+test('checkCredentials needs both the right user and password', async () => {
+  assert.equal(await checkCredentials('suman', PW, env), true);
+  assert.equal(await checkCredentials('suman', PW + 'x', env), false);
+  assert.equal(await checkCredentials('admin', PW, env), false);
+  assert.equal(await checkCredentials('', '', env), false);
+  assert.equal(await checkCredentials('suman', PW, { ...env, CMS_USERNAME: '' }), false);
+});
+test('safeEqual compares contents, not lengths only', () => {
+  assert.equal(safeEqual('abc', 'abc'), true);
+  assert.equal(safeEqual('abc', 'abd'), false);
+  assert.equal(safeEqual('abc', 'abcd'), false);
+});
 
-test('valid Access JWT is accepted', async () => {
-  assert.equal((await verifyAccessJwt(await sign(good), opts))?.email, 'me@example.com');
+// ── Sessions ──────────────────────────────────────────────────────────────
+const withCookie = cookie => new Request('https://suman-dangal.com.np/api/cms/session', {
+  headers: { Cookie: cookie.split(';')[0] },
 });
-test('Access JWT rejected: wrong aud / iss / expired / not yet valid', async () => {
-  assert.equal(await verifyAccessJwt(await sign({ ...good, aud: ['other'] }), opts), null);
-  assert.equal(await verifyAccessJwt(await sign({ ...good, iss: 'https://evil.cloudflareaccess.com' }), opts), null);
-  assert.equal(await verifyAccessJwt(await sign({ ...good, exp: now - 3600 }), opts), null);
-  assert.equal(await verifyAccessJwt(await sign({ ...good, nbf: now + 3600 }), opts), null);
+test('session cookie is HttpOnly, Secure, SameSite=Strict, __Host- prefixed', async () => {
+  const { cookie } = await issueSession(env, 'suman');
+  assert.match(cookie, new RegExp(`^${COOKIE.replace('$', '\$')}=`));
+  for (const attr of ['Path=/', 'Secure', 'HttpOnly', 'SameSite=Strict', 'Max-Age=28800']) assert.ok(cookie.includes(attr), attr);
+  assert.ok(!/Domain=/i.test(cookie));
 });
-test('Access JWT rejected: forged signature, alg tampering, unknown kid, garbage', async () => {
-  assert.equal(await verifyAccessJwt(await sign(good, { key: otherPair.privateKey }), opts), null);
-  assert.equal(await verifyAccessJwt(await sign(good, { header: { alg: 'none', kid: 'k1' } }), opts), null);
-  assert.equal(await verifyAccessJwt(await sign(good, { header: { alg: 'HS256', kid: 'k1' } }), opts), null);
-  assert.equal(await verifyAccessJwt(await sign(good, { header: { alg: 'RS256', kid: 'nope' } }), opts), null);
-  const t = (await sign(good)).split('.');
-  assert.equal(await verifyAccessJwt(`${t[0]}.${b64url(JSON.stringify({ ...good, email: 'x@y' }))}.${t[2]}`, opts), null);
-  for (const bad of ['', 'a.b', 'a.b.c', null]) assert.equal(await verifyAccessJwt(bad, opts), null);
+test('valid session is accepted and yields a CSRF token', async () => {
+  const s = await getSession(withCookie((await issueSession(env, 'suman')).cookie), env);
+  assert.equal(s.user, 'suman');
+  assert.match(s.csrf, /^[\w-]{43}$/);
 });
-test('ACCESS_AUD may list several apps (custom domain + previews)', async () => {
-  assert.ok(await verifyAccessJwt(await sign(good), { ...opts, aud: 'preview-aud, aud-tag-123' }));
-  assert.equal(await verifyAccessJwt(await sign(good), { ...opts, aud: 'preview-aud,other' }), null);
+test('tampered, expired, re-keyed or password-changed sessions are rejected', async () => {
+  const { cookie } = await issueSession(env, 'suman');
+  const [name, value] = cookie.split(';')[0].split('=');
+  const [body, sig] = value.split('.');
+  const forged = JSON.parse(Buffer.from(body, 'base64url')) ; forged.u = 'someone';
+  assert.equal(await getSession(withCookie(`${name}=${Buffer.from(JSON.stringify(forged)).toString('base64url')}.${sig}`), env), null);
+  assert.equal(await getSession(withCookie(`${name}=${body}.${sig.slice(0, -2)}AA`), env), null);
+  const old = await issueSession(env, 'suman', { login: Math.floor(Date.now() / 1000) - 9 * 3600 });
+  assert.equal(await getSession(withCookie(old.cookie), env), null, 'past 8 h');
+  assert.equal(await getSession(withCookie(cookie), { ...env, CMS_SESSION_SECRET: 'y'.repeat(43) }), null);
+  assert.equal(await getSession(withCookie(cookie), { ...env, CMS_PASSWORD_HASH: await hashPassword('new') }), null);
+  assert.equal(await getSession(withCookie(cookie), { ...env, CMS_SESSION_SECRET: 'short' }), null);
+  assert.equal(await getSession(withCookie('other=1'), env), null);
 });
-test('missing Access config fails closed', async () => {
-  assert.equal(await verifyAccessJwt(await sign(good), { ...opts, aud: '' }), null);
-  assert.equal(await verifyAccessJwt(await sign(good), { ...opts, domain: '' }), null);
-});
-test('teamOrigin normalises and rejects non-Access hosts', () => {
-  assert.equal(teamOrigin('team'), DOMAIN);
-  assert.equal(teamOrigin('team.cloudflareaccess.com/'), DOMAIN);
-  assert.equal(teamOrigin('https://team.cloudflareaccess.com'), DOMAIN);
-  assert.equal(teamOrigin('https://evil.com'), '');
+test('fresh sessions are kept; sessions older than an hour are rotated', async () => {
+  const fresh = await issueSession(env, 'suman');
+  assert.equal((await getSession(withCookie(fresh.cookie), env)).rotateCookie, undefined);
+
+  const realNow = Date.now;
+  const twoHoursAgo = realNow() - 2 * 3600 * 1000;
+  Date.now = () => twoHoursAgo; // issue the session "two hours ago"
+  const old = await issueSession(env, 'suman');
+  Date.now = realNow;
+  const s = await getSession(withCookie(old.cookie), env);
+  assert.ok(s.rotateCookie, 'rotated');
+  assert.match(s.rotateCookie, /Max-Age=(2[0-1]\d{3})/, 'keeps the original 8 h deadline (~6 h left)');
+  const again = await getSession(withCookie(s.rotateCookie), env);
+  assert.equal(again.csrf, s.csrf, 'returned CSRF token matches the rotated cookie');
 });
 
 // ── CSRF ──────────────────────────────────────────────────────────────────
@@ -70,6 +97,13 @@ test('CMS calls must be same-origin JSON', () => {
   assert.equal(isSameOriginJson(req({ ...ok, 'Content-Type': 'text/plain' })), false);
   const { Origin, ...noOrigin } = ok;
   assert.equal(isSameOriginJson(req(noOrigin)), false);
+});
+test('CSRF token must match the session', () => {
+  const session = { csrf: 'token-abc' };
+  assert.equal(csrfOk(req({ 'X-CSRF-Token': 'token-abc' }), session), true);
+  assert.equal(csrfOk(req({ 'X-CSRF-Token': 'token-abd' }), session), false);
+  assert.equal(csrfOk(req({}), session), false);
+  assert.equal(csrfOk(req({ 'X-CSRF-Token': 'token-abc' }), null), false);
 });
 
 // ── CMS validation ────────────────────────────────────────────────────────

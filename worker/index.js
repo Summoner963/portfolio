@@ -19,10 +19,14 @@ import { rewriteShell } from './shell.js';
 import { homePage, sectionPage, blogListPage, blogPostPage, adminPage, notFoundPage } from './pages.js';
 import { robotsTxt, sitemapXml, llmsTxt } from './seo-files.js';
 import { handleCMSRead, handleCMSWrite } from './cms-proxy.js';
-import { adminIdentity, isSameOriginJson } from './access.js';
+import {
+  checkCredentials, issueSession, clearSessionCookie, getSession,
+  isSameOriginJson, csrfOk, isLockedOut, recordFailure, clearFailures,
+} from './auth.js';
 
 const ADMIN_PATH = '/back-lab';
-const CMS_POST = new Set(['/api/cms/read', '/api/cms/write']);
+const CMS_POST = new Set(['/api/cms/login', '/api/cms/logout', '/api/cms/read', '/api/cms/write']);
+const CMS_GET  = new Set(['/api/cms/session']);
 const _cmsRl = new Map();
 const json = (obj, status, extra = {}) => new Response(JSON.stringify(obj), {
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra },
@@ -92,7 +96,7 @@ async function renderPage(request, env, ctx, url) {
   else if (path === '/blog')        page = await blogListPage(url, env, ctx);
   else if (post)                    page = await blogPostPage(safeDecode(post[1]), env, ctx);
   else if (ROUTES[path])            page = await sectionPage(path, env, ctx);
-  else if (path === ADMIN_PATH)     page = (await adminIdentity(request, env)) ? adminPage() : notFoundPage(path);
+  else if (path === ADMIN_PATH)     page = adminPage(); // login form; data needs a session
   else                              page = notFoundPage(path);
 
   const shell = await env.ASSETS.fetch(new Request(new URL('/', url), { headers: { Accept: 'text/html' } }));
@@ -134,13 +138,43 @@ async function dataEndpoint(url, env, ctx) {
   });
 }
 
-// ── CMS API — Cloudflare Access + same-origin JSON, then validated proxy ─
+// ── CMS API — session cookie + CSRF token + same-origin JSON ───────────
 async function cmsEndpoint(path, request, env, ctx, ip) {
   const headers = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' };
-  if (!CMS_POST.has(path) || request.method !== 'POST') return json({ ok: false, error: 'Not found' }, 404, headers);
-  if (!(await adminIdentity(request, env))) return json({ ok: false, error: 'Unauthorized' }, 401, headers);
-  if (!isSameOriginJson(request)) return json({ ok: false, error: 'Forbidden' }, 403, headers);
-  if (isRateLimited(ip, 60, 60_000, _cmsRl)) return json({ ok: false, error: 'Too many requests' }, 429, { ...headers, 'Retry-After': '60' });
+  const reply = (obj, status = 200, extra = {}) => json(obj, status, { ...headers, ...extra });
+  const known = (request.method === 'POST' && CMS_POST.has(path)) || (request.method === 'GET' && CMS_GET.has(path));
+  if (!known) return reply({ ok: false, error: 'Not found' }, 404);
+  if (isRateLimited(ip, 60, 60_000, _cmsRl)) return reply({ ok: false, error: 'Too many requests' }, 429, { 'Retry-After': '60' });
+
+  if (path === '/api/cms/session') {
+    const session = await getSession(request, env);
+    if (!session) return reply({ ok: false, error: 'Signed out' }, 401);
+    return reply({ ok: true, user: session.user, csrf: session.csrf },
+      200, session.rotateCookie ? { 'Set-Cookie': session.rotateCookie } : {});
+  }
+  if (!isSameOriginJson(request)) return reply({ ok: false, error: 'Forbidden' }, 403);
+
+  if (path === '/api/cms/login') {
+    if (await isLockedOut(ip)) return reply({ ok: false, error: 'Too many attempts — try again in 15 minutes' }, 429, { 'Retry-After': '900' });
+    const text = await request.text();
+    let body = null;
+    if (text.length <= 2048) { try { body = JSON.parse(text); } catch {} }
+    const ok = body && await checkCredentials(body.username, body.password, env);
+    if (!ok) {
+      await recordFailure(ip, ctx);
+      return reply({ ok: false, error: 'Invalid username or password' }, 401);
+    }
+    await clearFailures(ip);
+    const { cookie } = await issueSession(env, String(body.username));
+    const session = await getSession(new Request(request.url, { headers: { Cookie: cookie.split(';')[0] } }), env);
+    return reply({ ok: true, csrf: session?.csrf }, 200, { 'Set-Cookie': cookie });
+  }
+  if (path === '/api/cms/logout') return reply({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie() });
+
+  // read / write
+  const session = await getSession(request, env);
+  if (!session) return reply({ ok: false, error: 'Signed out' }, 401);
+  if (!csrfOk(request, session)) return reply({ ok: false, error: 'Forbidden' }, 403);
 
   let res;
   if (path === '/api/cms/read') {
@@ -152,6 +186,10 @@ async function cmsEndpoint(path, request, env, ctx, ip) {
   }
   const final = new Response(res.body, res);
   for (const [k, v] of Object.entries(headers)) final.headers.set(k, v);
+  if (session.rotateCookie) {
+    final.headers.append('Set-Cookie', session.rotateCookie);
+    final.headers.set('X-CSRF-Token', session.csrf); // new session id ⇒ new token
+  }
   return final;
 }
 

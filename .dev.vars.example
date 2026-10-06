@@ -2,5 +2,7 @@
 SHEET_ID=
 CMS_APPS_SCRIPT_URL=
 CMS_APPS_SCRIPT_SECRET=
-# Local only: skips the Cloudflare Access check, and only on localhost/127.0.0.1
-ACCESS_DEV_BYPASS=true
+# From: node tools/make-cms-secrets.mjs <username>
+CMS_USERNAME=
+CMS_PASSWORD_HASH=
+CMS_SESSION_SECRET=
