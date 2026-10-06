@@ -28,9 +28,10 @@ name            = "suman-dangal"
 compatibility_date = "2024-09-23"
 
 # ── Pages project config ───────────────────────────────────────────────────
-# Cloudflare Pages serves static assets from the project root.
-# The Worker (worker/index.js) handles all dynamic routing.
-pages_build_output_dir = "."   # root — index.html lives here
+# Only public/ is deployed. Worker source (worker/), notes and reference
+# copies stay outside it so they can never be served.
+# Keep the Pages dashboard "Build output directory" set to "public" too.
+pages_build_output_dir = "./public"
 
 # ── Worker entry point ─────────────────────────────────────────────────────
 # When using Pages Functions, this is ignored in favour of functions/.
@@ -126,6 +127,6 @@ CHORDS_GID    = "687736904"  # ← Replace with your Chords sheet tab GID
 #     (It should — it was written as part of the chords section build.)
 #
 #  6. Deploy:
-#       wrangler pages deploy . --project-name suman-dangal
+#       wrangler pages deploy public --project-name suman-dangal
 #     or push to your connected Git repo for auto-deploy.
 # ─────────────────────────────────────────────────────────────────────────
