@@ -9,12 +9,12 @@
 // Request body (JSON): { secret, action: read|append|update|delete, sheet, row?, slug? }
 // Response (JSON):     { ok: true, rows? } or { ok: false, error }
 
-// Tabs the CMS may touch → the column used to find rows for update/delete.
-// Tab names in the spreadsheet must be exactly these.
+// CMS sheet name (sent by the worker) → your actual tab name + the column
+// used to find rows for update/delete. Edit `tab` if you rename a tab.
 var TABS = {
-  blog:      'Slug',
-  blogimage: 'Blog_Slug',
-  faq:       'Blog_Slug',
+  blog:      { tab: 'Blog',      key: 'Slug' },
+  blogimage: { tab: 'BlogImage', key: 'Blog_Slug' },
+  faq:       { tab: 'FAQ',       key: 'Blog_Slug' },
 };
 var ACTIONS = ['read', 'append', 'update', 'delete'];
 
@@ -40,15 +40,15 @@ function doPost(e) {
       return jsonResponse({ ok: false, error: 'Bad request' });
     }
 
-    var tab = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID')).getSheetByName(sheet);
+    var tab = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID')).getSheetByName(TABS[sheet].tab);
     if (!tab) return jsonResponse({ ok: false, error: 'Bad request' });
 
     if (action === 'read') return actionRead(tab);
 
     lock.waitLock(20000); // one write at a time
     if (action === 'append') return actionAppend(tab, body.row);
-    if (action === 'update') return actionUpdate(tab, TABS[sheet], body.slug, body.row);
-    return actionDelete(tab, TABS[sheet], body.slug);
+    if (action === 'update') return actionUpdate(tab, TABS[sheet].key, body.slug, body.row);
+    return actionDelete(tab, TABS[sheet].key, body.slug);
 
   } catch (err) {
     console.error(err);                     // visible in Apps Script → Executions
