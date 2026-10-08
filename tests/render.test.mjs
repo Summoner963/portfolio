@@ -116,3 +116,11 @@ test('md renders ~~strikethrough~~ and keeps * literal inside `code`', () => {
   assert.equal(R.md('~~old~~ new'), '<p><del>old</del> new</p>');
   assert.equal(R.md('`a*b*c`'), '<p><code>a&#42;b&#42;c</code></p>');
 });
+
+test('displayDate shows every Sheet date format the same way', () => {
+  assert.equal(R.displayDate('2026-10-08'), 'October 8, 2026');
+  assert.equal(R.displayDate('April 18, 2026'), 'April 18, 2026');
+  assert.equal(R.displayDate(''), '');
+  assert.equal(R.displayDate('soon'), 'soon');
+  assert.match(R.blogCardHTML({ Slug: 's', Title: 'T', Date: '2026-10-08' }), /datetime="2026-10-08">October 8, 2026</);
+});

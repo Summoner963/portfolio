@@ -150,6 +150,17 @@ export function sheetToLines(text) {
   return t.split(/\r?\n/).map(l => (l.startsWith('|') ? l.slice(1) : l));
 }
 
+/**
+ * Date as shown to readers: "October 8, 2026", whatever format the Sheet cell
+ * uses ("2026-10-08", "April 18, 2026", …). Unparseable text is shown as-is.
+ */
+export function displayDate(s) {
+  const iso = isoDate(s);
+  if (!iso) return String(s ?? '');
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US',
+    { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+}
+
 /** Lines → Sheet cell format (inverse of sheetToLines for normal content). */
 export const linesToSheet = lines => lines.join('\n|');
 
@@ -249,7 +260,7 @@ export function blogCardHTML(post, { reveal = true } = {}) {
       : `<div class="blog-card-thumb" aria-hidden="true">✍️</div>`) +
     `<div class="blog-card-body"><div class="blog-card-meta">` +
     `<span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
-    `<time datetime="${esc(isoDate(post.Date) || post.Date || '')}">${esc(post.Date || '')}</time></div>` +
+    `<time datetime="${esc(isoDate(post.Date) || post.Date || '')}">${esc(displayDate(post.Date))}</time></div>` +
     `<h3 class="blog-card-title">${esc(post.Title)}</h3>` +
     `<p class="blog-card-excerpt">${esc(post.Excerpt || '')}</p>` +
     (tags.length ? `<div class="blog-card-tags">${tags.map(t => `<span class="blog-tag">${esc(t)}</span>`).join('')}</div>` : '') +
@@ -272,7 +283,7 @@ export function featuredCardHTML(post, { reveal = true } = {}) {
       ? `<div class="fp-thumb"><img src="${esc(img)}" alt="${esc(post.Image_Alt || `${post.Title} cover image`)}" loading="lazy" decoding="async" width="400" height="225"></div>`
       : `<div class="fp-thumb" aria-hidden="true">✍️</div>`) +
     `<div class="fp-body"><div class="fp-meta"><span class="fp-cat">${esc(post.Category || 'Post')}</span>` +
-    `<time datetime="${esc(isoDate(post.Date) || post.Date || '')}">${esc(post.Date || '')}</time></div>` +
+    `<time datetime="${esc(isoDate(post.Date) || post.Date || '')}">${esc(displayDate(post.Date))}</time></div>` +
     `<h3 class="fp-title">${esc(post.Title)}</h3>` +
     (post.Excerpt ? `<p class="fp-excerpt">${esc(post.Excerpt)}</p>` : '') +
     `<span class="fp-arrow" aria-hidden="true">Read post →</span></div></a>`;
@@ -333,7 +344,7 @@ export function articleHTML(post, { imageRows = [], faqRows = [], tableHTML = ''
   const tags  = splitList(post.Tags);
   return `<a class="article-back" href="/blog" data-link>← Back to Blog</a>` +
     `<div class="article-meta"><span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
-    `<time datetime="${esc(isoDate(post.Date) || post.Date || '')}">${esc(post.Date || '')}</time></div>` +
+    `<time datetime="${esc(isoDate(post.Date) || post.Date || '')}">${esc(displayDate(post.Date))}</time></div>` +
     `<h1 class="article-title">${esc(post.Title)}</h1>` +
     (tags.length ? `<div class="article-tags">${tags.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>` : '') +
     (cover ? `<img class="article-cover" src="${esc(cover)}" alt="${esc(post.Image_Alt || `${post.Title} featured image`)}" ` +

@@ -5,7 +5,7 @@
 // which checks the session cookie + CSRF token and validates every field.
 
 import { esc, loadCSS, showToast } from '../utils.js';
-import { isoDate } from '../shared/render.js';
+import { isoDate, displayDate } from '../shared/render.js';
 import { mountEditor } from './cms-editor.js';
 
 // ── API helpers ────────────────────────────────────────────────────────────
@@ -279,7 +279,7 @@ async function renderBlogList(panel, view) {
           '<span class="cms-list-item-title">' + esc(row.Title || '(no title)') + '</span>' +
           '<span class="cms-list-item-meta">' +
             (row.Category ? '<span class="cms-list-badge">' + esc(row.Category) + '</span>' : '') +
-            (row.Date     ? '<span class="cms-list-date">'  + esc(row.Date)     + '</span>' : '') +
+            (row.Date     ? '<span class="cms-list-date">'  + esc(displayDate(row.Date)) + '</span>' : '') +
           '</span>' +
         '</div>' +
         '<div class="cms-list-item-actions">' +

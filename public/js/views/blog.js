@@ -24,6 +24,8 @@ let blogRows = null;
 export const blogState = { query: '', category: 'all', sort: 'newest', page: 1 };
 
 let _searchTimer = null;
+/** URL this page was loaded at — the server already rendered (or 404'd) it. */
+const INITIAL_PATH = location.pathname;
 const ensureCSS = () => loadCSS('/css/blog.css');
 
 export function setBlogRows(rows) {
@@ -204,6 +206,13 @@ export async function renderArticle(slug) {
   if (!blogRows && fresh?.length) blogRows = fresh;
   const post = blogRows?.find(p => (p.Slug || '').trim() === slug);
 
+  if (!post && blogRows && path !== INITIAL_PATH) {
+    // This browser's cached post list may be older than the server's (a post
+    // published minutes ago). Load the URL from the server instead of
+    // claiming 404; the server answers with the post or a real 404.
+    location.assign(path);
+    return;
+  }
   if (!post) {
     updateSEO({ path, title: 'Page Not Found | Suman Dangal', desc: 'This page does not exist.', noindex: true });
     wrap.innerHTML = blogRows

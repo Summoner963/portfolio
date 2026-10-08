@@ -77,7 +77,8 @@ function actionRead(tab) {
 function actionAppend(tab, row) {
   if (!row || typeof row !== 'object') return jsonResponse({ ok: false, error: 'Bad request' });
   var headers = headerRow(tab);
-  tab.appendRow(headers.map(function (h) { return h in row ? cell(row[h]) : ''; }));
+  tab.appendRow(headers.map(function (h) { return h in row ? cell(row[h], h) : ''; }));
+  formatDates(tab, tab.getLastRow(), headers);
   return jsonResponse({ ok: true });
 }
 
@@ -91,8 +92,9 @@ function actionUpdate(tab, keyField, slug, row) {
   var data = tab.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][keyCol]).trim() === String(slug).trim()) {
-      var values = headers.map(function (h, idx) { return h in row ? cell(row[h]) : data[i][idx]; });
+      var values = headers.map(function (h, idx) { return h in row ? cell(row[h], h) : data[i][idx]; });
       tab.getRange(i + 1, 1, 1, headers.length).setValues([values]);
+      formatDates(tab, i + 1, headers);
       return jsonResponse({ ok: true });
     }
   }
@@ -117,11 +119,25 @@ function headerRow(tab) {
     .map(function (h) { return String(h).trim(); });
 }
 
+// Date columns: the CMS sends 2026-10-08; store a real date so the Sheet
+// shows it like the rest ("October 8, 2026" — see formatDates).
+var DATE_COLUMNS = ['Date', 'Last_Modified'];
+var DATE_FORMAT  = 'mmmm d, yyyy';
+
 // Plain text only: a leading = + - @ would make Sheets evaluate a formula.
 // The worker already adds the apostrophe; this is a second layer.
-function cell(v) {
+function cell(v, header) {
   var s = String(v == null ? '' : v);
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m && DATE_COLUMNS.indexOf(header) !== -1) return new Date(+m[1], +m[2] - 1, +m[3]);
   return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
+function formatDates(tab, rowIndex, headers) {
+  DATE_COLUMNS.forEach(function (h) {
+    var col = headers.indexOf(h);
+    if (col !== -1) tab.getRange(rowIndex, col + 1).setNumberFormat(DATE_FORMAT);
+  });
 }
 
 function safeEqual(a, b) {
