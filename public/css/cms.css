@@ -936,3 +936,62 @@
 @media (prefers-reduced-motion: reduce) {
   .cms-btn, .cms-tb-btn, .cms-list-item, .tb-swatch, .tb-special-char { transition: none; }
 }
+/* ═══════════════════════════════════════════════════════════════
+   Editor v2 (js/views/cms-editor.js)
+═══════════════════════════════════════════════════════════════ */
+
+/* Popups are display:flex above — without this the `hidden` attribute is
+   overridden and every dropdown stays open. */
+.tb-dropdown-menu[hidden],
+.tb-color-panel[hidden],
+.tb-special-panel[hidden] { display: none !important; }
+
+/* Callout blocks: one line each, label drawn by CSS (not part of the text) */
+.cms-wysiwyg .cms-callout {
+  margin: .8rem 0;
+  padding: .55rem .9rem .55rem 1rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 .4rem .4rem 0;
+  background: rgba(45,106,79,.06);
+}
+.cms-wysiwyg .cms-callout::before {
+  display: block;
+  font-family: var(--mono);
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: .15rem;
+  opacity: .8;
+  user-select: none;
+}
+.cms-wysiwyg .cms-callout[data-callout="NOTE"]      { border-color: #457b9d; background: rgba(69,123,157,.07); }
+.cms-wysiwyg .cms-callout[data-callout="NOTE"]::before      { content: "ℹ️ Note"; }
+.cms-wysiwyg .cms-callout[data-callout="TIP"]       { border-color: #2d6a4f; background: rgba(45,106,79,.07); }
+.cms-wysiwyg .cms-callout[data-callout="TIP"]::before       { content: "💡 Tip"; }
+.cms-wysiwyg .cms-callout[data-callout="WARNING"]   { border-color: #f4a261; background: rgba(244,162,97,.10); }
+.cms-wysiwyg .cms-callout[data-callout="WARNING"]::before   { content: "⚠️ Warning"; }
+.cms-wysiwyg .cms-callout[data-callout="IMPORTANT"] { border-color: #e63946; background: rgba(230,57,70,.07); }
+.cms-wysiwyg .cms-callout[data-callout="IMPORTANT"]::before { content: "🔥 Important"; }
+.cms-wysiwyg .cms-callout[data-callout="INFO"]      { border-color: #6d6875; background: rgba(109,104,117,.07); }
+.cms-wysiwyg .cms-callout[data-callout="INFO"]::before      { content: "📌 Info"; }
+
+/* Image placeholder chip — [imgN] maps to the "Inline Images" rows */
+.cms-wysiwyg .cms-img {
+  margin: .8rem 0;
+  padding: .7rem 1rem;
+  border: 1.5px dashed var(--border-dark, #c8d0c4);
+  border-radius: .5rem;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: .75rem;
+  color: var(--muted);
+  user-select: none;
+  cursor: default;
+}
+.cms-wysiwyg .cms-img span { color: var(--accent); margin-left: .4rem; }
+.cms-wysiwyg pre { white-space: pre-wrap; font-family: var(--mono); font-size: .78rem; }
+
+/* Toolbar active state + status select */
+.cms-tb-btn.active { background: var(--accent-bg, #edf5f0); color: var(--accent); border-color: rgba(45,106,79,.35); }
+.cms-status-select { max-width: 200px; }

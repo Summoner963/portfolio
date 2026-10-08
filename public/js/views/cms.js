@@ -1,20 +1,12 @@
 // js/views/cms.js
-// Content Studio — full CMS UI.
-// LEFT pane  = plain-text / wysiwyg contenteditable (what visitors see)
-// RIGHT pane = pipe-encoded raw source textarea (what's stored in Google Sheet)
-//
-// Storage format: lines are joined with "|" (same as chord tab_content).
-// Markdown formatting is preserved inside each "|"-separated segment.
-// pipesToLines()  →  converts "|" → "\n"  (for display/editing on left)
-// linesTopipes()  →  converts "\n" → "|"  (for storage on right / in sheet)
-//
-// FIX 1: Dropdown menus can now be toggled closed on desktop.
-// FIX 2: Toolbar is sticky on mobile so it stays visible while scrolling.
-// FIX 3+4: Bidirectional sync between plain-text left and pipe-source right
-//           is completely rewritten to be consistent and non-destructive.
+// Content Studio — admin CMS UI (login, post list, post form).
+// The post editor itself (visual ⇄ Sheet-format markdown) lives in
+// js/views/cms-editor.js. All calls go to /api/cms/* (worker/index.js),
+// which checks the session cookie + CSRF token and validates every field.
 
-import { esc, loadCSS, showToast, md } from '../utils.js';
+import { esc, loadCSS, showToast } from '../utils.js';
 import { isoDate } from '../shared/render.js';
+import { mountEditor } from './cms-editor.js';
 
 // ── API helpers ────────────────────────────────────────────────────────────
 // Sessions are an HttpOnly cookie set by the worker (JavaScript can't read
@@ -77,26 +69,6 @@ function makeSlug(title) {
 // still say yesterday).
 function today() {
   return isoDate(new Date().toString());
-}
-
-// ── FIX 3/4: pipe ↔ newline converters ────────────────────────────────────
-// These are used for BOTH chord tab content AND blog content.
-// Blog content is stored as pipe-separated lines in the sheet.
-// The left (WYSIWYG/plain) pane always works with newlines.
-// The right (source) pane always works with pipes.
-
-function linesTopipes(text) {
-  if (!text) return '';
-  // Collapse 3+ consecutive pipes to maximum 2 (paragraph break)
-  return text
-    .split('\n')
-    .join('|')
-    .replace(/\|{3,}/g, '||');
-}
-
-function pipesToLines(raw) {
-  if (!raw) return '';
-  return raw.split('|').join('\n');
 }
 
 // "April 18, 2026" → "2026-04-18" for the date input, without shifting the day
@@ -380,6 +352,13 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
           <input class="cms-input" id="bDate" type="date" value="${esc(toInputDate(r.Date))}" />
         </div>
         <div class="cms-field">
+          <label class="cms-label" for="bStatusSel">Visibility</label>
+          <select class="cms-input cms-status-select" id="bStatusSel">
+            <option value="">Published</option>
+            <option value="draft"${/^draft$/i.test(r.Status || '') ? ' selected' : ''}>Draft (hidden from the site)</option>
+          </select>
+        </div>
+        <div class="cms-field">
           <label class="cms-label">Category</label>
           <input class="cms-input" id="bCategory" type="text"
             value="${esc(r.Category || '')}" placeholder="Dev, QA, Tutorial\u2026" />
@@ -425,46 +404,29 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
       <div class="cms-field">
         <label class="cms-label">Content
           <span class="cms-label-hint">
-            Write on the left (plain text with line breaks). Right pane shows the pipe-encoded source stored in your Sheet — each line is separated by <code>|</code>. Both sides sync live and are fully editable.
+            Write on the left like a normal editor; the right side is the exact text stored in your Sheet
+            (each new line starts with <code>|</code>). Edit either side — the other follows.
+            Images: add the URL under "Inline Images", then place it with the <code>[img]</code> button.
           </span>
         </label>
         <div class="cms-toolbar" id="bToolbar" role="toolbar" aria-label="Formatting toolbar"></div>
         <div class="cms-editor-wrap">
-
-          <!-- LEFT: plain-text / WYSIWYG contenteditable -->
           <div class="cms-editor-pane">
-            <div class="cms-editor-label" id="bWysiwygLabel">
-              <span>
-                Write (plain text)
-                <span class="cms-editor-label-badge wysiwyg">VISUAL</span>
-              </span>
+            <div class="cms-editor-label">
+              <span>Visual <span class="cms-editor-label-badge wysiwyg">WHAT READERS SEE</span></span>
               <span class="cms-editor-wc" id="bWC">0 words</span>
             </div>
-            <div
-              class="cms-wysiwyg"
-              id="bWysiwyg"
-              contenteditable="true"
-              spellcheck="true"
-              data-placeholder="Write your blog post here\u2026 Use Enter for new lines."
-            ></div>
+            <div class="cms-wysiwyg" id="bWysiwyg" contenteditable="true" spellcheck="true"
+              role="textbox" aria-multiline="true" aria-label="Post content (visual)"
+              data-placeholder="Write your post here…"></div>
           </div>
-
-          <!-- RIGHT: pipe-encoded source -->
           <div class="cms-preview-pane">
-            <div class="cms-editor-label" id="bMdLabel">
-              <span>
-                Source (pipe-encoded)
-                <span class="cms-editor-label-badge markdown">RAW</span>
-              </span>
+            <div class="cms-editor-label">
+              <span>Sheet format <span class="cms-editor-label-badge markdown">STORED</span></span>
             </div>
-            <textarea
-              class="cms-md-pane"
-              id="bMarkdown"
-              spellcheck="false"
-              placeholder="Pipe-encoded source will appear here.&#10;Each | represents a line break.&#10;&#10;You can edit here directly too."
-            ></textarea>
+            <textarea class="cms-md-pane" id="bMarkdown" spellcheck="false" aria-label="Post content (Sheet format)"
+              placeholder="## Heading&#10;|A paragraph with **bold** text&#10;|- a list item&#10;|> [!TIP] A callout"></textarea>
           </div>
-
         </div>
       </div>
 
@@ -477,7 +439,22 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
       </div>
     </div>`;
 
-  const goBack = function() { renderBlogList(panel, view); };
+  // ── Unsaved-changes guard ───────────────────────────────────────────────
+  let dirty = false;
+  const markDirty = () => { dirty = true; };
+  const beforeUnload = e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
+  window.addEventListener('beforeunload', beforeUnload);
+  panel.addEventListener('input', markDirty); // title, excerpt, image/FAQ rows, …
+  let editor = null; // set below by mountEditor()
+  const leaveForm = () => {
+    window.removeEventListener('beforeunload', beforeUnload);
+    if (editor) editor.destroy();
+  };
+  const goBack = function() {
+    if (dirty && !confirm('You have unsaved changes. Leave without saving?')) return;
+    leaveForm();
+    renderBlogList(panel, view);
+  };
   document.getElementById('blogBackToList').addEventListener('click', goBack);
   document.getElementById('blogBackToList2').addEventListener('click', goBack);
 
@@ -556,670 +533,116 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   });
   renderFaqRows();
 
-  // ── WYSIWYG + Source bidirectional sync ───────────────────────────────────
-  // LEFT  (wysiwygEl) = plain text, line breaks visible, what readers see
-  // RIGHT (markdownEl) = pipe-encoded raw source stored in Sheet
-  //
-  // Conversion rules:
-  //   left  → right : innerText of wysiwyg  → linesTopipes()
-  //   right → left  : markdownEl.value       → pipesToLines() → set as innerText
-  //
-  // FIX: We no longer use md() / htmlToMd() for blog content because those
-  // introduce HTML rendering that fights with the pipe↔newline encoding.
-  // The left pane is purely a plain-text contenteditable, not a rich WYSIWYG.
-  // This matches the user's requirement: left = plain text view, right = pipe source.
-
-  const wysiwygEl  = document.getElementById('bWysiwyg');
-  const markdownEl = document.getElementById('bMarkdown');
-  const wcEl       = document.getElementById('bWC');
-  const wLabel     = document.getElementById('bWysiwygLabel');
-  const mLabel     = document.getElementById('bMdLabel');
-
-  // ── Load existing content ─────────────────────────────────────────────
-  // r.Content is stored as pipe-encoded. Decode to newlines for left pane.
-  if (r.Content) {
-    markdownEl.value = r.Content;                    // right = raw pipe source
-    setWysiwygPlainText(wysiwygEl, pipesToLines(r.Content)); // left = decoded
-  }
-
+  // ── Editor (visual ⇄ Sheet format) ──────────────────────────────────────
+  const wcEl = document.getElementById('bWC');
+  const wysiwygEl = document.getElementById('bWysiwyg');
+  const updateWC = () => {
+    const words = (wysiwygEl.innerText || '').trim().split(/\s+/).filter(Boolean).length;
+    wcEl.textContent = words + ' word' + (words === 1 ? '' : 's');
+  };
+  editor = mountEditor({
+    visual:  wysiwygEl,
+    source:  document.getElementById('bMarkdown'),
+    toolbar: document.getElementById('bToolbar'),
+    content: r.Content || '',
+    onChange: () => { markDirty(); updateWC(); },
+    // next [imgN]: after the highest used in the text or the image rows
+    nextImage: used => Math.max(0, imageRows.length, ...used) + 1,
+  });
   updateWC();
 
-  // Sync lock — prevents infinite loops between the two panes
-  let _syncing = false;
-  let _wysiwygTimer, _mdTimer;
-
-  // ── LEFT (wysiwyg plain-text) → RIGHT (pipe source) ──────────────────
-  wysiwygEl.addEventListener('input', function() {
-    if (_syncing) return;
-    clearTimeout(_wysiwygTimer);
-    _wysiwygTimer = setTimeout(function() {
-      _syncing = true;
-      // Get plain text from contenteditable (innerText preserves line breaks)
-      const plainText = wysiwygEl.innerText || '';
-      // Normalise: trim trailing newline that browsers add in contenteditable
-      const normalised = plainText.replace(/\n$/, '');
-      markdownEl.value = linesTopipes(normalised);
-      flashLabel(mLabel);
-      updateWC();
-      _syncing = false;
-    }, 200);
-  });
-
-  // ── RIGHT (pipe source) → LEFT (plain-text wysiwyg) ──────────────────
-  markdownEl.addEventListener('input', function() {
-    if (_syncing) return;
-    clearTimeout(_mdTimer);
-    _mdTimer = setTimeout(function() {
-      _syncing = true;
-      const scrollTop = wysiwygEl.scrollTop;
-      // Decode pipes → newlines and push to left pane
-      setWysiwygPlainText(wysiwygEl, pipesToLines(markdownEl.value));
-      wysiwygEl.scrollTop = scrollTop;
-      flashLabel(wLabel);
-      updateWC();
-      _syncing = false;
-    }, 200);
-  });
-
-  function updateWC() {
-    if (!wcEl) return;
-    const text  = wysiwygEl.innerText || wysiwygEl.textContent || '';
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
-    wcEl.textContent = words + ' word' + (words === 1 ? '' : 's');
-  }
-
-  function flashLabel(labelEl) {
-    if (!labelEl) return;
-    labelEl.classList.add('syncing');
-    setTimeout(function() { labelEl.classList.remove('syncing'); }, 400);
-  }
-
-  // ── Toolbar ──────────────────────────────────────────────────────────────
-  // Pass both panes so toolbar buttons can insert text and sync
-  buildWysiwygToolbar(
-    document.getElementById('bToolbar'),
-    wysiwygEl,
-    markdownEl
-  );
-
   // ── Publish ──────────────────────────────────────────────────────────────
+  const isHttp = u => /^https?:\/\/\S+$/i.test(u);
   document.getElementById('bPublish').addEventListener('click', async function() {
     const title    = document.getElementById('bTitle').value.trim();
-    const slug     = document.getElementById('bSlug').value.trim() || makeSlug(title);
+    const slug     = isEdit ? r.Slug : (document.getElementById('bSlug').value.trim() || makeSlug(title));
     const date     = document.getElementById('bDate').value || today();
+    const status   = document.getElementById('bStatusSel').value;
     const category = document.getElementById('bCategory').value.trim();
     const tags     = document.getElementById('bTags').value.trim();
     const excerpt  = document.getElementById('bExcerpt').value.trim();
     const imageUrl = document.getElementById('bImageUrl').value.trim();
     const imageAlt = document.getElementById('bImageAlt').value.trim();
-
-    // Always save from the right (pipe-source) pane — that's the stored format
-    const content  = markdownEl.value;
+    const content  = editor.getContent();   // exact Sheet format; unchanged if not edited
 
     const statusEl = document.getElementById('bStatus');
     const btn      = document.getElementById('bPublish');
+    const fail = msg => {
+      showToast(msg, 'error');
+      statusEl.textContent = '✗ ' + msg;
+      statusEl.style.color = '#991b1b';
+      btn.disabled = false;
+      btn.textContent = isEdit ? '💾 Save Changes' : 'Publish to Sheet →';
+    };
 
-    if (!title)   { showToast('Title is required',   'error'); return; }
-    if (!excerpt) { showToast('Excerpt is required', 'error'); return; }
+    // ── Check everything BEFORE writing anything ──
+    if (!title)   return fail('Title is required');
+    if (!excerpt) return fail('Excerpt is required');
+    if (!/^[a-z0-9][a-z0-9._~-]*$/i.test(slug)) return fail('Slug may only contain letters, numbers, - . _ ~');
+    if (!isEdit && allRows.some(function(x) { return (x.Slug || '').trim() === slug; })) return fail('A post with this slug already exists');
+    if (imageUrl && !isHttp(imageUrl)) return fail('Cover image URL must start with https://');
+    const images = imageRows.filter(function(ir) { return ir.url.trim(); });
+    const badImg = images.findIndex(function(ir) { return !isHttp(ir.url.trim()); });
+    if (badImg !== -1) return fail('Inline image ' + (badImg + 1) + ': URL must start with https://');
+    const faqs = faqItems.filter(function(f) { return f.q.trim(); });
+    if (faqs.some(function(f) { return !f.a.trim(); })) return fail('Every FAQ question needs an answer');
 
     btn.disabled    = true;
-    btn.textContent = isEdit ? 'Saving\u2026' : 'Publishing\u2026';
+    btn.textContent = isEdit ? 'Saving…' : 'Publishing…';
     statusEl.textContent = '';
+    statusEl.style.color = '';
 
     const rowData = {
-      ID:        r.ID || '',
-      Title:     title,
-      Slug:      slug,
-      Category:  category,
-      Excerpt:   excerpt,
-      Content:   content,
-      Date:      date,
-      Tags:      tags,
-      Image_URL: imageUrl,
-      Image_Alt: imageAlt,
+      ID: r.ID || '', Title: title, Slug: slug, Category: category, Excerpt: excerpt,
+      Content: content, Date: date, Tags: tags, Image_URL: imageUrl, Image_Alt: imageAlt,
+      Status: status,
     };
 
     try {
-      const result = isEdit
-        ? await apiUpdate('blog', r.Slug, rowData)
-        : await apiAppend('blog', rowData);
+      const result = isEdit ? await apiUpdate('blog', r.Slug, rowData) : await apiAppend('blog', rowData);
+      if (!result.ok) return fail(result.error || 'Save failed');
 
-      if (!result.ok) {
-        showToast(result.error || 'Save failed', 'error');
-        statusEl.textContent = '\u2717 ' + (result.error || 'Error');
-        statusEl.style.color = '#991b1b';
-        btn.disabled    = false;
-        btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
-        return;
-      }
-
-      // Save blogimage rows
+      // Images and FAQs: replace this post's rows. Report exactly what failed.
+      const problems = [];
       if (isEdit && biRows.length) {
-        await apiDelete('blogimage', slug);
+        const d = await apiDelete('blogimage', slug);
+        if (!d.ok) problems.push('old images could not be removed (' + (d.error || 'error') + ')');
       }
-      for (let i = 0; i < imageRows.length; i++) {
-        if (imageRows[i].url) {
-          await apiAppend('blogimage', {
-            Blog_Slug:  slug,
-            Img_Number: String(i + 1),
-            Img_URL:    imageRows[i].url,
-            Img_Alt:    imageRows[i].alt,
+      if (!problems.length) {
+        for (let i = 0; i < images.length; i++) {
+          const res = await apiAppend('blogimage', {
+            Blog_Slug: slug, Img_Number: String(i + 1),
+            Img_URL: images[i].url.trim(), Img_Alt: images[i].alt.trim(),
           });
+          if (!res.ok) { problems.push('image ' + (i + 1) + ' (' + (res.error || 'error') + ')'); break; }
         }
       }
-
-      // Save FAQ rows
+      let faqOk = true;
       if (isEdit && faqRows.length) {
-        await apiDelete('faq', slug);
+        const d = await apiDelete('faq', slug);
+        if (!d.ok) { faqOk = false; problems.push('old FAQs could not be removed (' + (d.error || 'error') + ')'); }
       }
-      for (let i = 0; i < faqItems.length; i++) {
-        if (faqItems[i].q) {
-          await apiAppend('faq', {
-            Blog_Slug:    slug,
-            FAQ_Number:   String(i + 1),
-            FAQ_Question: faqItems[i].q,
-            FAQ_Answer:   faqItems[i].a,
+      if (faqOk) {
+        for (let i = 0; i < faqs.length; i++) {
+          const res = await apiAppend('faq', {
+            Blog_Slug: slug, FAQ_Number: String(i + 1),
+            FAQ_Question: faqs[i].q.trim(), FAQ_Answer: faqs[i].a.trim(),
           });
+          if (!res.ok) { problems.push('FAQ ' + (i + 1) + ' (' + (res.error || 'error') + ')'); break; }
         }
       }
+      if (problems.length) {
+        // The post itself is saved; stay on the form so nothing typed is lost.
+        dirty = true;
+        return fail('Post saved, but not: ' + problems.join('; ') + '. Click save again to retry.');
+      }
 
-      showToast(isEdit ? 'Post updated!' : 'Post published!');
+      dirty = false;
+      leaveForm();
+      showToast(isEdit ? 'Post updated!' : (status ? 'Draft saved!' : 'Post published!'));
       renderBlogList(panel, view);
-
     } catch (e) {
-      showToast('Network error', 'error');
-      btn.disabled    = false;
-      btn.textContent = isEdit ? '\uD83D\uDCBE Save Changes' : 'Publish to Sheet \u2192';
+      fail('Network error — nothing was lost, try again');
     }
   });
 }
-
-// ── setWysiwygPlainText ────────────────────────────────────────────────────
-// Safely set plain text content into a contenteditable div.
-// We use innerText assignment which preserves \n as visible line breaks
-// without injecting any HTML that could corrupt the pipe sync.
-function setWysiwygPlainText(el, text) {
-  // innerText setter on contenteditable correctly renders \n as line breaks
-  // in all modern browsers.
-  el.innerText = text;
-}
-
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  WYSIWYG TOOLBAR
-//  FIX 1: Dropdown menus now properly toggle (close when clicking the same
-//          button again) and close when clicking outside — on BOTH desktop and
-//          mobile. The previous code called e.stopPropagation() on button
-//          clicks which prevented the document click handler from ever firing
-//          on the same click that opened the menu, so menus could never close
-//          via the outside-click path. The fix: track "just opened" state so
-//          the document handler knows to skip the first click, allowing the
-//          second outside click to close normally. Also we no longer leak
-//          stale document-level close handlers across re-renders.
-// ══════════════════════════════════════════════════════════════════════════════
-
-const COLORS = ['#2d6a4f','#1b4332','#e63946','#f4a261','#457b9d','#6d6875','#000000','#ffffff'];
-const CALLOUT_TYPES = ['note','tip','warning','important','info'];
-const SPECIAL_CHARS = [
-  '\u2014','\u2013','\u2026',
-  '\u201C','\u201D','\u2018','\u2019','\u00AB','\u00BB',
-  '\u00A9','\u00AE','\u2122',
-  '\u2192','\u2190','\u2191','\u2193',
-  '\u2713','\u2717',
-  '\u2022','\u00B7','\u00B0',
-  '\u2116','\u20B9','\u20AC','\u00A3',
-];
-
-// Global registry of open popups — only one open at a time
-let _openPopup = null;       // { menu: HTMLElement, btn: HTMLElement }
-let _justOpened = false;     // skip the same click that opens a menu
-
-function closeOpenPopup() {
-  if (_openPopup) {
-    _openPopup.menu.hidden = true;
-    _openPopup = null;
-  }
-}
-
-// Single document-level listener (attached once, never duplicated)
-if (!window._cmsPopupListenerAttached) {
-  window._cmsPopupListenerAttached = true;
-  document.addEventListener('click', function() {
-    if (_justOpened) { _justOpened = false; return; }
-    closeOpenPopup();
-  });
-}
-
-function togglePopup(menu, btn) {
-  if (_openPopup && _openPopup.menu === menu) {
-    // Same button clicked again → close
-    closeOpenPopup();
-    return;
-  }
-  closeOpenPopup();
-  menu.hidden = false;
-  _openPopup  = { menu, btn };
-  _justOpened = true; // prevent the current click from immediately closing it
-}
-
-function buildWysiwygToolbar(toolbar, wysiwygEl, markdownEl) {
-  toolbar.innerHTML = '';
-
-  // Saved selection — we lose focus when clicking toolbar buttons,
-  // so we capture it on mousedown
-  let _savedRange = null;
-
-  function saveSelection() {
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      _savedRange = sel.getRangeAt(0).cloneRange();
-    }
-  }
-
-  function restoreSelection() {
-    if (!_savedRange) { wysiwygEl.focus(); return; }
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(_savedRange);
-  }
-
-  // Capture selection before toolbar button steals focus
-  toolbar.addEventListener('mousedown', function(e) {
-    if (e.target.closest('button, input[type="color"]')) {
-      saveSelection();
-    }
-  });
-
-  // After any edit, push pipe-source to right pane
-  function afterEdit() {
-    // For plain-text left pane: sync innerText → linesTopipes → markdownEl
-    const plainText = wysiwygEl.innerText || '';
-    const normalised = plainText.replace(/\n$/, '');
-    markdownEl.value = linesTopipes(normalised);
-    wysiwygEl.dispatchEvent(new Event('input', { bubbles: true }));
-    updateToolbarState();
-  }
-
-  // ── execCommand wrapper ──────────────────────────────────────────────────
-  function exec(cmd, value) {
-    restoreSelection();
-    wysiwygEl.focus();
-    document.execCommand(cmd, false, value || null);
-    afterEdit();
-  }
-
-  // ── Heading ──────────────────────────────────────────────────────────────
-  function applyHeading(tag) {
-    restoreSelection();
-    wysiwygEl.focus();
-    if (tag === 'p' || tag === '') {
-      document.execCommand('formatBlock', false, 'p');
-    } else {
-      document.execCommand('formatBlock', false, tag);
-    }
-    afterEdit();
-  }
-
-  // ── Insert HTML at cursor ────────────────────────────────────────────────
-  function insertHTML(html) {
-    restoreSelection();
-    wysiwygEl.focus();
-    document.execCommand('insertHTML', false, html);
-    afterEdit();
-  }
-
-  // ── Insert img placeholder chip ──────────────────────────────────────────
-  function insertImgPlaceholder() {
-    restoreSelection();
-    const existing = wysiwygEl.querySelectorAll('.img-placeholder');
-    const num = existing.length + 1;
-    const placeholder = '[img' + num + ']';
-    const chip = '<span class="img-placeholder" contenteditable="false" data-placeholder="' +
-      placeholder + '">\uD83D\uDDBC\uFE0F ' + placeholder + '</span>&nbsp;';
-    insertHTML(chip);
-  }
-
-  // ── Separator ────────────────────────────────────────────────────────────
-  function addSep() {
-    const s = document.createElement('span');
-    s.className = 'cms-tb-sep';
-    toolbar.appendChild(s);
-  }
-
-  // ── 1. Heading / paragraph dropdown ─────────────────────────────────────
-  const sizeWrap = document.createElement('div');
-  sizeWrap.className = 'tb-dropdown-wrap';
-
-  const sizeBtn = document.createElement('button');
-  sizeBtn.type      = 'button';
-  sizeBtn.className = 'cms-tb-btn tb-size-btn';
-  sizeBtn.innerHTML = '<span class="tb-size-label">Paragraph</span><span class="tb-caret">▾</span>';
-
-  const sizeMenu = document.createElement('div');
-  sizeMenu.className = 'tb-dropdown-menu';
-  sizeMenu.hidden    = true;
-
-  const headingOpts = [
-    { label: 'Paragraph', tag: 'p',  cls: 'tb-size-p'  },
-    { label: 'Heading 1', tag: 'h1', cls: 'tb-size-h1' },
-    { label: 'Heading 2', tag: 'h2', cls: 'tb-size-h2' },
-    { label: 'Heading 3', tag: 'h3', cls: 'tb-size-h3' },
-    { label: 'Heading 4', tag: 'h4', cls: 'tb-size-h4' },
-  ];
-
-  headingOpts.forEach(function(opt) {
-    const item = document.createElement('button');
-    item.type        = 'button';
-    item.className   = 'tb-dropdown-item ' + opt.cls;
-    item.textContent = opt.label;
-    item.addEventListener('mousedown', function(e) { e.preventDefault(); });
-    item.addEventListener('click', function() {
-      applyHeading(opt.tag);
-      closeOpenPopup();
-      sizeBtn.querySelector('.tb-size-label').textContent = opt.label;
-    });
-    sizeMenu.appendChild(item);
-  });
-
-  sizeBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    togglePopup(sizeMenu, sizeBtn);
-  });
-
-  sizeWrap.appendChild(sizeBtn);
-  sizeWrap.appendChild(sizeMenu);
-  toolbar.appendChild(sizeWrap);
-  addSep();
-
-  // ── 2. Inline format group: B I S ` ─────────────────────────────────────
-  const inlineGroup = document.createElement('div');
-  inlineGroup.className = 'tb-btn-group';
-
-  const inlineBtns = [
-    { label: 'B',  title: 'Bold',          cmd: 'bold',          cls: 'tb-bold',   id: 'tb-bold'   },
-    { label: 'I',  title: 'Italic',        cmd: 'italic',        cls: 'tb-italic', id: 'tb-italic' },
-    { label: 'S',  title: 'Strikethrough', cmd: 'strikeThrough', cls: 'tb-strike', id: 'tb-strike' },
-    { label: '`',  title: 'Inline code',   cmd: null,            cls: '',           id: 'tb-code'   },
-  ];
-
-  inlineBtns.forEach(function(b) {
-    const btn = document.createElement('button');
-    btn.type        = 'button';
-    btn.className   = 'cms-tb-btn' + (b.cls ? ' ' + b.cls : '');
-    btn.title       = b.title;
-    btn.id          = b.id;
-    btn.innerHTML   = '<span>' + b.label + '</span>';
-
-    btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
-    btn.addEventListener('click', function() {
-      if (b.cmd) {
-        exec(b.cmd);
-      } else {
-        const sel = window.getSelection();
-        if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-          restoreSelection();
-          wysiwygEl.focus();
-          const text = sel.toString();
-          document.execCommand('insertHTML', false, '<code>' + text + '</code>');
-          afterEdit();
-        }
-      }
-    });
-    inlineGroup.appendChild(btn);
-  });
-  toolbar.appendChild(inlineGroup);
-  addSep();
-
-  // ── 3. Block format group ────────────────────────────────────────────────
-  const blockGroup = document.createElement('div');
-  blockGroup.className = 'tb-btn-group';
-
-  [
-    { label: '❝',   title: 'Blockquote', fn: function() { exec('formatBlock', 'blockquote'); } },
-    { label: '```', title: 'Code block', fn: function() {
-        insertHTML('<pre><code>code here</code></pre><p><br></p>');
-    }},
-    { label: '—',   title: 'Divider',    fn: function() { insertHTML('<hr><p><br></p>'); } },
-  ].forEach(function(b) {
-    const btn = document.createElement('button');
-    btn.type      = 'button';
-    btn.className = 'cms-tb-btn';
-    btn.title     = b.title;
-    btn.innerHTML = '<span>' + b.label + '</span>';
-    btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
-    btn.addEventListener('click', b.fn);
-    blockGroup.appendChild(btn);
-  });
-  toolbar.appendChild(blockGroup);
-  addSep();
-
-  // ── 4. List group ────────────────────────────────────────────────────────
-  const listGroup = document.createElement('div');
-  listGroup.className = 'tb-btn-group';
-
-  [
-    { label: '•',  title: 'Bullet list',   cmd: 'insertUnorderedList' },
-    { label: '1.', title: 'Numbered list', cmd: 'insertOrderedList'   },
-  ].forEach(function(b) {
-    const btn = document.createElement('button');
-    btn.type      = 'button';
-    btn.className = 'cms-tb-btn';
-    btn.title     = b.title;
-    btn.innerHTML = '<span>' + b.label + '</span>';
-    btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
-    btn.addEventListener('click', function() { exec(b.cmd); });
-    listGroup.appendChild(btn);
-  });
-  toolbar.appendChild(listGroup);
-  addSep();
-
-  // ── 5. Insert group ───────────────────────────────────────────────────────
-  const insertGroup = document.createElement('div');
-  insertGroup.className = 'tb-btn-group';
-
-  const linkBtn = document.createElement('button');
-  linkBtn.type      = 'button';
-  linkBtn.className = 'cms-tb-btn';
-  linkBtn.title     = 'Insert link';
-  linkBtn.innerHTML = '<span>\uD83D\uDD17</span>';
-  linkBtn.addEventListener('mousedown', function(e) { e.preventDefault(); });
-  linkBtn.addEventListener('click', function() {
-    saveSelection();
-    const sel = window.getSelection();
-    const defaultText = (sel && !sel.isCollapsed) ? '' : 'link text';
-    const url = prompt('Enter URL:');
-    if (!url) return;
-    restoreSelection();
-    wysiwygEl.focus();
-    if (sel && !sel.isCollapsed) {
-      document.execCommand('createLink', false, url);
-    } else {
-      document.execCommand('insertHTML', false,
-        '<a href="' + url + '">' + (defaultText || url) + '</a>');
-    }
-    afterEdit();
-  });
-  insertGroup.appendChild(linkBtn);
-
-  const imgBtn = document.createElement('button');
-  imgBtn.type      = 'button';
-  imgBtn.className = 'cms-tb-btn';
-  imgBtn.title     = 'Insert image placeholder';
-  imgBtn.innerHTML = '<span>[img]</span>';
-  imgBtn.addEventListener('mousedown', function(e) { e.preventDefault(); });
-  imgBtn.addEventListener('click', insertImgPlaceholder);
-  insertGroup.appendChild(imgBtn);
-
-  toolbar.appendChild(insertGroup);
-  addSep();
-
-  // ── 6. Callout dropdown ───────────────────────────────────────────────────
-  const calloutWrap = document.createElement('div');
-  calloutWrap.className = 'tb-dropdown-wrap';
-
-  const calloutBtn = document.createElement('button');
-  calloutBtn.type      = 'button';
-  calloutBtn.className = 'cms-tb-btn';
-  calloutBtn.innerHTML = '<span>Callout \u25BE</span>';
-
-  const calloutMenu = document.createElement('div');
-  calloutMenu.className = 'tb-dropdown-menu tb-callout-menu';
-  calloutMenu.hidden    = true;
-
-  CALLOUT_TYPES.forEach(function(type) {
-    const item = document.createElement('button');
-    item.type        = 'button';
-    item.className   = 'tb-dropdown-item tb-callout-' + type;
-    item.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-    item.addEventListener('mousedown', function(e) { e.preventDefault(); });
-    item.addEventListener('click', function() {
-      const icons = { note:'📝', tip:'💡', warning:'⚠️', important:'🚨', info:'ℹ️' };
-      const html =
-        '<div class="callout callout-' + type + '" contenteditable="false">' +
-          '<div class="callout-header">' + (icons[type] || '') + ' ' + type.toUpperCase() + '</div>' +
-          '<div class="callout-body" contenteditable="true"><p>Your ' + type + ' text here</p></div>' +
-        '</div><p><br></p>';
-      insertHTML(html);
-      closeOpenPopup();
-    });
-    calloutMenu.appendChild(item);
-  });
-
-  calloutBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    togglePopup(calloutMenu, calloutBtn);
-  });
-
-  calloutWrap.appendChild(calloutBtn);
-  calloutWrap.appendChild(calloutMenu);
-  toolbar.appendChild(calloutWrap);
-  addSep();
-
-  // ── 7. Colour picker ─────────────────────────────────────────────────────
-  const colorWrap = document.createElement('div');
-  colorWrap.className = 'tb-dropdown-wrap';
-
-  let activeColor = COLORS[0];
-
-  const colorBtn = document.createElement('button');
-  colorBtn.type      = 'button';
-  colorBtn.className = 'cms-tb-btn tb-color-btn';
-  colorBtn.innerHTML =
-    '<span class="tb-color-swatch-preview" style="background:' + activeColor + '"></span>' +
-    '<span>Color</span>';
-
-  const colorPanel = document.createElement('div');
-  colorPanel.className = 'tb-color-panel';
-  colorPanel.hidden    = true;
-
-  const swatchRow = document.createElement('div');
-  swatchRow.className = 'tb-swatch-row';
-  COLORS.forEach(function(c) {
-    const sw = document.createElement('button');
-    sw.type        = 'button';
-    sw.className   = 'tb-swatch' + (c === '#ffffff' ? ' tb-swatch-light' : '');
-    sw.style.background = c;
-    sw.title       = c;
-    sw.addEventListener('mousedown', function(e) { e.preventDefault(); });
-    sw.addEventListener('click', function() {
-      activeColor = c;
-      colorBtn.querySelector('.tb-color-swatch-preview').style.background = activeColor;
-      closeOpenPopup();
-      exec('foreColor', activeColor);
-    });
-    swatchRow.appendChild(sw);
-  });
-  colorPanel.appendChild(swatchRow);
-
-  const customRow = document.createElement('div');
-  customRow.className = 'tb-custom-color-row';
-  const customLabel   = document.createElement('label');
-  customLabel.className   = 'tb-custom-label';
-  customLabel.textContent = 'Custom:';
-  const customInput = document.createElement('input');
-  customInput.type  = 'color';
-  customInput.value = activeColor;
-  customInput.className = 'tb-custom-color-input';
-  customInput.addEventListener('input', function(e) {
-    activeColor = e.target.value;
-    colorBtn.querySelector('.tb-color-swatch-preview').style.background = activeColor;
-  });
-  customInput.addEventListener('change', function(e) {
-    activeColor = e.target.value;
-    closeOpenPopup();
-    exec('foreColor', activeColor);
-  });
-  customRow.appendChild(customLabel);
-  customRow.appendChild(customInput);
-  colorPanel.appendChild(customRow);
-
-  colorBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    togglePopup(colorPanel, colorBtn);
-  });
-
-  colorWrap.appendChild(colorBtn);
-  colorWrap.appendChild(colorPanel);
-  toolbar.appendChild(colorWrap);
-  addSep();
-
-  // ── 8. Special characters ────────────────────────────────────────────────
-  const specialWrap = document.createElement('div');
-  specialWrap.className = 'tb-dropdown-wrap';
-
-  const specialBtn = document.createElement('button');
-  specialBtn.type      = 'button';
-  specialBtn.className = 'cms-tb-btn';
-  specialBtn.innerHTML = '<span>\u03A9</span>';
-  specialBtn.title     = 'Special characters';
-
-  const specialPanel = document.createElement('div');
-  specialPanel.className = 'tb-special-panel';
-  specialPanel.hidden    = true;
-
-  SPECIAL_CHARS.forEach(function(ch) {
-    const b = document.createElement('button');
-    b.type        = 'button';
-    b.className   = 'tb-special-char';
-    b.textContent = ch;
-    b.title       = ch;
-    b.addEventListener('mousedown', function(e) { e.preventDefault(); });
-    b.addEventListener('click', function(e) {
-      e.stopPropagation();
-      restoreSelection();
-      wysiwygEl.focus();
-      document.execCommand('insertText', false, ch);
-      closeOpenPopup();
-      afterEdit();
-    });
-    specialPanel.appendChild(b);
-  });
-
-  specialBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    togglePopup(specialPanel, specialBtn);
-  });
-
-  specialWrap.appendChild(specialBtn);
-  specialWrap.appendChild(specialPanel);
-  toolbar.appendChild(specialWrap);
-
-  // ── Toolbar active state ──────────────────────────────────────────────────
-  function updateToolbarState() {
-    try {
-      const btnBold   = document.getElementById('tb-bold');
-      const btnItalic = document.getElementById('tb-italic');
-      const btnStrike = document.getElementById('tb-strike');
-      if (btnBold)   btnBold.classList.toggle('active',   document.queryCommandState('bold'));
-      if (btnItalic) btnItalic.classList.toggle('active', document.queryCommandState('italic'));
-      if (btnStrike) btnStrike.classList.toggle('active', document.queryCommandState('strikeThrough'));
-    } catch(e) {}
-  }
-
-  wysiwygEl.addEventListener('keyup',    updateToolbarState);
-  wysiwygEl.addEventListener('mouseup',  updateToolbarState);
-  wysiwygEl.addEventListener('selectionchange', updateToolbarState);
-}
-
-
