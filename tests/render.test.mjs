@@ -103,3 +103,16 @@ test('isoDate keeps the calendar day in any time zone', () => {
   assert.equal(R.isoDate('not a date'), null);
   assert.equal(R.isoDate(''), null);
 });
+
+test('Sheet format: one leading | per line is the separator', () => {
+  const cell = '## T\n|text with a | pipe\n|- item';
+  assert.deepEqual(R.sheetToLines(cell), ['## T', 'text with a | pipe', '- item']);
+  assert.equal(R.linesToSheet(R.sheetToLines(cell)), cell);
+  assert.deepEqual(R.sheetToLines('a|b'), ['a', 'b'], 'legacy single-line cells');
+  assert.deepEqual(R.sheetToLines('x\r\n|y'), ['x', 'y'], 'Windows line endings');
+});
+
+test('md renders ~~strikethrough~~ and keeps * literal inside `code`', () => {
+  assert.equal(R.md('~~old~~ new'), '<p><del>old</del> new</p>');
+  assert.equal(R.md('`a*b*c`'), '<p><code>a&#42;b&#42;c</code></p>');
+});

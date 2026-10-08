@@ -138,6 +138,36 @@ const CALLOUT_TYPES = {
 };
 
 /**
+ * Sheet cell format → lines. Every line after the first starts with "|":
+ *   "## Title\n|First paragraph\n|- item"
+ * Only ONE leading "|" per line is a separator, so a "|" inside a sentence
+ * is kept. Legacy single-line cells ("a|b|c", no newlines) split on "|".
+ */
+export function sheetToLines(text) {
+  const t = String(text ?? '');
+  if (!t) return [];
+  if (!/\r?\n/.test(t)) return t.split('|');
+  return t.split(/\r?\n/).map(l => (l.startsWith('|') ? l.slice(1) : l));
+}
+
+/** Lines → Sheet cell format (inverse of sheetToLines for normal content). */
+export const linesToSheet = lines => lines.join('\n|');
+
+/**
+ * Inline markdown → HTML (escape first): **bold**, *italic*, ~~strike~~,
+ * `code`, [text](https://…). Shared by the site renderer and the CMS editor.
+ * Code spans are protected so * and ~ inside them stay literal.
+ */
+export const inlineMd = raw => esc(raw)
+  .replace(/&#124;/g, '|')
+  .replace(/`([^`]+)`/g, (_, c) => `<code>${c.replace(/\*/g, '&#42;').replace(/~/g, '&#126;')}</code>`)
+  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+  .replace(/~~(.+?)~~/g, '<del>$1</del>')
+  .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+    (_, t, u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
+
+/**
  * Render the Sheet's markdown subset. Raw HTML is always escaped; links
  * must be http(s). imgMap maps '[imgN]' → trusted <figure> HTML.
  */
@@ -151,13 +181,7 @@ export function md(text, imgMap = {}) {
     text = text.split(code).join(tok);
   }
 
-  const inlineFmt = raw => esc(raw)
-    .replace(/&#124;/g, '|')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
-      (_, t, u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
+  const inlineFmt = inlineMd;
   const restoreToks = s => {
     for (const [tok, html] of Object.entries(toks)) if (s.includes(tok)) s = s.split(tok).join(html);
     return s;
@@ -168,9 +192,7 @@ export function md(text, imgMap = {}) {
     if (inUL) { out += '</ul>'; inUL = false; }
     if (inOL) { out += '</ol>'; inOL = false; }
   };
-  const lines = text.includes('\n')
-    ? text.split('\n').map(l => l.replace(/\r$/, '')).map(l => l.startsWith('|') ? l.slice(1) : l)
-    : text.split('|');
+  const lines = sheetToLines(text);
 
   for (const raw of lines) {
     if (raw.trim() === '```') {
