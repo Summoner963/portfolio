@@ -223,7 +223,7 @@ async function renderBlogList(panel, view) {
     </div>`;
 
   document.getElementById('blogAddNew').addEventListener('click', function() {
-    renderBlogForm(panel, view, null);
+    renderBlogForm(panel, view, null, rows); // rows: for the duplicate-slug check
   });
 
   let rows = [];
@@ -315,6 +315,7 @@ async function renderBlogList(panel, view) {
 // ── BLOG FORM ─────────────────────────────────────────────────────────────
 
 async function renderBlogForm(panel, view, existingRow, allRows) {
+  allRows = allRows || [];
   const isEdit = !!existingRow;
   let biRows  = [];
   let faqRows = [];
@@ -554,6 +555,16 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   // ── Publish ──────────────────────────────────────────────────────────────
   const isHttp = u => /^https?:\/\/\S+$/i.test(u);
   document.getElementById('bPublish').addEventListener('click', async function() {
+    // Never fail silently: any unexpected error is shown instead of a dead button
+    try { await publish(); } catch (e) {
+      console.error('[cms] publish failed', e);
+      showToast('Could not save: ' + (e && e.message ? e.message : 'unexpected error'), 'error');
+      const b = document.getElementById('bPublish');
+      if (b) { b.disabled = false; b.textContent = isEdit ? 'Save Changes' : 'Publish to Sheet'; }
+    }
+  });
+
+  async function publish() {
     const title    = document.getElementById('bTitle').value.trim();
     const slug     = isEdit ? r.Slug : (document.getElementById('bSlug').value.trim() || makeSlug(title));
     const date     = document.getElementById('bDate').value || today();
@@ -644,5 +655,5 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
     } catch (e) {
       fail('Network error — nothing was lost, try again');
     }
-  });
+  }
 }

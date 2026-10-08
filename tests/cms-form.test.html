@@ -80,6 +80,40 @@ try {
   $('bPublish').click();
   await wait(600);
   check('draft status is saved', writes.find(w => w.sheet === 'blog')?.row?.Status === 'draft');
+
+  // ── New post (the flow that once failed silently) ─────────────────────
+  writes.length = 0;
+  const errors = [];
+  window.addEventListener('error', e => errors.push(e.message));
+  window.addEventListener('unhandledrejection', e => errors.push(String(e.reason)));
+  $('blogAddNew').click();
+  await wait(500);
+  check('New Post opens an empty form', $('bTitle').value === '' && !!$('bWysiwyg'));
+  $('bTitle').value = 'My New Post';
+  $('bTitle').dispatchEvent(new Event('input', { bubbles: true }));
+  $('bExcerpt').value = 'Short summary.';
+  // write content through the Sheet pane (as a user typing on the right)
+  $('bMarkdown').value = '## Intro\n|Hello **world**\n|- one';
+  $('bMarkdown').dispatchEvent(new Event('input', { bubbles: true }));
+  await wait(400);
+  $('bPublish').click();
+  await wait(700);
+  const created = writes.find(w => w.sheet === 'blog' && w.action === 'append');
+  check('Publish to Sheet creates the post', !!created && errors.length === 0, `writes=${JSON.stringify(writes)} errors=${errors}`);
+  check('new post uses slug from title and your Sheet format',
+    created?.row?.Slug === 'my-new-post' && created?.row?.Content === '## Intro\n|Hello **world**\n|- one',
+    JSON.stringify(created?.row));
+
+  // Duplicate slug is refused with a message (not a dead button)
+  writes.length = 0;
+  $('blogAddNew').click();
+  await wait(500);
+  $('bTitle').value = 'Free .com.np domain';
+  $('bSlug').value = POST.Slug;
+  $('bExcerpt').value = 'x';
+  $('bPublish').click();
+  await wait(300);
+  check('duplicate slug is refused with a message', writes.length === 0 && /already exists/.test($('bStatus').textContent), $('bStatus').textContent);
 } catch (e) {
   check('no exceptions', false, e.stack);
 }
