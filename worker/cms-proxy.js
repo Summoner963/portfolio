@@ -81,30 +81,52 @@ export function validateRow(sheet, input, { partial = false } = {}) {
 }
 
 async function callScript(payload, env) {
-  const url = env.CMS_APPS_SCRIPT_URL || '';
-  if (!/^https:\/\/script\.google\.com\//.test(url)) {
-    console.warn('[cms] CMS_APPS_SCRIPT_URL missing or not an Apps Script URL');
-    return fail('CMS is not configured', 503);
+  // Trim: a pasted secret often carries an invisible space or line break
+  const url = String(env.CMS_APPS_SCRIPT_URL || '').trim();
+  const secret = String(env.CMS_APPS_SCRIPT_SECRET || '').trim();
+  // Messages below are only ever shown to the logged-in admin, so they say
+  // what to fix; the URL and secret themselves are never logged or returned.
+  if (!url) return fail('CMS_APPS_SCRIPT_URL is not set (Cloudflare → Variables and Secrets)', 503);
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) {
+    console.warn('[cms] CMS_APPS_SCRIPT_URL has the wrong format');
+    return fail('CMS_APPS_SCRIPT_URL must be the web-app URL: https://script.google.com/macros/s/…/exec', 503);
   }
+  if (!secret) return fail('CMS_APPS_SCRIPT_SECRET is not set', 503);
+
+  let resp;
   try {
-    const resp = await fetch(url, {
+    resp = await fetch(url, {
       method: 'POST',
       redirect: 'follow',
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(25_000),
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, secret: env.CMS_APPS_SCRIPT_SECRET || '' }),
+      body: JSON.stringify({ ...payload, secret }),
     });
-    const result = await resp.json().catch(() => null);
-    if (!resp.ok || !result || result.ok !== true) {
-      console.warn('[cms] Apps Script rejected', payload.action, payload.sheet, resp.status);
-      return fail('Save failed — please try again', 502);
-    }
-    // Only pass back what the UI needs
-    return json(payload.action === 'read' ? { ok: true, rows: Array.isArray(result.rows) ? result.rows : [] } : { ok: true });
   } catch (e) {
-    console.warn('[cms] Apps Script unreachable:', e.name);
-    return fail('Content service unavailable', 502);
+    console.warn('[cms] Apps Script request failed:', e.name, String(e.message || '').replace(url, '<url>'));
+    return fail(e.name === 'TimeoutError'
+      ? 'Google Apps Script did not answer within 25 s — try again'
+      : `Could not reach Google Apps Script (${e.name})`, 502);
   }
+
+  const text = await resp.text();
+  let result = null;
+  try { result = JSON.parse(text); } catch {}
+  if (!result) {
+    console.warn('[cms] Apps Script returned non-JSON', resp.status, text.slice(0, 80).replace(/\s+/g, ' '));
+    return fail(/<html|<!doctype/i.test(text)
+      ? 'Apps Script returned a web page instead of data — in Apps Script, Deploy → Manage deployments: "Who has access" must be "Anyone", then deploy a New version'
+      : `Apps Script returned HTTP ${resp.status}`, 502);
+  }
+  if (result.ok !== true) {
+    console.warn('[cms] Apps Script rejected', payload.action, payload.sheet, result.error);
+    const why = { Unauthorized: 'Apps Script rejected the secret — CMS_APPS_SCRIPT_SECRET (Cloudflare) must equal CMS_SECRET (Apps Script) and be at least 32 characters',
+                  'Bad request': 'Apps Script could not find the tab or its key column — check tab names (Blog, BlogImage, FAQ) and headers',
+                  'Server error': 'Apps Script error — open Apps Script → Executions for details' }[result.error];
+    return fail(why || 'Apps Script refused the request', 502);
+  }
+  // Only pass back what the UI needs
+  return json(payload.action === 'read' ? { ok: true, rows: Array.isArray(result.rows) ? result.rows : [] } : { ok: true });
 }
 
 async function readBody(request) {
