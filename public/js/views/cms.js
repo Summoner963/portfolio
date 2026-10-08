@@ -14,6 +14,7 @@
 //           is completely rewritten to be consistent and non-destructive.
 
 import { esc, loadCSS, showToast, md } from '../utils.js';
+import { isoDate } from '../shared/render.js';
 
 // ── API helpers ────────────────────────────────────────────────────────────
 // Sessions are an HttpOnly cookie set by the worker (JavaScript can't read
@@ -72,8 +73,10 @@ function makeSlug(title) {
     .slice(0, 80);
 }
 
+// Local calendar day (toISOString() is UTC: before 05:45 in Nepal it would
+// still say yesterday).
 function today() {
-  return new Date().toISOString().split('T')[0];
+  return isoDate(new Date().toString());
 }
 
 // ── FIX 3/4: pipe ↔ newline converters ────────────────────────────────────
@@ -96,11 +99,9 @@ function pipesToLines(raw) {
   return raw.split('|').join('\n');
 }
 
+// "April 18, 2026" → "2026-04-18" for the date input, without shifting the day
 function toInputDate(val) {
-  if (!val) return today();
-  const d = new Date(val);
-  if (isNaN(d.getTime())) return today();
-  return d.toISOString().split('T')[0];
+  return isoDate(val) || today();
 }
 
 // ── Main entry point ──────────────────────────────────────────────────────

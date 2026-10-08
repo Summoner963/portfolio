@@ -91,11 +91,20 @@ export function dateValue(s) {
   return isNaN(t) ? 0 : t;
 }
 
-/** 'YYYY-MM-DD' or null. */
+/**
+ * 'YYYY-MM-DD' or null. Uses the calendar day as written ("April 18, 2026"
+ * → 2026-04-18) in any time zone — toISOString() would shift dates back a
+ * day in browsers east of UTC (Nepal is UTC+5:45).
+ */
 export function isoDate(s) {
   if (!s) return null;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+  const str = String(s).trim();
+  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return null;
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 // Optional "Status" (or "Published") column hides a row everywhere.

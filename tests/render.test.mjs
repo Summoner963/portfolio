@@ -94,3 +94,12 @@ test('featuredPosts keeps sheet order and drops unknown slugs', () => {
   const blog = [{ Slug: 'a' }, { Slug: 'b' }];
   assert.deepEqual(R.featuredPosts([{ Slug: 'b' }, { Slug: 'x' }, { Slug: 'a' }], blog).map(p => p.Slug), ['b', 'a']);
 });
+
+test('isoDate keeps the calendar day in any time zone', () => {
+  assert.equal(R.isoDate('April 18, 2026'), '2026-04-18');
+  assert.equal(R.isoDate('2026-04-18'), '2026-04-18');
+  assert.equal(R.isoDate('2026-04-18T23:30:00Z'), '2026-04-18');
+  assert.equal(R.isoDate('September 1, 2026'), '2026-09-01');
+  assert.equal(R.isoDate('not a date'), null);
+  assert.equal(R.isoDate(''), null);
+});
