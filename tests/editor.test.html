@@ -1,0 +1,147 @@
+<!doctype html>
+<!--
+  Browser tests for the CMS editor (public/js/views/cms-editor.js).
+  Run from the repo root:
+    python -m http.server 8811 --bind 127.0.0.1
+    open http://127.0.0.1:8811/tests/editor.test.html   (or headless Chrome --dump-dom)
+  Results are written into #results; every line starts with PASS or FAIL.
+-->
+<html lang="en"><head><meta charset="utf-8"><title>CMS editor tests</title>
+<link rel="stylesheet" href="/public/css/cms.css"></head>
+<body>
+<div id="toolbar"></div>
+<div id="visual" class="cms-wysiwyg" contenteditable="true"></div>
+<textarea id="source"></textarea>
+<pre id="results">running…</pre>
+<script type="module">
+import { linesToEditorHTML, editorToLines, mountEditor } from '/public/js/views/cms-editor.js';
+import { sheetToLines, linesToSheet } from '/public/js/shared/render.js';
+
+const out = [];
+const check = (name, ok, detail = '') => out.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '\n      ' + detail}`);
+const scratch = document.createElement('div');
+const roundTrip = sheet => { scratch.innerHTML = linesToEditorHTML(sheetToLines(sheet)); return linesToSheet(editorToLines(scratch)); };
+
+// ── 1. Lossless round-trips ────────────────────────────────────────────
+const REAL_POST = [
+  '## What is a .com.np Domain?',
+  'A .com.np domain is a free Nepali domain extension managed by Mercantile Communications. Any Nepali citizen or student can register one completely free. No credit card. No payment. Just a few documents and you are good to go.',
+  'This guide shows you exactly how I got my own free .com.np domain and connected it to Cloudflare Pages for free hosting. If you already have your domain sorted and want to host it, [check my Cloudflare hosting guide](https://suman-dangal.com.np/blog/cloudflare-hosting-nepal).',
+  '## Who Can Apply?', 'You can apply if you are:',
+  '- A Nepali citizen with a valid citizenship card', '- A student with a college ID or enrollment letter', '- A registered business in Nepal',
+  '> Good news for students — you only need your college ID and a scanned copy of your citizenship. No fees, no renewal cost, completely free forever.',
+  'Okay so here is the thing. When you first open register.com.np to register your domain, the form asks you to enter **nameservers**. You think — okay fine, I will get those from Cloudflare.',
+  '[img1]', '## How to Break the Deadlock — The Simple Fix',
+  '1. On register.com.np, enter **abby.ns.cloudflare.com** and **ben.ns.cloudflare.com** as your nameservers during registration — these are Mercantile\'s own default nameservers',
+  '2. Submit your application with your documents and wait for Mercantile to approve your domain',
+  '3. Once approved (usually 1 to 3 days), go to Cloudflare and add your domain',
+  '> That is it. Use placeholders first, get approved, then switch.',
+  '1. Go to [register.com.np](https://register.com.np) and create a free account',
+  '2. Search for your desired domain name such as yourname.com.np',
+  '[img2]',
+  '**Domain not approved after 5 days** — Email hostmaster@mos.com.np with your application reference number. They usually reply within a day.',
+  'Getting a free .com.np domain is straightforward once you know about the nameserver deadlock. Use  **abby.ns.cloudflare.com** and **ben.ns.cloudflare.com** as placeholders during registration.',
+].join('\n|');
+check('real post (your .com.np guide) round-trips byte-for-byte', roundTrip(REAL_POST) === REAL_POST, roundTrip(REAL_POST));
+
+const CASES = {
+  'pipe inside a sentence':          'Price: free | no renewal\n|second line',
+  'italic, strike, code, link':      'Use *care*, ~~old~~, `npm test`, and [docs](https://example.com/a?b=1)',
+  'bold inside link text':           'See [**bold link**](https://example.com)',
+  'all callouts':                    '> [!NOTE] n\n|> [!TIP] t\n|> [!WARNING] w\n|> [!IMPORTANT] i\n|> [!INFO] f',
+  'H2 then H3':                      '## Big\n|### Small\n|text',
+  'code block':                      '```\n|const x = 1;\n|  indented <b>\n|```\n|after',
+  'blank line kept':                 'para one\n|\n|para two',
+  'symbols and HTML-looking text':   'a < b && c > d "quoted" \'single\' <script>x<\/script>',
+  'stars that are not formatting':   '5 * 3 * 2 = 30',
+  'list then paragraph then list':   '- a\n|- b\n|middle\n|1. one\n|2. two',
+};
+for (const [name, sheet] of Object.entries(CASES)) check(`round-trip: ${name}`, roundTrip(sheet) === sheet, `got: ${JSON.stringify(roundTrip(sheet))}`);
+check('legacy single-line "a|b|c" opens as three lines', JSON.stringify(sheetToLines('a|b|c')) === '["a","b","c"]');
+
+// ── 2. Mounted editor: untouched save, toolbar actions ─────────────────
+const visual = document.getElementById('visual'), source = document.getElementById('source'), toolbar = document.getElementById('toolbar');
+const select = (node, start = 0, end) => { const r = document.createRange(); r.setStart(node, start); r.setEnd(node, end ?? node.length); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+const firstText = el => { const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); return w.nextNode(); };
+const btn = title => [...toolbar.querySelectorAll('button')].find(b => b.title.startsWith(title));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+let ed;
+const fresh = content => { ed?.destroy(); ed = mountEditor({ visual, source, toolbar, content }); };
+
+const ODD = 'odd cell\n|with trailing newline\n';
+fresh(ODD);
+check('untouched post saves the original cell exactly', ed.getContent() === ODD, JSON.stringify(ed.getContent()));
+fresh(REAL_POST);
+check('untouched real post saves identically', ed.getContent() === REAL_POST);
+
+async function action(name, content, setup, expected) {
+  fresh(content);
+  visual.focus();
+  setup();
+  await wait(200);
+  const got = ed.getContent();
+  check(`toolbar: ${name}`, got === expected, `expected ${JSON.stringify(expected)}\n      got      ${JSON.stringify(got)}`);
+}
+await action('Bold', 'hello world', () => { select(firstText(visual), 0, 5); btn('Bold').click(); }, '**hello** world');
+await action('Italic', 'hello world', () => { select(firstText(visual), 6, 11); btn('Italic').click(); }, 'hello *world*');
+await action('Strikethrough', 'old text', () => { select(firstText(visual), 0, 3); btn('Strikethrough').click(); }, '~~old~~ text');
+await action('Inline code', 'run npm test now', () => { select(firstText(visual), 4, 12); btn('Inline code').click(); }, 'run `npm test` now');
+await action('Heading 2', 'My heading', () => { select(firstText(visual), 0, 2); btn('Text style').click(); [...toolbar.querySelectorAll('.tb-dropdown-item')].find(i => i.textContent === 'Heading 2').click(); }, '## My heading');
+await action('Heading 3', 'Sub', () => { select(firstText(visual), 0, 1); btn('Text style').click(); [...toolbar.querySelectorAll('.tb-dropdown-item')].find(i => i.textContent === 'Heading 3').click(); }, '### Sub');
+await action('Bullet list', 'one\n|two', () => { const r = document.createRange(); r.selectNodeContents(visual); getSelection().removeAllRanges(); getSelection().addRange(r); btn('Bullet list').click(); }, '- one\n|- two');
+await action('Numbered list', 'one\n|two', () => { const r = document.createRange(); r.selectNodeContents(visual); getSelection().removeAllRanges(); getSelection().addRange(r); btn('Numbered list').click(); }, '1. one\n|2. two');
+await action('Quote', 'quote me', () => { select(firstText(visual), 0, 2); btn('Quote').click(); }, '> quote me');
+await action('Callout → Warning', 'careful here', () => { select(firstText(visual), 0, 2); btn('Insert callout').click(); [...toolbar.querySelectorAll('.tb-dropdown-item')].find(i => i.textContent === 'Warning').click(); }, '> [!WARNING] careful here');
+await action('Image placeholder', 'intro', () => { select(firstText(visual), 5, 5); btn('Image placeholder').click(); }, 'intro\n|[img1]');
+await action('Special character', 'a', () => { select(firstText(visual), 1, 1); btn('Special characters').click(); [...toolbar.querySelectorAll('.tb-special-char')].find(i => i.textContent === '→').click(); }, 'a→');
+await action('Ctrl+B shortcut', 'key', () => { select(firstText(visual), 0, 3); visual.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, bubbles: true })); }, '**key**');
+
+// Enter inside a callout continues in a new paragraph (callouts are one line)
+fresh('> [!TIP] tip text');
+visual.focus();
+select(firstText(visual), 8, 8);
+visual.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+document.execCommand('insertText', false, 'next para');
+await wait(200);
+check('Enter in a callout starts a normal paragraph', ed.getContent() === '> [!TIP] tip text\n|next para', JSON.stringify(ed.getContent()));
+
+// Pasting markdown becomes formatting; pasted HTML styling is dropped
+fresh('start');
+visual.focus();
+select(firstText(visual), 5, 5);
+const dt = new DataTransfer();
+dt.setData('text/plain', '\n## Pasted heading\n- item **bold**');
+dt.setData('text/html', '<span style="color:red;font-size:40px">ignored styling</span>');
+visual.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+await wait(200);
+check('paste: markdown becomes formatting, HTML styling dropped',
+  ed.getContent() === 'start\n|## Pasted heading\n|- item **bold**' && visual.querySelector('h2') && !visual.innerHTML.includes('color'),
+  JSON.stringify(ed.getContent()));
+
+// Typing in the Sheet pane updates the visual pane
+fresh('x');
+source.value = '## From source\n|with **bold**';
+source.dispatchEvent(new Event('input'));
+await wait(400);
+check('Sheet pane → visual pane', visual.querySelector('h2')?.textContent === 'From source' && visual.querySelector('strong')?.textContent === 'bold', visual.innerHTML);
+check('…and saves the Sheet pane text', ed.getContent() === '## From source\n|with **bold**', ed.getContent());
+
+// ── 3. Dropdowns ───────────────────────────────────────────────────────
+fresh('x');
+const menus = [...toolbar.querySelectorAll('.tb-dropdown-menu, .tb-special-panel')];
+check('all dropdowns start closed', menus.every(m => getComputedStyle(m).display === 'none'), menus.map(m => getComputedStyle(m).display).join(','));
+const calloutBtn = btn('Insert callout'), calloutMenu = calloutBtn.nextElementSibling;
+calloutBtn.click();
+check('click opens a dropdown', getComputedStyle(calloutMenu).display !== 'none');
+calloutBtn.click();
+check('second click closes it', getComputedStyle(calloutMenu).display === 'none');
+calloutBtn.click(); btn('Special characters').click();
+check('opening another closes the first', getComputedStyle(calloutMenu).display === 'none');
+document.body.click();
+check('click outside closes', menus.every(m => getComputedStyle(m).display === 'none'));
+calloutBtn.click(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+check('Esc closes', getComputedStyle(calloutMenu).display === 'none');
+
+const failed = out.filter(l => l.startsWith('FAIL')).length;
+document.getElementById('results').textContent = out.join('\n') + `\n\n${out.length - failed} passed, ${failed} failed`;
+</script></body></html>

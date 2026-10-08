@@ -1,0 +1,88 @@
+<!doctype html>
+<!--
+  End-to-end test of the CMS screens (public/js/views/cms.js) with a FAKE
+  /api/cms backend (window.fetch is replaced) — no worker, Sheet or secrets.
+  Run from the repo root:  python -m http.server 8811 --bind 127.0.0.1
+  then open http://127.0.0.1:8811/tests/cms-form.test.html
+-->
+<html lang="en"><head><meta charset="utf-8"><title>CMS form test</title>
+<link rel="stylesheet" href="/public/css/base.css"></head>
+<body>
+<div id="view-cms"></div>
+<pre id="results">running…</pre>
+<script type="module">
+const POST = {
+  ID: '1', Title: 'Free .com.np domain', Slug: 'get-free-domain-in-nepal', Category: 'Guides',
+  Excerpt: 'How to register.', Content: '## Who Can Apply?\n|You can apply if you are:\n|- A student\n|[img1]',
+  Date: 'April 18, 2026', Last_Modified: 'April 18, 2026', Tags: 'domain, nepal',
+  Image_URL: '', Image_Alt: '', Table_HTML: '', Status: '',
+};
+const writes = [];
+window.fetch = async (url, opts = {}) => {
+  const body = opts.body ? JSON.parse(opts.body) : {};
+  const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json' } });
+  if (url === '/api/cms/session') return json({ ok: true, user: 'tester', csrf: 'csrf-1' });
+  if (url === '/api/cms/read') {
+    if (body.sheet === 'blog') return json({ ok: true, rows: [POST] });
+    if (body.sheet === 'blogimage') return json({ ok: true, rows: [{ Blog_Slug: POST.Slug, Img_Number: '1', Img_URL: 'https://lh3.googleusercontent.com/d/x', Img_Alt: 'Form' }] });
+    return json({ ok: true, rows: [] });
+  }
+  if (url === '/api/cms/write') { writes.push({ ...body, csrf: opts.headers['X-CSRF-Token'] }); return json({ ok: true }); }
+  return json({ ok: false, error: 'unexpected ' + url }, 404);
+};
+
+const out = [];
+const check = (name, ok, detail = '') => out.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '\n      ' + detail}`);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const $ = id => document.getElementById(id);
+window.confirm = () => true;
+
+try {
+  const { renderCMS } = await import('/public/js/views/cms.js');
+  await renderCMS();
+  await wait(300);
+  check('dashboard shows the post list', !!document.querySelector('[data-action="edit"]'), document.getElementById('view-cms').innerHTML.slice(0, 200));
+
+  document.querySelector('[data-action="edit"]').click();
+  await wait(600);
+  check('edit form opens with the visual editor', !!$('bWysiwyg') && !!$('bMarkdown') && !!$('bToolbar').children.length);
+  check('Sheet pane shows the stored cell verbatim', $('bMarkdown').value === POST.Content, JSON.stringify($('bMarkdown').value));
+  check('visual pane renders heading, list and image chip',
+    $('bWysiwyg').querySelector('h2')?.textContent === 'Who Can Apply?' && $('bWysiwyg').querySelector('li') && $('bWysiwyg').querySelector('.cms-img'));
+  check('date "April 18, 2026" shows as 2026-04-18 (no day shift)', $('bDate').value === '2026-04-18', $('bDate').value);
+  check('visibility defaults to Published', $('bStatusSel').value === '');
+  const menus = [...document.querySelectorAll('.tb-dropdown-menu, .tb-special-panel')];
+  check('toolbar dropdowns are closed', menus.length > 0 && menus.every(m => getComputedStyle(m).display === 'none'));
+
+  // Save without touching the content → content identical, Last_Modified handled by worker
+  $('bPublish').click();
+  await wait(600);
+  const blogWrite = writes.find(w => w.sheet === 'blog');
+  check('save without edits keeps Content byte-identical', blogWrite?.row?.Content === POST.Content, JSON.stringify(blogWrite?.row?.Content));
+  check('save sends date as 2026-04-18 and CSRF token', blogWrite?.row?.Date === '2026-04-18' && blogWrite?.csrf === 'csrf-1', JSON.stringify(blogWrite));
+  check('save keeps images (delete by slug, then re-add)',
+    writes.some(w => w.sheet === 'blogimage' && w.action === 'delete' && w.slug === POST.Slug) &&
+    writes.some(w => w.sheet === 'blogimage' && w.action === 'append' && w.row.Img_URL === 'https://lh3.googleusercontent.com/d/x'));
+  check('returns to the list after saving', !!document.querySelector('[data-action="edit"]'));
+
+  // Draft + bad image URL validation
+  writes.length = 0;
+  document.querySelector('[data-action="edit"]').click();
+  await wait(600);
+  $('bStatusSel').value = 'draft';
+  document.querySelector('#bImageRows input[data-field="url"]').value = 'javascript:alert(1)';
+  document.querySelector('#bImageRows input[data-field="url"]').dispatchEvent(new Event('input', { bubbles: true }));
+  $('bPublish').click();
+  await wait(300);
+  check('bad image URL is rejected before anything is written', writes.length === 0 && /must start with https/.test($('bStatus').textContent), $('bStatus').textContent);
+  document.querySelector('#bImageRows input[data-field="url"]').value = 'https://ok.example/img.png';
+  document.querySelector('#bImageRows input[data-field="url"]').dispatchEvent(new Event('input', { bubbles: true }));
+  $('bPublish').click();
+  await wait(600);
+  check('draft status is saved', writes.find(w => w.sheet === 'blog')?.row?.Status === 'draft');
+} catch (e) {
+  check('no exceptions', false, e.stack);
+}
+const failed = out.filter(l => l.startsWith('FAIL')).length;
+document.getElementById('results').textContent = out.join('\n') + `\n\n${out.length - failed} passed, ${failed} failed`;
+</script></body></html>
