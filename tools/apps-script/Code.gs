@@ -60,7 +60,7 @@ function doPost(e) {
 
 // ── read: every non-empty row as { header: displayed value } ─────────────
 function actionRead(tab) {
-  var data = tab.getDataRange().getDisplayValues(); // dates as shown, e.g. 2026-04-17
+  var data = tab.getDataRange().getDisplayValues(); // values as shown, e.g. "April 18, 2026"
   if (data.length < 2) return jsonResponse({ ok: true, rows: [] });
   var headers = data[0].map(function (h) { return String(h).trim(); });
   var rows = [];
