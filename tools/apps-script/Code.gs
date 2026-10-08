@@ -77,6 +77,7 @@ function actionRead(tab) {
 function actionAppend(tab, row) {
   if (!row || typeof row !== 'object') return jsonResponse({ ok: false, error: 'Bad request' });
   var headers = headerRow(tab);
+  row = assignId(tab, headers, row);
   tab.appendRow(headers.map(function (h) { return h in row ? cell(row[h], h) : ''; }));
   formatDates(tab, tab.getLastRow(), headers);
   return jsonResponse({ ok: true });
@@ -114,6 +115,24 @@ function actionDelete(tab, keyField, slug) {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────
+
+// New rows in a tab with an "ID" column get the next number (highest + 1).
+// Runs inside the script lock, so two saves can never get the same ID.
+function assignId(tab, headers, row) {
+  var col = headers.indexOf('ID');
+  if (col === -1 || String(row.ID || '').trim()) return row;
+  var max = 0;
+  if (tab.getLastRow() > 1) {
+    tab.getRange(2, col + 1, tab.getLastRow() - 1, 1).getValues().forEach(function (r) {
+      var n = parseInt(r[0], 10);
+      if (!isNaN(n) && n > max) max = n;
+    });
+  }
+  var copy = {};
+  for (var k in row) copy[k] = row[k];
+  copy.ID = String(max + 1);
+  return copy;
+}
 function headerRow(tab) {
   return tab.getRange(1, 1, 1, tab.getLastColumn()).getValues()[0]
     .map(function (h) { return String(h).trim(); });
