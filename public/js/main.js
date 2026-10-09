@@ -42,7 +42,8 @@
 import { registerRoute, registerPrefix, boot } from './router.js';
 import { fetchSheet, CFG }                     from './api.js';
 import { updateSEO }                            from './seo.js';
-import { ROUTES, SITE_URL }                     from './shared/render.js';
+import { SITE_URL, routeMeta }                  from './shared/render.js';
+import { SITE }                                 from './seo.js';
 
 // Apply the font stylesheet that index.html loads with media="print"
 // (non-blocking without an inline onload handler — keeps the CSP strict).
@@ -63,10 +64,10 @@ if (fontCss) fontCss.media = 'all';
 //  The router calls the first match it finds (in registration order).
 // ─────────────────────────────────────────────────────────────────────────
 
-// Head metadata for list routes comes from the shared ROUTES table, so the
+// Head metadata comes from the shared ROUTES table + Site tab overrides, so the
 // SPA sets exactly what the worker rendered for the same URL.
 const sectionSEO = path => updateSEO({
-  path, crumbs: [{ name: ROUTES[path].heading, url: SITE_URL + path }],
+  path, crumbs: [{ name: routeMeta(path, SITE).heading, url: SITE_URL + path }],
 });
 
 // ── Home (/) ───────────────────────────────────────────────────────────────

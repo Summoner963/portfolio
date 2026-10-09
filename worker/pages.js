@@ -12,8 +12,8 @@ const home = { name: 'Home', url: `${SITE_URL}/` };
 const crumbs = (...rest) => R.breadcrumbLD([home, ...rest]);
 const base = { website: R.websiteLD() };
 
-function routePage(path) {
-  const m = ROUTES[path];
+function routePage(path, site = {}) {
+  const m = R.routeMeta(path, site);
   return {
     status: 200, view: m.view, title: m.title, description: m.description,
     canonical: SITE_URL + (path === '/' ? '/' : path), css: m.css, ssrRoute: path,
@@ -38,8 +38,8 @@ export function notFoundPage(path, { status = 404, article = false } = {}) {
 
 const unavailable = path => notFoundPage(path, { status: 503 });
 
-export async function homePage(env, ctx) {
-  const page = routePage('/');
+export async function homePage(env, ctx, site) {
+  const page = routePage('/', site);
   page.jsonLd['ld-profile'] = R.profilePageLD();
   const [blog, featured] = await Promise.all([getRows('blog', env, ctx), getRows('featured', env, ctx)]);
   const posts = R.featuredPosts(featured, blog);
@@ -58,8 +58,15 @@ const SECTION = {
   '/about':      { sheet: 'about',    target: '#aboutText',    html: rows => R.aboutHTML(R.aboutParas(rows)) },
 };
 
-export async function sectionPage(path, env, ctx) {
-  const page = routePage(path);
+export async function sectionPage(path, env, ctx, site) {
+  const page = routePage(path, site);
+  if (path === '/contact') {
+    const pairs = R.faqPairs(await getRows('faq', env, ctx), 'contact');
+    if (pairs.length) {
+      page.inject['#contactFaq'] = R.faqSectionHTML(pairs);
+      page.jsonLd['faq-schema'] = R.faqLD(pairs);
+    }
+  }
   const s = SECTION[path];
   if (s) {
     const rows = await getRows(s.sheet, env, ctx);
@@ -69,7 +76,7 @@ export async function sectionPage(path, env, ctx) {
   return page;
 }
 
-export async function blogListPage(url, env, ctx) {
+export async function blogListPage(url, env, ctx, site) {
   const rows = await getRows('blog', env, ctx);
   if (rows == null) return unavailable(url.pathname);
   const total = Math.max(1, Math.ceil(rows.length / R.POSTS_PER_PAGE));
@@ -77,7 +84,7 @@ export async function blogListPage(url, env, ctx) {
   const n = raw == null ? 1 : Number(raw);
   if (!Number.isInteger(n) || n < 1 || n > total) return notFoundPage(url.pathname + url.search);
 
-  const page = routePage('/blog');
+  const page = routePage('/blog', site);
   page.ssrRoute = n > 1 ? `/blog?page=${n}` : '/blog';
   if (n > 1) {
     page.canonical = `${SITE_URL}/blog?page=${n}`;

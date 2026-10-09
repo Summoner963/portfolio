@@ -12,7 +12,7 @@
 //  Security headers are added to every response in finalize().
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { ROUTES } from '../public/js/shared/render.js';
+import { ROUTES, siteMap, LIST_REQUIRED } from '../public/js/shared/render.js';
 import { finalize, hostPolicy, canonicalPath, redirect, isRateLimited, isSearchCrawler } from './http.js';
 import { getSheetGids, getSheetCSV, getRows, toCSV, invalidateSheet } from './sheets.js';
 import { rewriteShell } from './shell.js';
@@ -92,10 +92,11 @@ async function renderPage(request, env, ctx, url) {
   const path = url.pathname;
   let page;
   const post = path.match(/^\/blog\/([^/]+)$/);
-  if (path === '/')                 page = await homePage(env, ctx);
-  else if (path === '/blog')        page = await blogListPage(url, env, ctx);
+  const site = siteMap(await getRows('site', env, ctx)); // {} if the tab is missing/unreachable
+  if (path === '/')                 page = await homePage(env, ctx, site);
+  else if (path === '/blog')        page = await blogListPage(url, env, ctx, site);
   else if (post)                    page = await blogPostPage(safeDecode(post[1]), env, ctx);
-  else if (ROUTES[path])            page = await sectionPage(path, env, ctx);
+  else if (ROUTES[path])            page = await sectionPage(path, env, ctx, site);
   else if (path === ADMIN_PATH)     page = adminPage(); // login form; data needs a session
   else                              page = notFoundPage(path);
 
@@ -107,6 +108,7 @@ async function renderPage(request, env, ctx, url) {
     ...(page.status === 503 ? { 'Retry-After': '120' } : {}),
     ...(page.robots === 'noindex, nofollow' ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
   };
+  page.site = site;
   return rewriteShell(page).transform(new Response(shell.body, { status: page.status, headers }));
 }
 
@@ -125,6 +127,9 @@ async function dataEndpoint(url, env, ctx) {
       const live = new Set([...blog.map(p => p.Slug), 'contact']);
       body = toCSV(rows.filter(r => live.has(String(r.Blog_Slug || '').trim())));
     }
+  } else if (LIST_REQUIRED[name]) {
+    const rows = await getRows(name, env, ctx); // hidden/empty rows removed, sorted by Order
+    body = rows == null ? null : toCSV(rows);
   } else {
     body = await getSheetCSV(name, env, ctx);
   }

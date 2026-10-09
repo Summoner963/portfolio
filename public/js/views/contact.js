@@ -1,37 +1,21 @@
-// ═══════════════════════════════════════════════════════════════════════════
-//  js/views/contact.js
-//
-//  Exports:
-//    renderContact() — activates the contact view.
-//
-//  The contact view is 100% static HTML already in index.html:
-//    email, LinkedIn, and phone tiles inside .contact-grid.
-//  There is no sheet, no fetch, no skeleton, no fallback needed.
-//
-//  This module's only jobs:
-//    1. Lazy-load css/about.css (where .contact-grid + .contact-tile live)
-//    2. Call watchReveals() so .reveal elements animate in
-//
-//  Open/Closed: contact details updated directly in index.html.
-// ═══════════════════════════════════════════════════════════════════════════
-
-import { loadCSS, watchReveals } from '../utils.js';
-
-// ── Lazy CSS ───────────────────────────────────────────────────────────────
-// .contact-grid and .contact-tile are defined in about.css alongside
-// .about-grid, .edu-card, .timeline etc. — one file covers all three
-// views (about, experience, contact). loadCSS() guards against
-// double-injection so calling it from multiple modules is always safe.
-const CSS_LOADED = loadCSS('/css/about.css');
-
 /**
- * Activates the contact view.
- * Ensures about.css is loaded and triggers reveal animations.
- * No data fetching — contact details are static in index.html.
- *
- * @returns {Promise<void>}
+ * js/views/contact.js — Contact view. Tiles and texts come from the Site tab
+ * (filled by the worker); the FAQ comes from FAQ rows with Blog_Slug = contact.
  */
+import { fetchSheet, CFG } from '../api.js';
+import { loadCSS, watchReveals, takeSSR } from '../utils.js';
+import { faqPairs, faqSectionHTML, faqLD } from '../shared/render.js';
+import { injectSchema } from '../seo.js';
+
+const CSS_LOADED = Promise.all([loadCSS('/css/about.css'), loadCSS('/css/blog.css')]); // blog.css: FAQ styles
+
 export async function renderContact() {
   await CSS_LOADED;
+  const el = document.getElementById('contactFaq');
+  if (el && !takeSSR(el, '/contact')) {
+    const pairs = faqPairs(await fetchSheet(CFG.api.faq, 'faq'), 'contact');
+    el.innerHTML = faqSectionHTML(pairs);
+    if (pairs.length) injectSchema('faq-schema', faqLD(pairs));
+  }
   watchReveals();
 }

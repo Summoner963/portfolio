@@ -111,21 +111,21 @@
       <div class="hero-grid" aria-hidden="true"></div>
       <div class="hero-glow"  aria-hidden="true"></div>
       <div class="hero-inner">
-        <div class="hero-badge">Available for Internship &amp; Junior Roles</div>
-        <h1 class="hero-title" id="site-h1">
+        <div class="hero-badge" data-site="hero_badge">Available for Internship &amp; Junior Roles</div>
+        <h1 class="hero-title" id="site-h1" data-site="hero_title">
           Dev &amp; QA<br><em>Engineer</em>
         </h1>
-        <p class="hero-sub">
+        <p class="hero-sub" data-site="hero_subtitle">
           Final-year BCA student building and testing full-stack web and
           mobile applications. I write clean code and break things carefully —
           so users don't have to.
         </p>
         <div class="hero-ctas">
-          <a href="/projects" class="btn btn-solid" data-link>View Projects ↓</a>
+          <a href="/projects" class="btn btn-solid" data-link data-site="hero_cta_text" data-site-href="hero_cta_link">View Projects ↓</a>
         </div>
         <div class="hero-stats">
-          <div><span class="stat-num">4+</span><span class="stat-lbl">Projects Built</span></div>
-          <div><span class="stat-num">3+</span><span class="stat-lbl">Years Coding</span></div>
+          <div data-site-hide="stat1_num"><span class="stat-num" data-site="stat1_num">4+</span><span class="stat-lbl" data-site="stat1_label">Projects Built</span></div>
+          <div data-site-hide="stat2_num"><span class="stat-num" data-site="stat2_num">3+</span><span class="stat-lbl" data-site="stat2_label">Years Coding</span></div>
         </div>
       </div>
     </section>
@@ -136,11 +136,11 @@
       <div class="section-inner">
         <div class="featured-header">
           <div>
-            <div class="section-eyebrow" style="margin-bottom:.5rem">From the blog</div>
-            <h2 class="featured-heading">Featured Posts</h2>
+            <div class="section-eyebrow" style="margin-bottom:.5rem" data-site="featured_eyebrow">From the blog</div>
+            <h2 class="featured-heading" data-site="featured_heading">Featured Posts</h2>
           </div>
           <a href="/blog" class="featured-view-all" data-link
-             aria-label="View all blog posts">View all posts →</a>
+             aria-label="View all blog posts" data-site="featured_view_all">View all posts →</a>
         </div>
         <div class="featured-grid" id="featuredGrid">
           <!-- Skeleton cards — replaced by real cards once data loads -->
@@ -177,8 +177,8 @@
   <!-- SKILLS -->
   <div id="view-skills" class="view" role="region" aria-label="Skills and stack">
     <section class="container">
-      <div class="section-eyebrow">What I Work With</div>
-      <h2 class="section-heading">Skills &amp; Stack</h2>
+      <div class="section-eyebrow" data-site="skills_eyebrow">What I Work With</div>
+      <h2 class="section-heading" data-site="skills_heading">Skills &amp; Stack</h2>
       <div class="skills-grid" id="skillsGrid" aria-live="polite">
         <div class="skel skel-card"></div>
         <div class="skel skel-card"></div>
@@ -191,8 +191,8 @@
   <!-- PROJECTS -->
   <div id="view-projects" class="view" role="region" aria-label="Projects">
     <section class="container">
-      <div class="section-eyebrow">What I've Built</div>
-      <h2 class="section-heading">Projects</h2>
+      <div class="section-eyebrow" data-site="projects_eyebrow">What I've Built</div>
+      <h2 class="section-heading" data-site="projects_heading">Projects</h2>
       <div class="projects-grid" id="projectsGrid" aria-live="polite">
         <div class="skel skel-card"></div>
         <div class="skel skel-card"></div>
@@ -205,8 +205,8 @@
   <!-- BLOG LIST -->
   <div id="view-blog" class="view" role="region" aria-label="Blog posts">
     <section class="container">
-      <div class="section-eyebrow">Writing &amp; Notes</div>
-      <h2 class="section-heading">Blog</h2>
+      <div class="section-eyebrow" data-site="blog_eyebrow">Writing &amp; Notes</div>
+      <h2 class="section-heading" data-site="blog_heading">Blog</h2>
       <!-- Toolbar injected by js/views/blog.js once data loads -->
       <div class="blog-toolbar" id="blogToolbar" style="display:none"
            role="search" aria-label="Blog search and filters">
@@ -254,8 +254,8 @@
   <!-- EXPERIENCE -->
   <div id="view-experience" class="view" role="region" aria-label="Work experience">
     <section class="container">
-      <div class="section-eyebrow">Work History</div>
-      <h2 class="section-heading">Experience</h2>
+      <div class="section-eyebrow" data-site="experience_eyebrow">Work History</div>
+      <h2 class="section-heading" data-site="experience_heading">Experience</h2>
       <div class="timeline" id="expTimeline" aria-live="polite">
         <div class="skel skel-card"></div>
         <div class="skel skel-card"></div>
@@ -267,8 +267,8 @@
   <!-- ABOUT -->
   <div id="view-about" class="view" role="region" aria-label="About Suman Dangal">
     <section class="container">
-      <div class="section-eyebrow">Background</div>
-      <h2 class="section-heading">About Me</h2>
+      <div class="section-eyebrow" data-site="about_eyebrow">Background</div>
+      <h2 class="section-heading" data-site="about_heading">About Me</h2>
       <div class="about-grid">
         <div class="about-text" id="aboutText" aria-live="polite">
           <div class="skel skel-line" style="margin-bottom:1rem"></div>
@@ -279,30 +279,30 @@
         <div class="about-info">
           <div class="info-row">
             <span class="info-label">Location</span>
-            <span class="info-val">Balkot, Bhaktapur, Nepal</span>
+            <span class="info-val" data-site="about_location">Balkot, Bhaktapur, Nepal</span>
           </div>
           <div class="info-row">
             <span class="info-label">Availability</span>
-            <span class="info-val" style="color:var(--accent);font-weight:500">
+            <span class="info-val" style="color:var(--accent);font-weight:500" data-site="about_availability">
               Open to Opportunities
             </span>
           </div>
           <div class="info-row">
             <span class="info-label">Languages</span>
-            <span class="info-val">English · Nepali · Hindi</span>
+            <span class="info-val" data-site="about_languages">English · Nepali · Hindi</span>
           </div>
           <div class="info-row">
             <span class="info-label">Focus</span>
-            <span class="info-val">Full-Stack Dev, QA Testing</span>
+            <span class="info-val" data-site="about_focus">Full-Stack Dev, QA Testing</span>
           </div>
-          <div class="info-row">
+          <div class="info-row" data-site-hide="about_email">
             <span class="info-label">Email</span>
             <!-- Email obfuscated via HTML entities -->
-            <span class="info-val">&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</span>
+            <span class="info-val" data-site="about_email">&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</span>
           </div>
           <div class="edu-card">
-            <h3 class="edu-deg">Bachelor in Computer Applications (BCA)</h3>
-            <div class="edu-uni">
+            <h3 class="edu-deg" data-site="edu_degree">Bachelor in Computer Applications (BCA)</h3>
+            <div class="edu-uni" data-site="edu_details">
               Tribhuvan University · 2021–Present · Bhaktapur, Nepal
             </div>
           </div>
@@ -314,32 +314,36 @@
   <!-- CONTACT -->
   <div id="view-contact" class="view" role="region" aria-label="Contact">
     <section class="container" style="text-align:center">
-      <div class="section-eyebrow" style="justify-content:center">
+      <div class="section-eyebrow" style="justify-content:center" data-site="contact_eyebrow">
         Let's Connect
       </div>
-      <h2 class="section-heading" style="text-align:center">Get In Touch</h2>
-      <p style="color:var(--muted);font-size:.94rem;max-width:480px;margin:0 auto">
+      <h2 class="section-heading" style="text-align:center" data-site="contact_heading">Get In Touch</h2>
+      <p style="color:var(--muted);font-size:.94rem;max-width:480px;margin:0 auto" data-site="contact_intro">
         Looking for a Dev or QA intern? I'm actively seeking
         opportunities — let's talk.
       </p>
       <div class="contact-grid">
-        <!-- Email obfuscated via HTML entities -->
-        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;"
-           class="contact-tile">
-          <span aria-hidden="true">📧</span>
-          &#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;
+        <!-- Every tile is editable in the CMS (Site tab); empty value = hidden -->
+        <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;" class="contact-tile" data-site-hide="contact_email" data-site-href="contact_email">
+          <span aria-hidden="true">📧</span> <span data-site="contact_email">&#115;&#117;&#109;&#97;&#110;&#100;&#97;&#110;&#103;&#97;&#108;&#56;&#56;&#56;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</span>
         </a>
-        <a href="https://linkedin.com/in/sumandangal963"
-           target="_blank" rel="noopener noreferrer"
-           class="contact-tile">
-          <span aria-hidden="true">🔗</span>
-          linkedin.com/in/sumandangal963
+        <a href="https://linkedin.com/in/sumandangal963" target="_blank" rel="noopener noreferrer"
+           class="contact-tile" data-site-hide="contact_linkedin" data-site-href="contact_linkedin">
+          <span aria-hidden="true">🔗</span> <span data-site="contact_linkedin">linkedin.com/in/sumandangal963</span>
         </a>
-        <a href="tel:+9779803340063" class="contact-tile">
-          <span aria-hidden="true">📞</span>
-          +977 9803340063
+        <a href="tel:+9779803340063" class="contact-tile" data-site-hide="contact_phone" data-site-href="contact_phone">
+          <span aria-hidden="true">📞</span> <span data-site="contact_phone">+977 9803340063</span>
+        </a>
+        <a href="#" target="_blank" rel="noopener noreferrer" class="contact-tile" hidden
+           data-site-hide="contact_github" data-site-href="contact_github">
+          <span aria-hidden="true">💻</span> <span data-site="contact_github"></span>
+        </a>
+        <a href="#" target="_blank" rel="noopener noreferrer" class="contact-tile" hidden
+           data-site-hide="contact_facebook" data-site-href="contact_facebook">
+          <span aria-hidden="true">👥</span> <span data-site="contact_facebook"></span>
         </a>
       </div>
+      <div id="contactFaq" style="text-align:left;max-width:720px;margin:2.5rem auto 0"></div>
     </section>
   </div>
 
@@ -375,15 +379,15 @@
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer role="contentinfo">
-  <span>© 2026 Suman Dangal</span>
-  <span>Built with ❤️ · Balkot, Bhaktapur, Nepal ·
+  <span data-site="footer_left">© 2026 Suman Dangal</span>
+  <span><span data-site="footer_right">Built with ❤️ · Balkot, Bhaktapur, Nepal</span> ·
     <a href="/privacy" data-link class="footer-link">Privacy</a> ·
     <button type="button" class="footer-link" id="consentOpen">Cookie settings</button></span>
 </footer>
 
 <!-- ── Cookie consent (logic in js/consent.js) ─────────────────────────── -->
 <div id="consent" role="region" aria-label="Cookie consent" hidden>
-  <p>I use Google Analytics cookies to see which pages are read. No ads, nothing sold.
+  <p><span data-site="consent_text">I use Google Analytics cookies to see which pages are read. No ads, nothing sold.</span>
      <a href="/privacy" data-link>Privacy</a></p>
   <div class="consent-actions">
     <button type="button" id="consentDeny">Decline</button>

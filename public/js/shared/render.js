@@ -35,7 +35,7 @@ export const ROUTES = {
   '/about':      { view: 'about',      css: ['/css/about.css'],    heading: 'About',
                    title: 'About Suman Dangal',
                    description: 'BCA student at Tribhuvan University, Bhaktapur, Nepal. Full-stack developer and QA tester.' },
-  '/contact':    { view: 'contact',    css: ['/css/about.css'],    heading: 'Contact',
+  '/contact':    { view: 'contact',    css: ['/css/about.css', '/css/blog.css'], heading: 'Contact',
                    title: 'Contact | Suman Dangal',
                    description: 'Get in touch with Suman Dangal for Dev or QA internship opportunities in Nepal.' },
   '/privacy':    { view: 'privacy',    css: [],                    heading: 'Privacy',
@@ -368,11 +368,31 @@ export function notFoundHTML(path, { article = false } = {}) {
 //  Skills / projects / experience / about
 // ─────────────────────────────────────────────────────────────────────────
 
-const SKILL_COLORS = new Set(['c-green', 'c-blue', 'c-amber']);
+const SKILL_COLORS = new Set(['green', 'blue', 'amber']);
+/** "blue" or "c-blue" → "c-blue"; anything else → "c-green". */
+export const skillColor = c => {
+  const v = String(c || '').trim().toLowerCase().replace(/^c-/, '');
+  return `c-${SKILL_COLORS.has(v) ? v : 'green'}`;
+};
+/** Sheet checkbox / text booleans: TRUE, true, yes, 1, ✓ */
+export const truthy = v => /^(true|yes|y|1|✓|x)$/i.test(String(v ?? '').trim());
+
+/**
+ * List tabs (Projects, Skills, Experience): drop hidden (Status) and empty
+ * rows, then sort by an optional numeric "Order" column (sheet order otherwise).
+ */
+export function cleanListRows(rows, required) {
+  return (rows || [])
+    .filter(r => isPublished(r) && String(r[required] || '').trim())
+    .map((r, i) => ({ r, i, o: Number.parseFloat(r.Order) }))
+    .sort((a, b) => (isNaN(a.o) ? 1e9 : a.o) - (isNaN(b.o) ? 1e9 : b.o) || a.i - b.i)
+    .map(x => x.r);
+}
+export const LIST_REQUIRED = { projects: 'title', skills: 'title', exp: 'role' };
 
 export function skillsHTML(rows, { reveal = true } = {}) {
   return rows.map(r => {
-    const color = SKILL_COLORS.has(String(r.color || '').trim()) ? r.color.trim() : 'c-green';
+    const color = skillColor(r.color);
     return `<div class="skill-card ${color}${rv(reveal)}"><div class="skill-icon" aria-hidden="true">${esc(r.icon || '💡')}</div>` +
       `<div class="skill-name">${esc(r.title)}</div><div class="tag-row">` +
       splitList(r.tags).map(t => `<span class="tag">${esc(t)}</span>`).join('') + `</div></div>`;
@@ -392,12 +412,16 @@ function pickVisual(row) {
 
 export function projectsHTML(rows, { reveal = true } = {}) {
   return rows.map((r, i) => {
-    const feat = r.featured === 'true';
+    // Sheet columns: num, title, desc, highlights, stack, link, featured, span2
+    // (older names bullets / wide still accepted)
+    const feat = truthy(r.featured);
+    const wide = truthy(r.span2 ?? r.wide);
     const link = /^https?:/i.test(safeUrl(r.link)) ? safeUrl(r.link) : '';
-    const bullets = splitList(r.bullets, '|');
+    const bullets = splitList(r.highlights ?? r.bullets, '|');
     const stack = splitList(r.stack);
-    return `<article class="proj-card${rv(reveal)}${feat ? ' feat' : ''}${r.wide === 'true' ? ' wide' : ''}"><div>` +
-      `<div class="proj-num">${String(i + 1).padStart(2, '0')}${feat ? ' / Featured' : ''}</div>` +
+    const num = String(r.num || '').trim() || String(i + 1);
+    return `<article class="proj-card${rv(reveal)}${feat ? ' feat' : ''}${wide ? ' wide' : ''}"><div>` +
+      `<div class="proj-num">${esc(/^\d+$/.test(num) ? num.padStart(2, '0') : num)}${feat ? ' / Featured' : ''}</div>` +
       `<h3 class="proj-title">${esc(r.title)}</h3>` +
       (String(r.desc || '').trim() ? `<p class="proj-desc">${esc(r.desc.trim())}</p>` : '') +
       (bullets.length ? `<ul class="proj-bullets">${bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul>` : '') +
@@ -481,4 +505,103 @@ export const blogLD = posts => ({ ...ctx, '@type': 'Blog', name: `${SITE_NAME} B
 export function plainExcerpt(text) {
   const t = String(text || '').replace(/\[img\d+\]/gi, ' ').replace(/[#>*`|_[\]()-]+/g, ' ').replace(/\s+/g, ' ').trim();
   return t.length > 155 ? t.slice(0, 152).replace(/\s\S*$/, '') + '…' : t;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Site tab (Key | Value) — every one-off text on the site
+//  `def` = current text (fallback when the Sheet has no row for the key).
+//  index.html marks elements with data-site="key"; the worker fills them.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const SITE_FIELDS = [
+  // group, key, label, default, type (text | textarea | email | tel | url | path)
+  ['Home', 'hero_badge', 'Badge above the title', 'Available for Internship & Junior Roles'],
+  ['Home', 'hero_title', 'Big title (new line = line break, *word* = accent colour)', 'Dev & QA\n*Engineer*', 'textarea'],
+  ['Home', 'hero_subtitle', 'Text under the title', "Final-year BCA student building and testing full-stack web and mobile applications. I write clean code and break things carefully — so users don't have to.", 'textarea'],
+  ['Home', 'hero_cta_text', 'Button text', 'View Projects ↓'],
+  ['Home', 'hero_cta_link', 'Button link (e.g. /projects)', '/projects', 'path'],
+  ['Home', 'stat1_num', 'Stat 1 number (empty = hide)', '4+'],
+  ['Home', 'stat1_label', 'Stat 1 label', 'Projects Built'],
+  ['Home', 'stat2_num', 'Stat 2 number (empty = hide)', '3+'],
+  ['Home', 'stat2_label', 'Stat 2 label', 'Years Coding'],
+  ['Home', 'featured_eyebrow', 'Featured posts — small label', 'From the blog'],
+  ['Home', 'featured_heading', 'Featured posts — heading', 'Featured Posts'],
+  ['Home', 'featured_view_all', 'Featured posts — link text', 'View all posts →'],
+  ['Sections', 'skills_eyebrow', 'Skills — small label', 'What I Work With'],
+  ['Sections', 'skills_heading', 'Skills — heading', 'Skills & Stack'],
+  ['Sections', 'projects_eyebrow', 'Projects — small label', "What I've Built"],
+  ['Sections', 'projects_heading', 'Projects — heading', 'Projects'],
+  ['Sections', 'blog_eyebrow', 'Blog — small label', 'Writing & Notes'],
+  ['Sections', 'blog_heading', 'Blog — heading', 'Blog'],
+  ['Sections', 'experience_eyebrow', 'Experience — small label', 'Work History'],
+  ['Sections', 'experience_heading', 'Experience — heading', 'Experience'],
+  ['Sections', 'about_eyebrow', 'About — small label', 'Background'],
+  ['Sections', 'about_heading', 'About — heading', 'About Me'],
+  ['Sections', 'contact_eyebrow', 'Contact — small label', "Let's Connect"],
+  ['Sections', 'contact_heading', 'Contact — heading', 'Get In Touch'],
+  ['Sections', 'contact_intro', 'Contact — intro text', "Looking for a Dev or QA intern? I'm actively seeking opportunities — let's talk.", 'textarea'],
+  ['About sidebar', 'about_location', 'Location', 'Balkot, Bhaktapur, Nepal'],
+  ['About sidebar', 'about_availability', 'Availability', 'Open to Opportunities'],
+  ['About sidebar', 'about_languages', 'Languages', 'English · Nepali · Hindi'],
+  ['About sidebar', 'about_focus', 'Focus', 'Full-Stack Dev, QA Testing'],
+  ['About sidebar', 'about_email', 'Email shown on About (empty = hide)', 'sumandangal888@gmail.com', 'email'],
+  ['About sidebar', 'edu_degree', 'Education — degree', 'Bachelor in Computer Applications (BCA)'],
+  ['About sidebar', 'edu_details', 'Education — details', 'Tribhuvan University · 2021–Present · Bhaktapur, Nepal'],
+  ['Contact', 'contact_email', 'Email (empty = hide tile)', 'sumandangal888@gmail.com', 'email'],
+  ['Contact', 'contact_linkedin', 'LinkedIn URL (empty = hide)', 'https://linkedin.com/in/sumandangal963', 'url'],
+  ['Contact', 'contact_phone', 'Phone (empty = hide)', '+977 9803340063', 'tel'],
+  ['Contact', 'contact_github', 'GitHub URL (empty = hide)', '', 'url'],
+  ['Contact', 'contact_facebook', 'Facebook URL (empty = hide)', '', 'url'],
+  ['Footer & banner', 'footer_left', 'Footer left', '© 2026 Suman Dangal'],
+  ['Footer & banner', 'footer_right', 'Footer right', 'Built with ❤️ · Balkot, Bhaktapur, Nepal'],
+  ['Footer & banner', 'consent_text', 'Cookie banner text', 'I use Google Analytics cookies to see which pages are read. No ads, nothing sold.', 'textarea'],
+  ...Object.entries(ROUTES).flatMap(([path, m]) => [
+    ['SEO', `meta_title_${m.view}`, `${path} — page title (Google, browser tab)`, m.title],
+    ['SEO', `meta_desc_${m.view}`, `${path} — description (Google snippet, about 155 characters)`, m.description, 'textarea'],
+  ]),
+].map(([group, key, label, def, type = 'text']) => ({ group, key, label, def, type }));
+
+export const SITE_KEYS = new Set(SITE_FIELDS.map(f => f.key));
+export const SITE_FIELD = Object.fromEntries(SITE_FIELDS.map(f => [f.key, f]));
+
+/** Site tab rows → { key: value } (unknown keys ignored, values trimmed). */
+export function siteMap(rows) {
+  const map = {};
+  for (const r of rows || []) {
+    const k = String(r.Key || '').trim();
+    if (SITE_KEYS.has(k)) map[k] = String(r.Value ?? '').replace(/\r\n?/g, '\n').trim();
+  }
+  return map;
+}
+
+/** Site value → inline HTML: escaped, *em* **strong** links, new line → <br>. */
+export const siteValueHTML = v => String(v ?? '').split('\n').map(inlineMd).join('<br>');
+
+/** HTML entities for every character (emails), so naive scrapers don't read them. */
+export const obfuscate = s => [...String(s ?? '')].map(c => `&#${c.codePointAt(0)};`).join('');
+
+/** href for a Site value: mailto:/tel:/https URL/site path, or '' if unsafe. */
+export function siteHref(value, type) {
+  const v = String(value ?? '').trim();
+  if (!v) return '';
+  if (type === 'email') return /^[^\s@<>"]+@[^\s@<>"]+\.[a-z]{2,}$/i.test(v) ? `mailto:${v}` : '';
+  if (type === 'tel') return /^\+?[\d\s()-]{6,20}$/.test(v) ? `tel:${v.replace(/[^\d+]/g, '')}` : '';
+  if (type === 'path') return /^\/(?!\/)[\w\-./?=&#]*$/.test(v) || /^https:\/\/\S+$/i.test(v) ? v : '';
+  return /^https?:\/\/[^\s"<>]+$/i.test(v) ? v : '';
+}
+
+/** Text shown for a link tile: URLs without the https://www. prefix. */
+export const siteLinkText = (value, type) =>
+  type === 'url' ? String(value).replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '') : String(value);
+
+/** Route title/description/heading with Site overrides. */
+export function routeMeta(path, site = {}) {
+  const m = ROUTES[path];
+  if (!m) return null;
+  return {
+    ...m,
+    title: site[`meta_title_${m.view}`] || m.title,
+    description: site[`meta_desc_${m.view}`] || m.description,
+    heading: site[`${m.view}_heading`] || m.heading,
+  };
 }

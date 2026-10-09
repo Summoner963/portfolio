@@ -36,3 +36,4 @@ ABOUT_GID    = "1066410604"
 FAQ_GID      = "303688554"
 IMAGES_GID   = "1267436347"
 FEATURED_GID = "980532084"
+SITE_GID     = "1953062973"   # Site tab: Key | Value — every one-off text

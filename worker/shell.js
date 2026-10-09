@@ -3,7 +3,9 @@
 // Head elements are replaced wholesale (not setAttribute) so all escaping is
 // done by esc()/jsonLd() from the shared module.
 
-import { esc, jsonLd, DEFAULT_IMAGE } from '../public/js/shared/render.js';
+import {
+  esc, jsonLd, DEFAULT_IMAGE, SITE_FIELD, siteValueHTML, siteHref, siteLinkText, obfuscate,
+} from '../public/js/shared/render.js';
 
 /**
  * @param {object} page
@@ -65,5 +67,45 @@ export function rewriteShell(page) {
   if (page.notFound) rw.on('#heroSection', { element(el) {
     el.append(`<div id="spa-404-overlay">${page.notFound}</div>`, { html: true });
   } });
+  if (page.site) addSiteText(rw, page.site);
   return rw;
+}
+
+/**
+ * Site tab → page. index.html marks elements:
+ *   data-site="key"       text (fallback = current HTML when the key has no row)
+ *   data-site-href="key"  link target (mailto:/tel:/https:/path), unsafe → unchanged
+ *   data-site-hide="key"  element removed when the value is empty, shown when set
+ * Values are escaped (siteValueHTML); emails stay entity-encoded.
+ */
+function addSiteText(rw, site) {
+  const has = k => Object.prototype.hasOwnProperty.call(site, k);
+  rw.on('[data-site]', { element(el) {
+    const key = el.getAttribute('data-site');
+    if (!has(key)) return;
+    const type = SITE_FIELD[key]?.type;
+    const v = site[key];
+    const html = !v ? ''
+      : type === 'email' ? obfuscate(v)
+      : type === 'url' ? esc(siteLinkText(v, 'url'))
+      : siteValueHTML(v);
+    el.setInnerContent(html, { html: true });
+  } });
+  rw.on('[data-site-href]', { element(el) {
+    const key = el.getAttribute('data-site-href');
+    if (!has(key)) return;
+    const href = siteHref(site[key], SITE_FIELD[key]?.type);
+    if (href) el.setAttribute('href', href); // validated: no quotes, spaces or < >
+  } });
+  rw.on('[data-site-hide]', { element(el) {
+    const key = el.getAttribute('data-site-hide');
+    if (!has(key)) return;
+    const type = SITE_FIELD[key]?.type;
+    const usable = site[key] && (!['email', 'tel', 'url'].includes(type) || siteHref(site[key], type));
+    if (usable) el.removeAttribute('hidden'); else el.remove();
+  } });
+  // Values the browser needs for SPA navigation (page titles/descriptions/headings)
+  rw.on('head', { element(el) {
+    el.append(`<script type="application/json" id="site-data">${jsonLd(site)}</script>`, { html: true });
+  } });
 }

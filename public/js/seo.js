@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import {
-  SITE_URL, ROUTES, DEFAULT_IMAGE, jsonLd, isoDate, splitList,
+  SITE_URL, ROUTES, DEFAULT_IMAGE, jsonLd, isoDate, splitList, routeMeta,
   websiteLD, profilePageLD, breadcrumbLD, blogPostingLD, faqLD,
 } from './shared/render.js';
 
@@ -21,6 +21,12 @@ function setMeta(attr, key, value) {
   }
   el.setAttribute('content', value);
 }
+
+/** Site tab values (titles/descriptions/headings) embedded by the worker. */
+export const SITE = (() => {
+  try { return JSON.parse(document.getElementById('site-data')?.textContent || '{}'); }
+  catch { return {}; }
+})();
 
 /** Inject or replace a JSON-LD block by id (ids match the worker's). */
 export function injectSchema(id, schema) {
@@ -51,9 +57,10 @@ export const removeSchemas = (ids = PAGE_SCHEMAS) => ids.forEach(removeSchema);
  * @param {Array}  [o.crumbs]         [{name, url}] after Home
  */
 export function updateSEO({ path = '/', title, desc, image, noindex = false, post, faq, crumbs } = {}) {
-  const route = ROUTES[path.split('?')[0]] || {};
-  const fullTitle = title || route.title || ROUTES['/'].title;
-  const description = desc || route.description || ROUTES['/'].description;
+  const route = routeMeta(path.split('?')[0], SITE) || {};
+  const home = routeMeta('/', SITE);
+  const fullTitle = title || route.title || home.title;
+  const description = desc || route.description || home.description;
   const canonical = SITE_URL + path;
 
   document.title = fullTitle;

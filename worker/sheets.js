@@ -10,7 +10,7 @@
 //  Returns null only when Google fails AND nothing is cached.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { cleanBlogRows } from '../public/js/shared/render.js';
+import { cleanBlogRows, cleanListRows, LIST_REQUIRED } from '../public/js/shared/render.js';
 import { parseCSV } from './utils.js';
 
 /** Logical sheet name → GID. GIDs are not secrets; SHEET_ID is. */
@@ -24,6 +24,7 @@ export function getSheetGids(env) {
     faq:      env.FAQ_GID      || '303688554',
     images:   env.IMAGES_GID   || '1267436347',
     featured: env.FEATURED_GID || '980532084',
+    site:     env.SITE_GID     || '1953062973', // Key | Value: all one-off site text
   };
 }
 
@@ -106,7 +107,10 @@ export async function getRows(name, env, ctx) {
   if (text == null) return null;
   const mem = _mem.get(name);
   if (mem && mem.text === text && mem.rows) return mem.rows;
-  const rows = name === 'blog' ? cleanBlogRows(parseCSV(text)) : parseCSV(text);
+  const parsed = parseCSV(text);
+  const rows = name === 'blog' ? cleanBlogRows(parsed)
+             : LIST_REQUIRED[name] ? cleanListRows(parsed, LIST_REQUIRED[name]) // Status, Order, empty rows
+             : parsed;
   if (mem && mem.text === text) mem.rows = rows;
   return rows;
 }
