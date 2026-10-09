@@ -1,4 +1,4 @@
-# Plan: every visible text editable from the CMS (not started)
+# Plan: every visible text editable from the CMS — DONE (2026-10-09, commits 0af3727 31647dd ad09dae)
 
 Goal: no hard-coded content. All text comes from Google Sheets and is editable in
 `/back-lab`. Current code text stays only as a **fallback** if the Sheet is unreachable.

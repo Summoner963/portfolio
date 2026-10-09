@@ -50,7 +50,17 @@ Blog columns: `Title, Slug, Category, Excerpt, Content, Date, Last_Modified, Tag
 Image_Alt, Table_HTML` + optional **`Status`** — `draft`, `unpublished`, `hidden`, `private`,
 `no` or `false` hides the post everywhere (page, list, sitemap, API). Blank = published.
 
+### Site text (`Site` tab: `Key | Value`)
+Every one-off text — home hero, stats, section labels/headings, About sidebar, contact tiles,
+footer, cookie banner, page titles/descriptions — is a key in `SITE_FIELDS`
+(`public/js/shared/render.js`). Elements in `public/index.html` carry `data-site="key"`; the worker
+fills them on every page. No row = current text; empty value = hidden (where marked).
+List tabs (Projects, Skills, Experience) use your column names; optional `Order` and `Status`
+columns sort and hide rows.
+
 ### Admin CMS (`/back-lab`)
+Sections: Blog, Site text, Projects, Skills, Experience, About, Featured, Contact FAQ.
+
 - Login: username + password checked against a salted PBKDF2 hash; signed HttpOnly session
   cookie (8 h); CSRF token on every change; 5 failed logins → 15 min lockout.
 - Post editor (`public/js/views/cms-editor.js`): **Visual** pane (headings, bold, italic,
