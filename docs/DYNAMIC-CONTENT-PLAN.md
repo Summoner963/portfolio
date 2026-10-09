@@ -49,3 +49,22 @@ optional `Order` (display order) and `Status` (draft hides). About: keep `bio1..
 ## 4. Order of work next session
 User first sends: header rows (step 2) + creates `Site` tab and sends its GID.
 Then build steps 1–9 in one go (~half a day).
+
+## 5. Data received from user (2026-10-09)
+- `Site` tab created: columns `Key | Value`, **GID 1953062973** (published).
+- Exact headers (row 1):
+  - Blog: `ID Title Slug Category Excerpt Content Date Last_Modified Tags Image_URL Image_Alt Table_HTML Status`
+  - Featured: `Slug`
+  - FAQ: `Blog_Slug FAQ_Number FAQ_Question FAQ_Answer`
+  - BlogImage: `Blog_Slug Img_Number Img_URL Img_Alt` (headers have leading spaces — trim)
+  - Projects: `num title desc highlights stack link featured span2`
+  - Skills: `icon title color tags`
+  - Experience: `date role org bullets`
+  - About: `bio1 bio2 bio3 bio4`
+
+## 6. Bugs found from the headers (fix first)
+- Projects: code reads `bullets`/`wide`, Sheet has **`highlights`/`span2`** → bullet points and
+  wide cards never show. Fix in `projectsHTML()` (read `highlights || bullets`, `span2 || wide`;
+  use `num` if present). No Sheet renames.
+- Projects/Skills/Experience have no `ID`: add an `ID` column (Apps Script auto-fills) so the CMS
+  can edit/delete a row; optional `Order`, `Status`.
