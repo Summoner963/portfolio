@@ -13,7 +13,7 @@
 //   CMS_APPS_SCRIPT_URL, CMS_APPS_SCRIPT_SECRET
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { SLUG_RE } from '../public/js/shared/render.js';
+import { SLUG_RE, SITE_KEYS } from '../public/js/shared/render.js';
 
 const isDate  = v => /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(new Date(v).getTime());
 const isHttp  = v => v === '' || (/^https:\/\/[^\s"<>]+$/i.test(v) && v.length <= 1000);
@@ -21,6 +21,11 @@ const isSlug  = v => SLUG_RE.test(v) && v.length <= 100;
 const isInt   = (min, max) => v => /^\d+$/.test(v) && +v >= min && +v <= max;
 const maxLen  = n => v => v.length <= n;
 const oneOf   = (...vals) => v => v === '' || vals.includes(v.toLowerCase());
+const between = (min, max) => v => v.length >= min && v.length <= max;
+const isId    = v => /^\d{1,9}$/.test(v);
+const isOrder = v => v === '' || /^-?\d{1,6}(\.\d{1,3})?$/.test(v);
+const isBool  = v => v === '' || /^(true|false|yes|no|1|0)$/i.test(v);
+const STATUS  = oneOf('published', 'draft', 'unpublished', 'hidden', 'private');
 
 // Logical sheet → field rules. `key` is the column used to find rows to update/delete.
 const SHEETS = {
@@ -45,9 +50,56 @@ const SHEETS = {
     fields: { Blog_Slug: isSlug, FAQ_Number: isInt(1, 100), FAQ_Question: maxLen(300), FAQ_Answer: maxLen(2000) },
     required: ['Blog_Slug', 'FAQ_Number', 'FAQ_Question', 'FAQ_Answer'],
   },
+  // ── One-off site text: Key | Value (keys limited to SITE_FIELDS) ──
+  site: {
+    key: 'Key', keyCheck: v => SITE_KEYS.has(v),
+    fields: { Key: v => SITE_KEYS.has(v), Value: maxLen(5000) },
+    required: ['Key'],
+  },
+  // ── List tabs: rows found by ID (Apps Script fills missing IDs) ──
+  projects: {
+    key: 'ID', keyCheck: isId,
+    fields: {
+      ID: v => v === '' || isId(v), num: maxLen(20), title: between(1, 200), desc: maxLen(3000),
+      highlights: maxLen(4000), stack: maxLen(500), link: isHttp, featured: isBool, span2: isBool,
+      Order: isOrder, Status: STATUS,
+    },
+    required: ['title'],
+  },
+  skills: {
+    key: 'ID', keyCheck: isId,
+    fields: {
+      ID: v => v === '' || isId(v), icon: maxLen(16), title: between(1, 120),
+      color: oneOf('green', 'blue', 'amber', 'c-green', 'c-blue', 'c-amber'), tags: maxLen(1000),
+      Order: isOrder, Status: STATUS,
+    },
+    required: ['title'],
+  },
+  exp: {
+    key: 'ID', keyCheck: isId,
+    fields: {
+      ID: v => v === '' || isId(v), date: maxLen(80), role: between(1, 200), org: maxLen(200),
+      bullets: maxLen(4000), Order: isOrder, Status: STATUS,
+    },
+    required: ['role'],
+  },
+  // ── Single-row tab: always row 2 ──
+  about: {
+    single: true,
+    fields: { bio1: maxLen(3000), bio2: maxLen(3000), bio3: maxLen(3000), bio4: maxLen(3000) },
+    required: [],
+  },
+  featured: {
+    key: 'Slug',
+    fields: { Slug: isSlug },
+    required: ['Slug'],
+  },
 };
 // Public sheet behind each logical CMS sheet (for cache invalidation)
-export const PUBLIC_SHEET = { blog: 'blog', blogimage: 'images', faq: 'faq' };
+export const PUBLIC_SHEET = {
+  blog: 'blog', blogimage: 'images', faq: 'faq', site: 'site',
+  projects: 'projects', skills: 'skills', exp: 'exp', about: 'about', featured: 'featured',
+};
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
   status, headers: { 'Content-Type': 'application/json' },
@@ -160,8 +212,13 @@ export async function handleCMSWrite(request, env) {
   const payload = { action, sheet };
   if (action !== 'append') {
     const slug = String(body.slug || '').trim();
-    if (!isSlug(slug)) return { res: fail('Invalid slug') };
-    Object.assign(payload, { slug, slugField: spec.key }); // key column fixed server-side
+    if (spec.single) {
+      if (action !== 'update') return { res: fail('Only update is allowed for this tab') };
+      payload.slug = '2'; // single-row tab: Apps Script always writes row 2
+    } else {
+      if (!(spec.keyCheck || isSlug)(slug)) return { res: fail('Invalid key') };
+      Object.assign(payload, { slug, slugField: spec.key }); // key column fixed server-side
+    }
   }
   if (action !== 'delete') {
     const { row, error } = validateRow(sheet, body.row);

@@ -995,3 +995,10 @@
 /* Toolbar active state + status select */
 .cms-tb-btn.active { background: var(--accent-bg, #edf5f0); color: var(--accent); border-color: rgba(45,106,79,.35); }
 .cms-status-select { max-width: 200px; }
+
+/* Content screens (js/views/cms-content.js) */
+.cms-site-group { border: 1.5px solid var(--border); border-radius: .6rem; padding: .4rem 1.1rem 1rem; margin: 0 0 1.2rem; }
+.cms-site-group legend { padding: 0 .4rem; font-size: 1rem; }
+.cms-check { display: inline-flex; align-items: center; gap: .45rem; font-size: .85rem; cursor: pointer; min-height: 32px; }
+.cms-list-empty { padding: 1.2rem; color: var(--muted); font-size: .88rem; }
+.cms-tabs { flex-wrap: wrap; }

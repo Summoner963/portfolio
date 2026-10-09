@@ -12,9 +12,15 @@
 // CMS sheet name (sent by the worker) → your actual tab name + the column
 // used to find rows for update/delete. Edit `tab` if you rename a tab.
 var TABS = {
-  blog:      { tab: 'Blog',      key: 'Slug' },
-  blogimage: { tab: 'BlogImage', key: 'Blog_Slug' },
-  faq:       { tab: 'FAQ',       key: 'Blog_Slug' },
+  blog:      { tab: 'Blog',       key: 'Slug' },
+  blogimage: { tab: 'BlogImage',  key: 'Blog_Slug' },
+  faq:       { tab: 'FAQ',        key: 'Blog_Slug' },
+  site:      { tab: 'Site',       key: 'Key' },
+  projects:  { tab: 'Projects',   key: 'ID' },
+  skills:    { tab: 'Skills',     key: 'ID' },
+  exp:       { tab: 'Experience', key: 'ID' },
+  featured:  { tab: 'Featured',   key: 'Slug' },
+  about:     { tab: 'About',      single: true },   // one row of text: always row 2
 };
 var ACTIONS = ['read', 'append', 'update', 'delete'];
 
@@ -43,9 +49,16 @@ function doPost(e) {
     var tab = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID')).getSheetByName(TABS[sheet].tab);
     if (!tab) return jsonResponse({ ok: false, error: 'Bad request' });
 
-    if (action === 'read') return actionRead(tab);
-
-    lock.waitLock(20000); // one write at a time
+    var spec = TABS[sheet];
+    lock.waitLock(20000); // one write at a time (reads may fill missing IDs)
+    if (action === 'read') {
+      if (spec.key === 'ID') fillMissingIds(tab);
+      return actionRead(tab);
+    }
+    if (spec.single) {
+      if (action !== 'update') return jsonResponse({ ok: false, error: 'Bad request' });
+      return actionUpdateSingle(tab, body.row);
+    }
     if (action === 'append') return actionAppend(tab, body.row);
     if (action === 'update') return actionUpdate(tab, TABS[sheet].key, body.slug, body.row);
     return actionDelete(tab, TABS[sheet].key, body.slug);
@@ -112,6 +125,34 @@ function actionDelete(tab, keyField, slug) {
     if (String(data[i][keyCol]).trim() === String(slug).trim()) tab.deleteRow(i + 1);
   }
   return jsonResponse({ ok: true });
+}
+
+// ── single-row tab (About): write row 2, creating it if needed ────────────
+function actionUpdateSingle(tab, row) {
+  if (!row || typeof row !== 'object') return jsonResponse({ ok: false, error: 'Bad request' });
+  var headers = headerRow(tab);
+  var current = tab.getLastRow() >= 2 ? tab.getRange(2, 1, 1, headers.length).getValues()[0] : headers.map(function () { return ''; });
+  var values = headers.map(function (h, idx) { return h in row ? cell(row[h], h) : current[idx]; });
+  tab.getRange(2, 1, 1, headers.length).setValues([values]);
+  return jsonResponse({ ok: true });
+}
+
+// List tabs: rows typed by hand without an ID get the next numbers, so the
+// CMS can always tell rows apart. Existing IDs are never changed.
+function fillMissingIds(tab) {
+  var headers = headerRow(tab);
+  var col = headers.indexOf('ID');
+  if (col === -1 || tab.getLastRow() < 2) return;
+  var range = tab.getRange(2, 1, tab.getLastRow() - 1, headers.length);
+  var data = range.getValues();
+  var max = 0;
+  data.forEach(function (r) { var n = parseInt(r[col], 10); if (!isNaN(n) && n > max) max = n; });
+  var changed = false;
+  data.forEach(function (r) {
+    var empty = r.every(function (c) { return c === '' || c === null; });
+    if (!empty && String(r[col]).trim() === '') { r[col] = ++max; changed = true; }
+  });
+  if (changed) tab.getRange(2, col + 1, data.length, 1).setValues(data.map(function (r) { return [r[col]]; }));
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────

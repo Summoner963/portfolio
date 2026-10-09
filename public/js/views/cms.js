@@ -7,6 +7,9 @@
 import { esc, loadCSS, showToast } from '../utils.js';
 import { isoDate, displayDate } from '../shared/render.js';
 import { mountEditor } from './cms-editor.js';
+import {
+  renderSiteSettings, renderList, renderAboutEditor, renderFeaturedEditor, renderContactFaq,
+} from './cms-content.js';
 
 // ── API helpers ────────────────────────────────────────────────────────────
 // Sessions are an HttpOnly cookie set by the worker (JavaScript can't read
@@ -168,13 +171,12 @@ function renderDashboard(view, activeTab) {
         <button class="cms-btn cms-btn-ghost cms-signout" id="cmsSignOut">Sign out</button>
       </header>
       <div class="cms-tabs" role="tablist">
-        <button class="cms-tab${activeTab === 'blog' ? ' active' : ''}"
-          data-tab="blog" role="tab" aria-selected="${activeTab === 'blog'}">\uD83D\uDCDD Blog Posts</button>
-        
+        ${TABS.map(([id, label]) => `<button class="cms-tab${activeTab === id ? ' active' : ''}" data-tab="${id}"
+          role="tab" aria-selected="${activeTab === id}">${label}</button>`).join('')}
       </div>
       <div class="cms-body">
-        <div class="cms-panel" id="panel-blog"   ${activeTab !== 'blog'   ? 'hidden' : ''}></div>
-        </div>
+        ${TABS.map(([id]) => `<div class="cms-panel" id="panel-${id}"${activeTab !== id ? ' hidden' : ''}></div>`).join('')}
+      </div>
     </div>`;
 
   view.querySelectorAll('.cms-tab').forEach(function(tab) {
@@ -187,7 +189,7 @@ function renderDashboard(view, activeTab) {
       tab.setAttribute('aria-selected', 'true');
       view.querySelectorAll('.cms-panel').forEach(function(p) { p.hidden = true; });
       const panel = document.getElementById('panel-' + tab.dataset.tab);
-      if (panel) panel.hidden = false;
+      if (panel) { panel.hidden = false; openPanel(tab.dataset.tab, panel, view); }
     });
   });
 
@@ -196,7 +198,34 @@ function renderDashboard(view, activeTab) {
     renderLogin(view);
   });
 
-  renderBlogList(document.getElementById('panel-blog'), view);
+  openPanel(activeTab, document.getElementById('panel-' + activeTab), view);
+}
+
+// Dashboard sections. Each panel loads the first time it is opened.
+const TABS = [
+  ['blog', '\uD83D\uDCDD Blog'],
+  ['site', '\u270F\uFE0F Site text'],
+  ['projects', '\uD83D\uDEE0\uFE0F Projects'],
+  ['skills', '\u2B50 Skills'],
+  ['exp', '\uD83D\uDCBC Experience'],
+  ['about', '\uD83D\uDC64 About'],
+  ['featured', '\uD83D\uDCCC Featured'],
+  ['contactfaq', '\u2753 Contact FAQ'],
+];
+const contentApi = {
+  read: apiRead, append: apiAppend,
+  update: (sheet, key, row) => apiUpdate(sheet, key, row),
+  del: (sheet, key) => apiDelete(sheet, key),
+};
+function openPanel(id, panel, view) {
+  if (!panel || panel.dataset.loaded) return;
+  panel.dataset.loaded = '1';
+  if (id === 'blog') return renderBlogList(panel, view);
+  if (id === 'site') return renderSiteSettings(panel, contentApi);
+  if (id === 'about') return renderAboutEditor(panel, contentApi);
+  if (id === 'featured') return renderFeaturedEditor(panel, contentApi);
+  if (id === 'contactfaq') return renderContactFaq(panel, contentApi);
+  return renderList(panel, contentApi, id); // projects / skills / exp
 }
 
 // ── BLOG LIST ─────────────────────────────────────────────────────────────
