@@ -1,3 +1,4 @@
-title,desc,bullets,stack,link,featured,wide
-Django E-commerce,Shop app.,Tested CRUD|Prevented SQLi,"Django, Python",https://example.com/shop,true,
-Bad Link Project,Link check.,,PHP,javascript:alert(1),,
+num,title,desc,highlights,stack,link,featured,span2,ID
+1,Django E-commerce,Shop app.,Tested CRUD | Prevented SQLi,"Django, Python",https://example.com/shop,TRUE,,1
+2,Bad Link Project,Link check.,,PHP,javascript:alert(1),,TRUE,
+,Third project,Plain card.,,,,,,3

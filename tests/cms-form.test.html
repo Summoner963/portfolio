@@ -23,7 +23,13 @@ window.fetch = async (url, opts = {}) => {
   const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json' } });
   if (url === '/api/cms/session') return json({ ok: true, user: 'tester', csrf: 'csrf-1' });
   if (url === '/api/cms/read') {
-    if (body.sheet === 'blog') return json({ ok: true, rows: [POST] });
+    if (body.sheet === 'blog') return json({ ok: true, rows: [POST, { ...POST, Slug: 'second-post', Title: 'Second post' }] });
+    if (body.sheet === 'site') return json({ ok: true, rows: [{ Key: 'hero_badge', Value: 'Sheet badge' }] });
+    if (body.sheet === 'projects') return json({ ok: true, rows: [
+      { num: '1', title: 'Shop', desc: 'd', highlights: 'Tested CRUD | Prevented SQLi', stack: 'Django', link: '', featured: 'TRUE', span2: '', ID: '1' }] });
+    if (body.sheet === 'about') return json({ ok: true, rows: [{ bio1: 'Para one', bio2: '', bio3: '', bio4: '' }] });
+    if (body.sheet === 'featured') return json({ ok: true, rows: [{ Slug: POST.Slug }, { Slug: 'second-post' }] });
+    if (body.sheet === 'faq') return json({ ok: true, rows: [{ Blog_Slug: 'contact', FAQ_Number: '1', FAQ_Question: 'Q1?', FAQ_Answer: 'A1.' }] });
     if (body.sheet === 'blogimage') return json({ ok: true, rows: [{ Blog_Slug: POST.Slug, Img_Number: '1', Img_URL: 'https://lh3.googleusercontent.com/d/x', Img_Alt: 'Form' }] });
     return json({ ok: true, rows: [] });
   }
@@ -114,6 +120,68 @@ try {
   $('bPublish').click();
   await wait(300);
   check('duplicate slug is refused with a message', writes.length === 0 && /already exists/.test($('bStatus').textContent), $('bStatus').textContent);
+
+  // ── Content screens ───────────────────────────────────────────────────
+  const tab = id => document.querySelector(`.cms-tab[data-tab="${id}"]`);
+  const panel = id => document.getElementById('panel-' + id);
+  check('dashboard has all 8 sections', ['blog', 'site', 'projects', 'skills', 'exp', 'about', 'featured', 'contactfaq'].every(t => tab(t)));
+
+  // Site text
+  writes.length = 0;
+  tab('site').click(); await wait(400);
+  check('Site text: Sheet value shown', document.getElementById('site-hero_badge')?.value === 'Sheet badge');
+  check('Site text: missing key shows current text', document.getElementById('site-hero_cta_text')?.value === 'View Projects ↓');
+  document.getElementById('site-stat1_num').value = '5+';
+  panel('site').querySelector('#siteSave').click(); await wait(400);
+  check('Site text: saves only the changed key, by Key',
+    writes.length === 1 && writes[0].action === 'update' && writes[0].sheet === 'site' && writes[0].slug === 'stat1_num' && writes[0].row.Value === '5+',
+    JSON.stringify(writes));
+
+  // Projects (list tab)
+  writes.length = 0;
+  tab('projects').click(); await wait(400);
+  check('Projects: list shows the row', panel('projects').textContent.includes('Shop'));
+  panel('projects').querySelector('[data-edit]').click(); await wait(100);
+  check('Projects: highlights shown one per line', document.getElementById('lf-highlights').value === 'Tested CRUD\nPrevented SQLi');
+  check('Projects: TRUE checkbox read as checked', document.getElementById('lf-featured').checked === true);
+  document.getElementById('lf-highlights').value = 'One\nTwo\nThree';
+  panel('projects').querySelector('[data-save]').click(); await wait(400);
+  const pw = writes.find(w => w.sheet === 'projects');
+  check('Projects: saved by ID with highlights joined by |',
+    pw?.action === 'update' && pw.slug === '1' && pw.row.highlights === 'One | Two | Three' && pw.row.featured === 'true',
+    JSON.stringify(pw));
+  writes.length = 0;
+  panel('projects').querySelector('[data-add]').click(); await wait(100);
+  document.getElementById('lf-title').value = 'New thing';
+  panel('projects').querySelector('[data-save]').click(); await wait(400);
+  check('Projects: Add appends a row (ID assigned by Apps Script)', writes[0]?.action === 'append' && writes[0].row.title === 'New thing' && !writes[0].row.ID, JSON.stringify(writes[0]));
+
+  // About
+  writes.length = 0;
+  tab('about').click(); await wait(400);
+  document.getElementById('ab-bio2').value = 'Para two';
+  panel('about').querySelector('[data-save]').click(); await wait(300);
+  check('About: update writes bio1..bio4', writes[0]?.sheet === 'about' && writes[0].row.bio1 === 'Para one' && writes[0].row.bio2 === 'Para two', JSON.stringify(writes[0]));
+
+  // Featured: move second post up, save → delete old, append new order
+  writes.length = 0;
+  tab('featured').click(); await wait(400);
+  panel('featured').querySelector('[data-up="1"]').click();
+  panel('featured').querySelector('[data-save]').click(); await wait(400);
+  const appends = writes.filter(w => w.sheet === 'featured' && w.action === 'append').map(w => w.row.Slug);
+  check('Featured: saved in the new order', JSON.stringify(appends) === JSON.stringify(['second-post', POST.Slug]), JSON.stringify(writes));
+
+  // Contact FAQ
+  writes.length = 0;
+  tab('contactfaq').click(); await wait(400);
+  panel('contactfaq').querySelector('[data-add]').click();
+  panel('contactfaq').querySelector('[data-q="1"]').value = 'Q2?'; panel('contactfaq').querySelector('[data-q="1"]').dispatchEvent(new Event('input'));
+  panel('contactfaq').querySelector('[data-a="1"]').value = 'A2.'; panel('contactfaq').querySelector('[data-a="1"]').dispatchEvent(new Event('input'));
+  panel('contactfaq').querySelector('[data-save]').click(); await wait(400);
+  check('Contact FAQ: replaces contact rows with numbered questions',
+    writes[0]?.action === 'delete' && writes[0].slug === 'contact' &&
+    writes.filter(w => w.action === 'append').map(w => w.row.FAQ_Number + w.row.FAQ_Question).join(',') === '1Q1?,2Q2?',
+    JSON.stringify(writes));
 } catch (e) {
   check('no exceptions', false, e.stack);
 }

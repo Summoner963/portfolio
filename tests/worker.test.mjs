@@ -148,3 +148,40 @@ test('rate limiter blocks after the limit', () => {
   for (let i = 0; i < 3; i++) assert.equal(isRateLimited('ip', 3, 60_000, b), false);
   assert.equal(isRateLimited('ip', 3, 60_000, b), true);
 });
+
+test('CMS validation for the new tabs uses your column names', () => {
+  assert.ok(validateRow('site', { Key: 'hero_badge', Value: 'x' }).row);
+  assert.match(validateRow('site', { Key: 'not_a_key', Value: 'x' }).error, /Key/);
+  assert.ok(validateRow('projects', { title: 'P', highlights: 'a | b', featured: 'true', span2: 'false', link: '' }).row);
+  assert.match(validateRow('projects', { title: 'P', link: 'javascript:x' }).error, /link/);
+  assert.match(validateRow('projects', { desc: 'no title' }).error, /title/);
+  assert.ok(validateRow('skills', { title: 'S', color: 'blue' }).row);
+  assert.match(validateRow('skills', { title: 'S', color: 'pink' }).error, /color/);
+  assert.ok(validateRow('exp', { role: 'Intern', bullets: 'a | b' }).row);
+  assert.ok(validateRow('about', { bio1: 'Hello' }).row);
+  assert.equal(validateRow('site', { Key: 'contact_phone', Value: '+977 98' }).row.Value, "'+977 98", 'formula guard');
+});
+
+test('CMS write payloads: key column set by server, About always row 2', async () => {
+  const { handleCMSWrite } = await import('../worker/cms-proxy.js');
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => { sent.push(JSON.parse(opts.body)); return new Response('{"ok":true}'); };
+  const env = { CMS_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfy_test/exec', CMS_APPS_SCRIPT_SECRET: 's'.repeat(40) };
+  const call = body => handleCMSWrite(new Request('https://x.dev/api/cms/write', { method: 'POST', body: JSON.stringify(body) }), env);
+  try {
+    let r = await call({ action: 'update', sheet: 'site', slug: 'hero_badge', slugField: 'Evil', row: { Key: 'hero_badge', Value: 'Hi' } });
+    assert.equal(r.res.status, 200); assert.equal(r.sheet, 'site');
+    assert.deepEqual([sent[0].slugField, sent[0].slug, sent[0].row.Value], ['Key', 'hero_badge', 'Hi']);
+    r = await call({ action: 'update', sheet: 'about', slug: 'anything', row: { bio1: 'x' } });
+    assert.equal(sent[1].slug, '2'); assert.equal(sent[1].slugField, undefined);
+    r = await call({ action: 'delete', sheet: 'about', slug: '2' });
+    assert.equal(r.res.status, 400, 'About rows cannot be deleted');
+    r = await call({ action: 'delete', sheet: 'projects', slug: '../x' });
+    assert.equal(r.res.status, 400, 'IDs must be numbers');
+    r = await call({ action: 'delete', sheet: 'projects', slug: '3' });
+    assert.deepEqual([sent.at(-1).slugField, sent.at(-1).slug], ['ID', '3']);
+    r = await call({ action: 'append', sheet: 'Sheet1', row: {} });
+    assert.equal(r.res.status, 400, 'unknown sheet');
+  } finally { globalThis.fetch = realFetch; }
+});

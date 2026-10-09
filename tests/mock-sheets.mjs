@@ -11,6 +11,7 @@ const PORT = Number(process.argv[2] || 8899);
 const BY_GID = {
   '1132024800': 'blog', '302402061': 'skills', '0': 'projects', '245982630': 'exp',
   '1066410604': 'about', '303688554': 'faq', '1267436347': 'images', '980532084': 'featured',
+  '1953062973': 'site',
 };
 
 http.createServer((req, res) => {

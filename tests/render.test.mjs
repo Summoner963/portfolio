@@ -124,3 +124,45 @@ test('displayDate shows every Sheet date format the same way', () => {
   assert.equal(R.displayDate('soon'), 'soon');
   assert.match(R.blogCardHTML({ Slug: 's', Title: 'T', Date: '2026-10-08' }), /datetime="2026-10-08">October 8, 2026</);
 });
+
+test('Site tab: known keys only, values trimmed, newlines kept', () => {
+  const m = R.siteMap([{ Key: 'hero_badge', Value: ' Hi ' }, { Key: 'nope', Value: 'x' }, { Key: 'hero_title', Value: 'A\r\nB' }]);
+  assert.deepEqual(m, { hero_badge: 'Hi', hero_title: 'A\nB' });
+});
+
+test('Site values: escaped, *accent*, new line → <br>; links validated', () => {
+  assert.equal(R.siteValueHTML('Dev & QA\n*Engineer*'), 'Dev &amp; QA<br><em>Engineer</em>');
+  assert.equal(R.siteValueHTML('<b>x</b>'), '&lt;b&gt;x&lt;/b&gt;');
+  assert.equal(R.siteHref('+977 9800000000', 'tel'), 'tel:+9779800000000');
+  assert.equal(R.siteHref('me@example.com', 'email'), 'mailto:me@example.com');
+  assert.equal(R.siteHref('javascript:alert(1)', 'url'), '');
+  assert.equal(R.siteHref('/projects', 'path'), '/projects');
+  assert.equal(R.siteHref('//evil.com', 'path'), '');
+});
+
+test('routeMeta applies Site title/description/heading overrides', () => {
+  const m = R.routeMeta('/skills', { meta_title_skills: 'T', meta_desc_skills: 'D', skills_heading: 'H' });
+  assert.deepEqual([m.title, m.description, m.heading], ['T', 'D', 'H']);
+  assert.equal(R.routeMeta('/skills', {}).title, 'Skills & Stack | Suman Dangal');
+});
+
+test('Projects read your columns: highlights, span2, num, TRUE checkboxes', () => {
+  const html = R.projectsHTML([{ num: '7', title: 'P', highlights: 'a | b', featured: 'TRUE', span2: 'true' }]);
+  assert.match(html, /proj-card reveal feat wide/);
+  assert.match(html, /<div class="proj-num">07 \/ Featured<\/div>/);
+  assert.match(html, /<li>a<\/li><li>b<\/li>/);
+});
+
+test('Skills colour accepts blue and c-blue', () => {
+  assert.match(R.skillsHTML([{ title: 'x', color: 'blue' }]), /skill-card c-blue/);
+  assert.match(R.skillsHTML([{ title: 'x', color: 'c-amber' }]), /skill-card c-amber/);
+  assert.match(R.skillsHTML([{ title: 'x', color: 'pink' }]), /skill-card c-green/);
+});
+
+test('cleanListRows hides drafts and empty rows, sorts by Order', () => {
+  const rows = R.cleanListRows([
+    { title: 'b', Order: '2' }, { title: 'hidden', Status: 'draft' }, { title: '' },
+    { title: 'a', Order: '1' }, { title: 'no order' },
+  ], 'title');
+  assert.deepEqual(rows.map(r => r.title), ['a', 'b', 'no order']);
+});

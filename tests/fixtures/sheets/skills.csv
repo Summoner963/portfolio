@@ -1,2 +1,3 @@
-title,icon,color,tags
-Languages,🐍,c-green,"Python, Java, PHP"
+icon,title,color,tags,ID
+🐍,Languages,blue,"Python, Java, PHP",1
+⚙️,Frameworks,c-amber,"Django",

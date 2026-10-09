@@ -1,0 +1,11 @@
+Key,Value
+hero_badge,Fixture badge text
+hero_title,"Fixture & Title
+*Accent*"
+stat2_num,
+contact_github,https://github.com/example
+contact_phone,"+977 9800000000"
+meta_title_skills,Fixture Skills Title
+skills_heading,Fixture Skills Heading
+unknown_key,ignored
+footer_left,© Fixture <b>not html</b>
