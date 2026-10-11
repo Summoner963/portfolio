@@ -37,3 +37,8 @@ FAQ_GID      = "303688554"
 IMAGES_GID   = "1267436347"
 FEATURED_GID = "980532084"
 SITE_GID     = "1953062973"   # Site tab: Key | Value — every one-off text
+
+# IndexNow (Bing, Yandex, Naver, Seznam, Yep). NOT a secret: search engines
+# download it from https://suman-dangal.com.np/<key>.txt to verify submissions.
+# To rotate it, replace with any 32 hex characters and notify again.
+INDEXNOW_KEY = "3b9e9c19eba66dcbd80bc8a0a09274f8"

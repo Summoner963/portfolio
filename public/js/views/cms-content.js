@@ -22,6 +22,24 @@ async function readRows(api, sheet) {
   return res.rows || [];
 }
 
+/**
+ * Live "n / max" under a field; amber past max. Google shows about 60
+ * characters of a title and about 155 of a description.
+ */
+export function charCounter(input, max) {
+  if (!input) return;
+  const out = document.createElement('span');
+  out.className = 'cms-count';
+  const update = () => {
+    const n = [...input.value.trim()].length;
+    out.textContent = `${n} / ${max}` + (n > max ? ' — Google may cut this off' : '');
+    out.classList.toggle('over', n > max);
+  };
+  input.addEventListener('input', update);
+  input.after(out);
+  update();
+}
+
 function failBox(panel, title, err, retry) {
   panel.innerHTML = header(title) +
     `<div class="cms-list-empty">Could not load: ${esc(err.message || err)} ` +
@@ -99,6 +117,8 @@ export async function renderSiteSettings(panel, api) {
   };
   panel.querySelector('#siteSave').addEventListener('click', save);
   panel.querySelector('#siteSave2').addEventListener('click', save);
+  panel.querySelectorAll('[data-key^="meta_title_"]').forEach(el => charCounter(el, 60));
+  panel.querySelectorAll('[data-key^="meta_desc_"]').forEach(el => charCounter(el, 155));
 }
 
 // ─────────────────────────────────────────────────────────────────────────

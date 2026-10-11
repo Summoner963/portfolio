@@ -185,3 +185,45 @@ test('CMS write payloads: key column set by server, About always row 2', async (
     assert.equal(r.res.status, 400, 'unknown sheet');
   } finally { globalThis.fetch = realFetch; }
 });
+
+// ── IndexNow ──────────────────────────────────────────────────────────────
+test('IndexNow key file is served only at /<key>.txt and only for a valid key', async () => {
+  const { keyFileResponse, indexNowKey } = await import('../worker/indexnow.js');
+  const env = { INDEXNOW_KEY: '3b9e9c19eba66dcbd80bc8a0a09274f8' };
+  const res = keyFileResponse('/3b9e9c19eba66dcbd80bc8a0a09274f8.txt', env);
+  assert.equal(await res.text(), env.INDEXNOW_KEY);
+  assert.equal(keyFileResponse('/other.txt', env), null);
+  assert.equal(indexNowKey({ INDEXNOW_KEY: 'short' }), null);
+  assert.equal(indexNowKey({ INDEXNOW_KEY: 'bad key with spaces' }), null);
+  assert.equal(keyFileResponse('/short.txt', { INDEXNOW_KEY: 'short' }), null);
+});
+
+test('IndexNow sends only live site URLs, once per cooldown', async () => {
+  const { handleIndexNow } = await import('../worker/indexnow.js');
+  const env = { INDEXNOW_KEY: 'a1b2c3d4e5f60718293a4b5c6d7e8f90' };
+  const live = ['https://suman-dangal.com.np/', 'https://suman-dangal.com.np/blog', 'https://suman-dangal.com.np/blog/post-a'];
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => { sent.push({ url, body: JSON.parse(opts.body) }); return new Response('', { status: 202 }); };
+  const call = body => handleIndexNow(new Request('https://x.dev/api/cms/indexnow', { method: 'POST', body: JSON.stringify(body) }), env, live);
+  try {
+    let [out, status] = await call({ urls: ['https://suman-dangal.com.np/blog/post-a', 'https://evil.example/x', 'https://suman-dangal.com.np/blog/draft'] });
+    assert.equal(status, 200);
+    assert.deepEqual(out.sent, ['https://suman-dangal.com.np/blog/post-a']);
+    assert.deepEqual(out.notLive, ['https://evil.example/x', 'https://suman-dangal.com.np/blog/draft']);
+    assert.equal(sent[0].url, 'https://api.indexnow.org/indexnow');
+    assert.deepEqual(sent[0].body, { host: 'suman-dangal.com.np', key: env.INDEXNOW_KEY,
+      keyLocation: `https://suman-dangal.com.np/${env.INDEXNOW_KEY}.txt`, urlList: ['https://suman-dangal.com.np/blog/post-a'] });
+
+    [out, status] = await call({ urls: ['https://suman-dangal.com.np/blog/post-a'] });
+    assert.equal(status, 409, 'same URL again within 10 minutes is not resent');
+    assert.equal(sent.length, 1);
+
+    [out, status] = await call({ all: true });
+    assert.deepEqual(out.sent, ['https://suman-dangal.com.np/', 'https://suman-dangal.com.np/blog']);
+    assert.equal((await call({ urls: Array.from({ length: 101 }, (_, i) => `https://suman-dangal.com.np/${i}`) }))[1], 400);
+    assert.equal((await call({ urls: [] }))[1], 400);
+    assert.equal((await handleIndexNow(new Request('https://x.dev', { method: 'POST', body: '{}' }), {}, live))[1], 501, 'no key configured');
+    assert.equal((await handleIndexNow(new Request('https://x.dev', { method: 'POST', body: '{"all":true}' }), env, null))[1], 503, 'Sheets down');
+  } finally { globalThis.fetch = realFetch; }
+});

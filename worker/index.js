@@ -6,7 +6,7 @@
 //    2. Method check  — GET/HEAD (+ POST on CMS endpoints only)
 //    3. Rate limit    — per-isolate, crawlers exempt
 //    4. API + files   — /api/data, CMS API, sitemap, robots, feed, llms,
-//                       /blog/<slug>.md
+//                       /blog/<slug>.md, IndexNow key file
 //    5. Static assets — anything with a file extension → env.ASSETS
 //    6. Canonical URL — trailing slash, //, /index.html, legacy slugs → 301
 //    7. Pages         — index.html + HTMLRewriter (worker/shell.js)
@@ -18,7 +18,8 @@ import { finalize, hostPolicy, canonicalPath, redirect, isRateLimited, isSearchC
 import { getSheetGids, getSheetCSV, getRows, toCSV, invalidateSheet } from './sheets.js';
 import { rewriteShell } from './shell.js';
 import { homePage, sectionPage, blogListPage, blogPostPage, adminPage, notFoundPage } from './pages.js';
-import { robotsTxt, sitemapXml, feedXml, llmsTxt, llmsFullTxt, postMarkdownFile } from './seo-files.js';
+import { robotsTxt, sitemapXml, feedXml, llmsTxt, llmsFullTxt, postMarkdownFile, liveUrls } from './seo-files.js';
+import { keyFileResponse, handleIndexNow } from './indexnow.js';
 import { handleCMSRead, handleCMSWrite } from './cms-proxy.js';
 import {
   checkCredentials, issueSession, clearSessionCookie, getSession,
@@ -26,7 +27,7 @@ import {
 } from './auth.js';
 
 const ADMIN_PATH = '/back-lab';
-const CMS_POST = new Set(['/api/cms/login', '/api/cms/logout', '/api/cms/read', '/api/cms/write']);
+const CMS_POST = new Set(['/api/cms/login', '/api/cms/logout', '/api/cms/read', '/api/cms/write', '/api/cms/indexnow']);
 const CMS_GET  = new Set(['/api/cms/session']);
 const _cmsRl = new Map();
 const json = (obj, status, extra = {}) => new Response(JSON.stringify(obj), {
@@ -70,6 +71,8 @@ async function route(request, env, ctx, url) {
   if (path === '/llms-full.txt') return llmsFullTxt(env, ctx);
   const mdPost = path.match(/^\/blog\/([^/]+)\.md$/);
   if (mdPost) return postMarkdownFile(safeDecode(mdPost[1]), env, ctx);
+  const keyFile = keyFileResponse(path, env);
+  if (keyFile) return keyFile;
 
   // ── Static assets (Phase 6 moves most of these out via _routes.json) ─
   // Slugs may contain dots, so /blog/<slug> is always a page
@@ -189,6 +192,9 @@ async function cmsEndpoint(path, request, env, ctx, ip) {
   let res;
   if (path === '/api/cms/read') {
     res = await handleCMSRead(request, env);
+  } else if (path === '/api/cms/indexnow') {
+    const [obj, status] = await handleIndexNow(request, env, await liveUrls(env, ctx));
+    res = json(obj, status);
   } else {
     const out = await handleCMSWrite(request, env);
     res = out.res;

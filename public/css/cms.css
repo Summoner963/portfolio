@@ -1002,3 +1002,7 @@
 .cms-check { display: inline-flex; align-items: center; gap: .45rem; font-size: .85rem; cursor: pointer; min-height: 32px; }
 .cms-list-empty { padding: 1.2rem; color: var(--muted); font-size: .88rem; }
 .cms-tabs { flex-wrap: wrap; }
+
+/* Character counters (Title 60, Excerpt / descriptions 155) */
+.cms-count { display: block; text-align: right; font-family: var(--mono); font-size: .62rem; color: var(--muted-light); margin-top: .2rem; }
+.cms-count.over { color: #b45309; }

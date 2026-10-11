@@ -5,10 +5,10 @@
 // which checks the session cookie + CSRF token and validates every field.
 
 import { esc, loadCSS, showToast } from '../utils.js';
-import { isoDate, displayDate } from '../shared/render.js';
+import { isoDate, displayDate, isPublished, SITE_URL } from '../shared/render.js';
 import { mountEditor } from './cms-editor.js';
 import {
-  renderSiteSettings, renderList, renderAboutEditor, renderFeaturedEditor, renderContactFaq,
+  renderSiteSettings, renderList, renderAboutEditor, renderFeaturedEditor, renderContactFaq, charCounter,
 } from './cms-content.js';
 
 // ── API helpers ────────────────────────────────────────────────────────────
@@ -55,6 +55,26 @@ const apiAppend = (sheet, row) => cmsCall('/api/cms/write', { action: 'append', 
 // The key column (Slug / Blog_Slug) is decided by the worker, not the client.
 const apiUpdate = (sheet, slug, row) => cmsCall('/api/cms/write', { action: 'update', sheet, slug, row });
 const apiDelete = (sheet, slug) => cmsCall('/api/cms/write', { action: 'delete', sheet, slug });
+// IndexNow (Bing & co.): { urls: [...] } or { all: true }; the worker sends only live pages
+const apiIndexNow = body => cmsCall('/api/cms/indexnow', body);
+
+/** Ask IndexNow engines to recrawl; the button rests 10 s so it isn't spammed. */
+async function notifySearchEngines(btn, body) {
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending\u2026';
+  try {
+    const res = await apiIndexNow(body);
+    const notLive = (res.notLive || []).map(u => u.replace(SITE_URL, '') || '/');
+    const msg = (res.ok ? res.message : (res.error || 'Could not notify')) +
+      (res.ok && notLive.length ? ' \u2014 not live yet, skipped: ' + notLive.join(', ') : '');
+    showToast(msg, res.ok && !notLive.length ? 'success' : 'error', 6000);
+  } catch (e) {
+    showToast('Network error \u2014 try again', 'error');
+  }
+  btn.textContent = label;
+  setTimeout(function() { btn.disabled = false; }, 10000);
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -235,8 +255,17 @@ async function renderBlogList(panel, view) {
     <div class="cms-list-wrap">
       <div class="cms-list-header">
         <h3 class="cms-form-title">Blog Posts</h3>
-        <button class="cms-btn cms-btn-primary" id="blogAddNew">+ Add New Post</button>
+        <div class="cms-list-item-actions">
+          <button class="cms-btn cms-btn-ghost" id="blogNotifyAll" type="button"
+            title="Tell Bing, Yandex and other IndexNow search engines to recrawl every page">Notify search engines</button>
+          <button class="cms-btn cms-btn-primary" id="blogAddNew">+ Add New Post</button>
+        </div>
       </div>
+      <p class="cms-label-hint" style="margin:0 0 1rem">
+        <b>Notify</b> asks Bing and other IndexNow search engines to recrawl a post (use it a few minutes after
+        publishing or after a real update). Google does not use IndexNow: in Search Console use
+        URL Inspection \u2192 Request indexing.
+      </p>
       <div class="cms-list-toolbar">
         <input class="cms-input cms-list-search" id="blogListSearch"
           type="search" placeholder="Search posts\u2026" autocomplete="off" />
@@ -253,6 +282,10 @@ async function renderBlogList(panel, view) {
 
   document.getElementById('blogAddNew').addEventListener('click', function() {
     renderBlogForm(panel, view, null, rows); // rows: for the duplicate-slug check
+  });
+  document.getElementById('blogNotifyAll').addEventListener('click', function() {
+    if (!confirm('Ask Bing and other IndexNow search engines to recrawl every page of the site?')) return;
+    notifySearchEngines(this, { all: true });
   });
 
   let rows = [];
@@ -312,12 +345,20 @@ async function renderBlogList(panel, view) {
           '</span>' +
         '</div>' +
         '<div class="cms-list-item-actions">' +
+          (isPublished(row)
+            ? '<button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="notify" title="Ask Bing &amp; co. to recrawl this post">Notify</button>'
+            : '<span class="cms-list-badge">Draft</span>') +
           '<button class="cms-btn cms-btn-ghost cms-btn-sm" data-action="edit">Edit</button>' +
           '<button class="cms-btn cms-btn-danger cms-btn-sm" data-action="delete">Delete</button>' +
         '</div>';
 
       item.querySelector('[data-action="edit"]').addEventListener('click', function() {
         renderBlogForm(panel, view, row, rows);
+      });
+      const notifyBtn = item.querySelector('[data-action="notify"]');
+      if (notifyBtn) notifyBtn.addEventListener('click', function() {
+        // the post and the blog list (which now links to it)
+        notifySearchEngines(notifyBtn, { urls: [SITE_URL + '/blog/' + row.Slug, SITE_URL + '/blog'] });
       });
 
       item.querySelector('[data-action="delete"]').addEventListener('click', async function() {
@@ -365,7 +406,8 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
       </div>
       <div class="cms-row">
         <div class="cms-field cms-field-wide">
-          <label class="cms-label">Title *</label>
+          <label class="cms-label" for="bTitle">Title *
+            <span class="cms-label-hint">Google shows about 60 characters (" | Suman Dangal" is added when it fits).</span></label>
           <input class="cms-input" id="bTitle" type="text"
             value="${esc(r.Title || '')}" placeholder="My awesome blog post" required />
         </div>
@@ -400,7 +442,8 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
         </div>
       </div>
       <div class="cms-field">
-        <label class="cms-label">Excerpt *</label>
+        <label class="cms-label" for="bExcerpt">Excerpt *
+          <span class="cms-label-hint">Google snippet and card text: about 155 characters.</span></label>
         <textarea class="cms-input cms-textarea-sm" id="bExcerpt" rows="2"
           placeholder="One sentence for SEO and card preview\u2026">${esc(r.Excerpt || '')}</textarea>
       </div>
@@ -487,6 +530,8 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
   };
   document.getElementById('blogBackToList').addEventListener('click', goBack);
   document.getElementById('blogBackToList2').addEventListener('click', goBack);
+  charCounter(document.getElementById('bTitle'), 60);
+  charCounter(document.getElementById('bExcerpt'), 155);
 
   // Auto-slug from title
   const titleEl = document.getElementById('bTitle');
@@ -679,7 +724,8 @@ async function renderBlogForm(panel, view, existingRow, allRows) {
 
       dirty = false;
       leaveForm();
-      showToast(isEdit ? 'Post updated!' : (status ? 'Draft saved!' : 'Post published!'));
+      showToast(isEdit ? 'Post updated!' : (status ? 'Draft saved!'
+        : 'Post published! In a few minutes, click Notify to tell Bing & co.'), 'success', status ? 2800 : 6000);
       renderBlogList(panel, view);
     } catch (e) {
       fail('Network error — nothing was lost, try again');
