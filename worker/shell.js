@@ -49,6 +49,14 @@ export function rewriteShell(page) {
 
   if (page.view) {
     rw.on(`#view-${page.view}`, { element(el) { el.setAttribute('class', `${el.getAttribute('class') || ''} active`.trim()); } });
+    // Each URL's HTML carries only its own content. The other views are sent
+    // as inert <template>s (not rendered, not read as page text by crawlers);
+    // the router builds one when the visitor navigates to it (showView).
+    rw.on('div.view', { element(el) {
+      if (el.getAttribute('id') === `view-${page.view}`) return;
+      el.prepend('<template data-view-tpl>', { html: true });
+      el.append('</template>', { html: true });
+    } });
   }
   // One H1 per page. heading: 'hero' (home) | 'section' (view heading) |
   // 'article' (H1 inside the post) | 'none' (404 overlay / admin)

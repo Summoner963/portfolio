@@ -93,6 +93,11 @@ function _setActiveNav(route) {
  */
 export function showView(viewId) {
   document.querySelectorAll('#app .view').forEach(v => {
+    if (v.id === viewId) {
+      // The worker sends inactive views as inert <template>s: build this one now
+      const tpl = v.querySelector(':scope > template[data-view-tpl]');
+      if (tpl) tpl.replaceWith(tpl.content);
+    }
     v.classList.toggle('active', v.id === viewId);
   });
 }
