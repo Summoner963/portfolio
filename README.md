@@ -16,7 +16,9 @@ Browser ──► Cloudflare Pages
                    ├─ pages  → public/index.html + HTMLRewriter: per-page <head>,
                    │           JSON-LD and the page content rendered on the server
                    ├─ /api/data?sheet=… → published Google Sheet CSV (allow-listed, drafts removed)
-                   ├─ /sitemap.xml /robots.txt /llms.txt → generated
+                   ├─ /sitemap.xml /robots.txt /feed.xml → generated
+                   ├─ /llms.txt /llms-full.txt /blog/<slug>.md → markdown for AI agents
+                   ├─ /<IndexNow key>.txt → IndexNow verification file
                    └─ /back-lab + /api/cms/* → admin CMS (own login) → Google Apps Script → Sheet
 ```
 
@@ -26,7 +28,7 @@ Browser ──► Cloudflare Pages
 | `public/js/shared/render.js` | HTML templates, markdown, escaping, JSON-LD — used by **both** browser and worker | yes |
 | `public/js/` | SPA: `main.js` (routes), `router.js`, `seo.js`, `api.js`, `consent.js` (GA4), `views/*` | yes |
 | `public/_worker.js` | One line: re-exports `worker/index.js` (Pages bundles it) | as the worker |
-| `worker/` | Worker source: `index.js` router, `pages.js`, `shell.js`, `sheets.js`, `http.js`, `seo-files.js`, `sanitize.js`, `auth.js`, `cms-proxy.js` | bundled, never served |
+| `worker/` | Worker source: `index.js` router, `pages.js`, `shell.js`, `sheets.js`, `http.js`, `seo-files.js`, `indexnow.js`, `sanitize.js`, `auth.js`, `cms-proxy.js` | bundled, never served |
 | `tests/` | Unit tests, Sheets mock, snapshot tool, LIVE baseline, manual checklist | no |
 | `tools/` | `make-cms-secrets.mjs` (run locally) | no |
 | `docs/` | Deployment, security summary, backlog | no |
@@ -37,6 +39,16 @@ Browser ──► Cloudflare Pages
 - The worker renders every page's title, description, canonical (always the custom domain),
   Open Graph/Twitter tags, JSON-LD and main content into the first HTML. The SPA keeps that
   DOM on first load and handles navigation afterwards.
+- Each URL's HTML carries only its own view; the other views arrive as inert
+  `<template data-view-tpl>` and the router builds one on first visit (`showView`).
+- Posts end with older/newer links and up to 3 related posts (same category, shared tags),
+  show "Updated <date>" when `Last_Modified` is later, and get `wordCount`/`articleSection`
+  in `BlogPosting`. Titles get " | Suman Dangal" only if they still fit in 60 characters.
+- For AI agents and feed readers: `/blog/<slug>.md` (noindex, canonical Link header),
+  `/llms.txt`, `/llms-full.txt`, `/feed.xml` (RSS 2.0, also a second sitemap in robots.txt).
+- IndexNow (Bing, Yandex, Naver, Seznam, Yep — not Google): key in `wrangler.toml`
+  (`INDEXNOW_KEY`, public by design), CMS **Notify** buttons → `POST /api/cms/indexnow`,
+  which sends only URLs that are live on the site.
 - Real status codes: unknown page/post → 404 + noindex; Google Sheets down → 503 (never a false 404).
 - 301s: `*.pages.dev` production → custom domain, `www` → apex, trailing slash, `/index.html`,
   old blog slugs (`worker/http.js`). Preview deployments get `noindex`.
@@ -60,6 +72,8 @@ columns sort and hide rows.
 
 ### Admin CMS (`/back-lab`)
 Sections: Blog, Site text, Projects, Skills, Experience, About, Featured, Contact FAQ.
+Blog list: **Notify** (one post) and **Notify search engines** (all pages) send IndexNow pings.
+Counters show Google's limits: title 60, description/excerpt 155 characters.
 
 - Login: username + password checked against a salted PBKDF2 hash; signed HttpOnly session
   cookie (8 h); CSRF token on every change; 5 failed logins → 15 min lockout.
@@ -79,6 +93,7 @@ Requirements: Node 20+ (Wrangler is fetched by `npx`, nothing is installed in th
 ```bash
 npm test                      # unit tests (node:test)
 npm run test:browser          # editor + CMS form tests in headless Chrome/Edge
+npm run test:e2e              # SPA navigation in headless Chrome (needs mock-sheets + dev:mock)
 
 # With fake data — no Google account or secrets needed
 npm run mock-sheets           # terminal 1: serves tests/fixtures/sheets/*.csv

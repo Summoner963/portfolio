@@ -16,6 +16,7 @@
 | Drafts | Draft rows public (page, sitemap, API) | Hidden everywhere, including FAQ/image rows of unpublished posts |
 | Admin indexing | `/back-lab` indexable and listed in robots.txt | `noindex` header + meta, `no-store`, not in robots or the sitemap |
 | CORS | Invalid `Access-Control-Allow-Origin: same-origin` header | No CORS headers (same-origin only) |
+| Agent / feed files | — | `/blog/<slug>.md`, `/llms-full.txt`, `/feed.xml` only contain published posts (drafts → 404); markdown copies are `noindex` with a canonical Link header |
 
 ## Remaining risks / limits
 - **Rate limits are per data centre, not global.** A distributed attacker could make more login
@@ -26,8 +27,12 @@
   move to a paid plan.
 - **`style-src 'unsafe-inline'` remains,** because templates and the CMS editor use `style=`
   attributes.
-- **The Apps Script isn't in this repo.** It must check `CMS_APPS_SCRIPT_SECRET` and should only
-  touch the `blog`, `blogimage` and `faq` tabs. It hasn't been reviewed.
+- **The Apps Script runs in your Google account.** The reviewed version is in
+  `tools/apps-script/Code.gs` (secret check, allow-listed tabs, formula guard). Re-paste it
+  there after every change to that file.
+- **IndexNow key is public on purpose** (`INDEXNOW_KEY` in `wrangler.toml`, served at
+  `/<key>.txt`). It only proves you own the domain to IndexNow; the CMS endpoint that sends
+  pings needs a session + CSRF token and only sends URLs that are live on the site.
 - **The published Sheet ID is in old git history** (a "Publish to web" ID, low risk). Rotating it
   is optional (re-publish the sheet, then update `SHEET_ID`).
 - **`build-notes/` and `_archive/` are untracked now, but still exist in old commits** of this

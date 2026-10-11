@@ -30,11 +30,21 @@ draft handling, CSP). This branch ports them and hardens the CMS.
 - **Strict CSP:** no `'unsafe-inline'` for scripts.
 - **GA4 with Consent Mode v2:** one page_view per route, a cookie banner and a privacy page.
 - **Static files skip the worker** (`_routes.json`), so the free request quota goes much further.
+- **Everything visible is editable in the CMS:** Site text (Site tab), Projects, Skills,
+  Experience, About, Featured posts, Contact FAQ, and posts with a lossless visual ⇄ Sheet editor.
+- **Each URL's HTML holds only its own content:** other views are inert `<template>`s.
+- **Internal links between posts:** older/newer and related posts on every post;
+  "Updated <date>"; `wordCount`/`articleSection` in BlogPosting; titles kept to 60 characters.
+- **For AI agents and feed readers:** `/blog/<slug>.md`, `/llms.txt`, `/llms-full.txt`,
+  `/feed.xml` (also a second sitemap).
+- **IndexNow** (Bing & co.): key file + CMS Notify buttons; only live URLs are sent.
 
 ## Verification
 
-- `npm test`: 28 unit tests (escaping, markdown, slugs, JSON-LD, auth/CSRF, CMS validation,
-  redirects).
+- `npm test`: 47 unit tests (escaping, markdown, slugs, JSON-LD, auth/CSRF, CMS validation,
+  redirects, related posts, agent markdown, IndexNow).
+- `npm run test:browser`: editor 37 + CMS 33 checks; `npm run test:e2e`: 19 SPA checks
+  in headless Chrome against `dev:mock`.
 - 26-case snapshot compared against `main` (`tests/baseline/`): every difference is
   intentional, and the sitemap URLs and lastmod dates are unchanged.
 - Full repo run locally as configured:

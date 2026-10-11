@@ -7,7 +7,10 @@ Nothing here has been executed — follow the steps in order.
 ## 0. Before you start (local, 2 min)
 ```bash
 git checkout merge-main-practices
-npm test                      # expect: pass 28, fail 0
+npm test                      # expect: pass 47, fail 0
+npm run test:browser          # expect: editor 37 passed, CMS 33 passed
+# optional, with `npm run mock-sheets` + `npm run dev:mock` running:
+npm run test:e2e              # expect: 19 passed, 0 failed
 ```
 
 ## 1. Cloudflare Pages settings
@@ -62,6 +65,12 @@ URL. Extra checks only possible here:
 - `/js/main.js` response has **no** `Content-Security-Policy` header (static file skipped the worker).
 - All responses carry `X-Robots-Tag: noindex` (preview).
 - CMS: log in, edit a post, save a post whose content starts with `- `, check the Sheet.
+- New files: `/feed.xml` (RSS), `/llms-full.txt`, `/blog/<a post>.md` (markdown, header
+  `X-Robots-Tag: noindex`), `/3b9e9c19eba66dcbd80bc8a0a09274f8.txt` (shows the IndexNow key).
+- View source on any page: the other views are inside `<template data-view-tpl>`; only the
+  page's own content is outside them.
+- CMS → Blog → **Notify** on the preview answers *"could not verify the key"* (403) until the
+  key file is live on the production domain — expected before the merge.
 - Workers & Pages → portfolio → **Metrics/Analytics**: CPU time per request well under 10 ms.
 - GA4: preview visits count in the same property — Decline the banner on the preview, or
   later filter by hostname in GA4.
@@ -96,8 +105,36 @@ gh pr create --base main --head merge-main-practices \
   `/blog/free-domain-nepal-guide`, `/blog/free-domain-in-nepal-guide`, `/blog/free-domain-in-nepal`.
 - `https://portfolio-1e6.pages.dev/` → 301 to the custom domain.
 - Cloudflare → your domain → **Caching → Configuration → Purge Cache → Custom Purge**:
-  `https://suman-dangal.com.np/robots.txt` and `https://suman-dangal.com.np/sitemap.xml`
-  (an old copy can be edge-cached for up to a day, as happened last week).
+  `https://suman-dangal.com.np/robots.txt`, `https://suman-dangal.com.np/sitemap.xml`,
+  `https://suman-dangal.com.np/llms.txt` (an old copy can be edge-cached for up to a day,
+  as happened last week).
+
+## 7. Tell search engines (same day, 10 min)
+Google and Bing don't share a "please crawl" channel, so do both:
+
+**Google (Search Console)** — Google does not use IndexNow.
+1. **Sitemaps:** submit `https://suman-dangal.com.np/sitemap.xml` again, and add
+   `https://suman-dangal.com.np/feed.xml` as a second sitemap (Google accepts RSS 2.0 feeds).
+2. **URL Inspection** → paste `https://suman-dangal.com.np/blog/get-free-domain-in-nepal` →
+   **Test live URL** (must say "URL is available to Google") → **Request indexing**.
+   Repeat for the home page and each post. There is a small daily quota; don't repeat a URL.
+3. The post showed *Discovered – currently not indexed* with *Last crawl: N/A*: Google knew
+   the URL from the sitemap but hadn't fetched it yet. The release helps that in three ways:
+   every post now links to other posts (older/newer + related), the home page links to
+   featured posts in its HTML, and `/blog/<slug>/` 301s to the canonical URL instead of
+   serving a duplicate. Links from other websites help most (backlog #4).
+
+**Bing, Yandex, Naver, Seznam, Yep (IndexNow)**
+1. Open `https://suman-dangal.com.np/3b9e9c19eba66dcbd80bc8a0a09274f8.txt` → it must show the key.
+2. `/back-lab` → Blog → **Notify search engines** (all pages). The toast should say
+   *Sent* or *Received*. Later, use **Notify** on a single post a few minutes after
+   publishing or after a real update — not for small typo fixes.
+3. Optional but useful: **Bing Webmaster Tools** (free) → *Import from Google Search Console*
+   (one click, verifies the site) → it then shows IndexNow submissions and Bing indexing.
+   Bing's index is also used by Yahoo and DuckDuckGo.
+
+To change the IndexNow key: put 32 new hex characters in `wrangler.toml` (`INDEXNOW_KEY`),
+deploy, then press Notify again.
 
 ## Rollback
 **Fast (seconds):** Workers & Pages → portfolio → **Deployments** → *All deployments* → the
@@ -115,8 +152,10 @@ git push
 Keep `SHEET_ID` until you are sure you won't roll back.
 
 ## Post-launch (2–4 weeks)
-- **Search Console:** Sitemaps → submit `https://suman-dangal.com.np/sitemap.xml` again;
-  URL Inspection → *Test live URL* + *Request indexing* for home and each post.
+- **Search Console:** check that `get-free-domain-in-nepal` moves from *Discovered* to
+  *Indexed* (it can take days to a few weeks). If it stays *Crawled – currently not indexed*,
+  the next lever is content (unique steps, the nameserver mismatch in backlog #3) and links
+  from other sites, not technical changes.
 - Watch **Pages (indexing)** for new "Soft 404", "Not found (404)", "Duplicate without canonical",
   "Alternate page with proper canonical" — the only expected new 404s are draft/deleted posts.
 - Watch **Core Web Vitals** and **PageSpeed Insights** for home + a post.
