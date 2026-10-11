@@ -5,7 +5,8 @@
 //    1. Host policy   — pages.dev / www → 301 custom domain; previews noindex
 //    2. Method check  — GET/HEAD (+ POST on CMS endpoints only)
 //    3. Rate limit    — per-isolate, crawlers exempt
-//    4. API + files   — /api/data, CMS API, sitemap, robots, llms
+//    4. API + files   — /api/data, CMS API, sitemap, robots, feed, llms,
+//                       /blog/<slug>.md
 //    5. Static assets — anything with a file extension → env.ASSETS
 //    6. Canonical URL — trailing slash, //, /index.html, legacy slugs → 301
 //    7. Pages         — index.html + HTMLRewriter (worker/shell.js)
@@ -17,7 +18,7 @@ import { finalize, hostPolicy, canonicalPath, redirect, isRateLimited, isSearchC
 import { getSheetGids, getSheetCSV, getRows, toCSV, invalidateSheet } from './sheets.js';
 import { rewriteShell } from './shell.js';
 import { homePage, sectionPage, blogListPage, blogPostPage, adminPage, notFoundPage } from './pages.js';
-import { robotsTxt, sitemapXml, llmsTxt } from './seo-files.js';
+import { robotsTxt, sitemapXml, feedXml, llmsTxt, llmsFullTxt, postMarkdownFile } from './seo-files.js';
 import { handleCMSRead, handleCMSWrite } from './cms-proxy.js';
 import {
   checkCredentials, issueSession, clearSessionCookie, getSession,
@@ -62,9 +63,13 @@ async function route(request, env, ctx, url) {
   if (path.startsWith('/api/')) return new Response('Not found', { status: 404 });
 
   // ── Generated files ──────────────────────────────────────────────────
-  if (path === '/sitemap.xml') return sitemapXml(env, ctx);
-  if (path === '/robots.txt')  return robotsTxt();
-  if (path === '/llms.txt')    return llmsTxt(env, ctx);
+  if (path === '/sitemap.xml')   return sitemapXml(env, ctx);
+  if (path === '/robots.txt')    return robotsTxt();
+  if (path === '/feed.xml')      return feedXml(env, ctx);
+  if (path === '/llms.txt')      return llmsTxt(env, ctx);
+  if (path === '/llms-full.txt') return llmsFullTxt(env, ctx);
+  const mdPost = path.match(/^\/blog\/([^/]+)\.md$/);
+  if (mdPost) return postMarkdownFile(safeDecode(mdPost[1]), env, ctx);
 
   // ── Static assets (Phase 6 moves most of these out via _routes.json) ─
   // Slugs may contain dots, so /blog/<slug> is always a page

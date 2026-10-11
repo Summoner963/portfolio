@@ -125,6 +125,8 @@ export async function blogPostPage(slug, env, ctx) {
       published && `<meta property="article:published_time" content="${published}" />`,
       modified && `<meta property="article:modified_time" content="${modified}" />`,
       `<meta property="article:author" content="Suman Dangal" />`,
+      // Same post as clean markdown for AI agents (noindex, canonical → this page)
+      `<link rel="alternate" type="text/markdown" href="${R.esc(canonical)}.md" title="${R.esc(post.Title)} (Markdown)" />`,
       ...R.splitList(post.Tags).map(t => `<meta property="article:tag" content="${R.esc(t)}" />`),
     ].filter(Boolean).join(''),
     jsonLd: {
