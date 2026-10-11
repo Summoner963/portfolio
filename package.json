@@ -10,6 +10,7 @@
     "dev:mock": "npx --yes wrangler@3 pages dev --binding SHEET_ID=FIXTURE --binding SHEET_BASE=http://127.0.0.1:8899/d/e",
     "snapshot": "node tests/snapshot.mjs http://127.0.0.1:8788 tests/latest",
     "secrets": "node tools/make-cms-secrets.mjs",
-    "test:browser": "node tests/run-browser.mjs"
+    "test:browser": "node tests/run-browser.mjs",
+    "test:e2e": "node tests/e2e-spa.mjs http://127.0.0.1:8788"
   }
 }
