@@ -91,6 +91,16 @@ export function updateSEO({ path = '/', title, desc, image, noindex = false, pos
     m.setAttribute('content', t);
     document.head.appendChild(m);
   });
+  // Markdown copy of the post for AI agents (the worker adds the same link)
+  document.head.querySelector('link[rel="alternate"][type="text/markdown"]')?.remove();
+  if (post && !noindex) {
+    const l = document.createElement('link');
+    l.rel = 'alternate';
+    l.type = 'text/markdown';
+    l.href = `${canonical}.md`;
+    l.title = `${post.Title} (Markdown)`;
+    document.head.appendChild(l);
+  }
 
   removeSchemas();
   injectSchema('ld-website', websiteLD());
