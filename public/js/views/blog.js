@@ -14,7 +14,7 @@ import { sanitizeHTML, loadCSS, watchReveals, takeSSR } from '../utils.js';
 import { updateSEO } from '../seo.js';
 import {
   SITE_URL, POSTS_PER_PAGE, dateValue, blogCardHTML, paginationHTML,
-  articleHTML, notFoundHTML, faqPairs, fixImgUrl, plainExcerpt,
+  articleHTML, notFoundHTML, faqPairs, fixImgUrl, plainExcerpt, pageTitle,
 } from '../shared/render.js';
 
 /** Blog rows shared by list + article (home.js pre-fills via setBlogRows). */
@@ -224,11 +224,11 @@ export async function renderArticle(slug) {
   const pairs = faqPairs(faqRows, post.Slug);
   wrap.innerHTML = articleHTML(post, {
     imageRows: imageRows || [], faqRows: faqRows || [],
-    tableHTML: sanitizeHTML(post.Table_HTML),
+    tableHTML: sanitizeHTML(post.Table_HTML), allPosts: blogRows,
   });
   updateSEO({
     path,
-    title: `${post.Title} | Suman Dangal`,
+    title: pageTitle(post.Title),
     desc: post.Excerpt || plainExcerpt(post.Content),
     image: fixImgUrl(post.Image_URL) || undefined,
     post, faq: pairs,

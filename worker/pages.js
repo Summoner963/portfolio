@@ -118,7 +118,7 @@ export async function blogPostPage(slug, env, ctx) {
 
   return {
     status: 200, view: 'article', heading: 'article', type: 'article',
-    title: `${post.Title} | Suman Dangal`,
+    title: R.pageTitle(post.Title),
     description: post.Excerpt || R.plainExcerpt(post.Content) || ROUTES['/blog'].description,
     canonical, image: image || null, css: R.ARTICLE_CSS, ssrRoute: path,
     extraHead: [
@@ -133,7 +133,7 @@ export async function blogPostPage(slug, env, ctx) {
       'bc-schema': crumbs({ name: 'Blog', url: `${SITE_URL}/blog` }, { name: post.Title, url: canonical }),
       ...(pairs.length ? { 'faq-schema': R.faqLD(pairs) } : {}),
     },
-    inject: { '#articleWrap': R.articleHTML(post, { imageRows: images || [], faqRows: faq || [], tableHTML }) },
+    inject: { '#articleWrap': R.articleHTML(post, { imageRows: images || [], faqRows: faq || [], tableHTML, allPosts: blog }) },
   };
 }
 

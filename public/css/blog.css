@@ -652,6 +652,71 @@ figure.blog-figure figcaption {
   opacity: .6;
 }
 
+.article-updated {
+  color: var(--accent);
+}
+
+/* ── Older / newer post ────────────────────────────────────────────────── */
+.post-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 3rem;
+}
+
+.post-nav-link {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  padding: 1rem 1.2rem;
+  border: 1.5px solid var(--border);
+  border-radius: .6rem;
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color .2s var(--ease);
+}
+
+.post-nav-link:hover,
+.post-nav-link:focus-visible {
+  border-color: var(--accent-light);
+}
+
+.post-nav-newer {
+  text-align: right;
+}
+
+.post-nav-dir {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .06em;
+  color: var(--muted-light);
+}
+
+.post-nav-title {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--accent2);
+}
+
+/* ── Related posts ─────────────────────────────────────────────────────── */
+.related-posts {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.related-posts h2 {
+  font-family: var(--serif);
+  font-size: 1.55rem;
+  margin-bottom: 1.4rem;
+  color: var(--accent2);
+}
+
+.related-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
 
 /* ════════════════════════════════════════════════════════════════════════════
    SECTION 4 — FAQ ACCORDION
@@ -795,8 +860,17 @@ summary.faq-question:focus-visible {
     font-size: .78rem;
   }
 
-  .faq-section h2 {
+  .faq-section h2,
+  .related-posts h2 {
     font-size: 1.3rem;
+  }
+
+  .post-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .post-nav-newer {
+    text-align: left;
   }
 }
 
@@ -829,7 +903,9 @@ summary.faq-question:focus-visible {
   .blog-toolbar,
   .pagination,
   .article-back,
-  .article-author {
+  .article-author,
+  .post-nav,
+  .related-posts {
     display: none;
   }
 

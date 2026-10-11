@@ -339,12 +339,18 @@ export function faqSectionHTML(pairs) {
  * Inner HTML of #articleWrap. tableHTML must already be sanitised by the
  * caller (DOMParser allow-list in the browser, HTMLRewriter in the worker).
  */
-export function articleHTML(post, { imageRows = [], faqRows = [], tableHTML = '' } = {}) {
+export function articleHTML(post, { imageRows = [], faqRows = [], tableHTML = '', allPosts = [] } = {}) {
   const cover = fixImgUrl(post.Image_URL);
   const tags  = splitList(post.Tags);
+  const published = isoDate(post.Date);
+  const modified  = isoDate(post.Last_Modified);
   return `<a class="article-back" href="/blog" data-link>← Back to Blog</a>` +
     `<div class="article-meta"><span class="blog-cat">${esc(post.Category || 'Post')}</span>` +
-    `<time datetime="${esc(isoDate(post.Date) || post.Date || '')}">${esc(displayDate(post.Date))}</time></div>` +
+    `<time datetime="${esc(published || post.Date || '')}">${esc(displayDate(post.Date))}</time>` +
+    // Visible freshness signal for readers, search engines and answer engines
+    (modified && published && modified > published
+      ? `<span class="article-updated">Updated <time datetime="${modified}">${esc(displayDate(modified))}</time></span>` : '') +
+    `</div>` +
     `<h1 class="article-title">${esc(post.Title)}</h1>` +
     (tags.length ? `<div class="article-tags">${tags.map(t => `<span class="article-tag">${esc(t)}</span>`).join('')}</div>` : '') +
     (cover ? `<img class="article-cover" src="${esc(cover)}" alt="${esc(post.Image_Alt || `${post.Title} featured image`)}" ` +
@@ -354,7 +360,111 @@ export function articleHTML(post, { imageRows = [], faqRows = [], tableHTML = ''
     `<div class="article-author"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
     `stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>` +
     `<span>Written by <a href="/about" data-link>Suman Dangal</a></span></div>` +
-    faqSectionHTML(faqPairs(faqRows, post.Slug));
+    faqSectionHTML(faqPairs(faqRows, post.Slug)) +
+    postNavHTML(post, allPosts) +
+    relatedHTML(post, allPosts);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Internal linking between posts: every post links to its older/newer
+//  neighbour and up to 3 related posts (same category, shared tags, recent).
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Older and newer post (allPosts sorted newest first, as cleanBlogRows returns). */
+export function postNeighbours(post, allPosts = []) {
+  const i = allPosts.findIndex(p => p.Slug === post.Slug);
+  if (i === -1) return { newer: null, older: null };
+  return { newer: allPosts[i - 1] || null, older: allPosts[i + 1] || null };
+}
+
+export function postNavHTML(post, allPosts = []) {
+  const { newer, older } = postNeighbours(post, allPosts);
+  if (!newer && !older) return '';
+  const link = (p, dir) => p
+    ? `<a class="post-nav-link post-nav-${dir}" href="/blog/${esc(p.Slug)}" data-link rel="${dir === 'older' ? 'prev' : 'next'}">` +
+      `<span class="post-nav-dir">${dir === 'older' ? '← Older post' : 'Newer post →'}</span>` +
+      `<span class="post-nav-title">${esc(p.Title)}</span></a>`
+    : '<span></span>';
+  return `<nav class="post-nav" aria-label="More posts">${link(older, 'older')}${link(newer, 'newer')}</nav>`;
+}
+
+/** Up to n related posts: same category > shared tags > newest; excludes neighbours. */
+export function relatedPosts(post, allPosts = [], n = 3) {
+  const { newer, older } = postNeighbours(post, allPosts);
+  const skip = new Set([post.Slug, newer?.Slug, older?.Slug].filter(Boolean));
+  const myTags = new Set(splitList(post.Tags).map(t => t.toLowerCase()));
+  const cat = String(post.Category || '').trim().toLowerCase();
+  return allPosts
+    .filter(p => !skip.has(p.Slug))
+    .map((p, i) => ({
+      p, i,
+      score: (cat && String(p.Category || '').trim().toLowerCase() === cat ? 10 : 0) +
+             splitList(p.Tags).filter(t => myTags.has(t.toLowerCase())).length,
+    }))
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .slice(0, n)
+    .map(x => x.p);
+}
+
+export function relatedHTML(post, allPosts = []) {
+  const list = relatedPosts(post, allPosts);
+  if (!list.length) return '';
+  return `<section class="related-posts" aria-label="Related posts"><h2>Related posts</h2>` +
+    `<div class="blog-grid related-grid">${list.map(p => blogCardHTML(p, { reveal: false })).join('')}</div></section>`;
+}
+
+/** Google shows ~60 characters: drop the site name when it would not fit. */
+export function pageTitle(title) {
+  const full = `${title} | ${SITE_NAME}`;
+  return full.length <= 60 ? full : String(title);
+}
+
+/** Words in a post (markdown symbols and image placeholders ignored). */
+export function postWordCount(post) {
+  return sheetToLines(post.Content || '').join(' ')
+    .replace(/\[img\d+\]/gi, ' ').replace(/\]\([^)]*\)/g, ' ')
+    .replace(/[#>*`~|_[\]()!-]+/g, ' ')
+    .split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
+}
+
+/**
+ * Clean markdown version of a post for AI agents and answer engines
+ * (/blog/<slug>.md, /llms-full.txt): metadata header, the post's own
+ * markdown with images resolved, then the FAQ.
+ */
+export function postMarkdown(post, { imageRows = [], faqRows = [], tableHTML = '' } = {}) {
+  const url = `${SITE_URL}/blog/${post.Slug}`;
+  const images = {};
+  for (const key of Object.keys(post)) {
+    const m = key.match(/^img(\d+)_url$/i);
+    const u = m && fixImgUrl(post[key]);
+    if (u) images[m[1]] = { url: u, alt: post[`Img${m[1]}_Alt`] || post.Title };
+  }
+  (imageRows || []).filter(r => String(r.Blog_Slug || '').trim() === post.Slug).forEach(r => {
+    const u = fixImgUrl(r.Img_URL);
+    if (Number(r.Img_Number) && u) images[Number(r.Img_Number)] = { url: u, alt: String(r.Img_Alt || post.Title).trim() };
+  });
+  const body = sheetToLines(post.Content || '').map(l => {
+    const m = l.trim().match(/^\[img(\d+)\]$/i);
+    if (!m) return l;
+    const im = images[Number(m[1])];
+    return im ? `![${im.alt.replace(/[[\]]/g, '')}](${im.url})` : '';
+  });
+  const published = isoDate(post.Date), modified = isoDate(post.Last_Modified);
+  const pairs = faqPairs(faqRows, post.Slug);
+  return [
+    `# ${post.Title}`, '',
+    ...(post.Excerpt ? [`> ${post.Excerpt}`, ''] : []),
+    `- Author: ${SITE_NAME} (${SITE_URL}/about)`,
+    ...(published ? [`- Published: ${published}`] : []),
+    ...(modified && modified !== published ? [`- Updated: ${modified}`] : []),
+    ...(post.Category ? [`- Category: ${post.Category}`] : []),
+    ...(splitList(post.Tags).length ? [`- Tags: ${splitList(post.Tags).join(', ')}`] : []),
+    `- Canonical URL: ${url}`, '',
+    ...body, '',
+    ...(tableHTML ? [tableHTML, ''] : []), // sanitised HTML table: valid inside markdown
+    ...(pairs.length ? ['## Frequently Asked Questions', '', ...pairs.flatMap(p => [`### ${p.q}`, '', p.a, ''])] : []),
+  ].join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
 export function notFoundHTML(path, { article = false } = {}) {
@@ -492,6 +602,8 @@ export function blogPostingLD(post) {
     image: fixImgUrl(post.Image_URL) || DEFAULT_IMAGE, inLanguage: 'en',
     author: author(), publisher: author(),
     ...(published ? { datePublished: published, dateModified: isoDate(post.Last_Modified) || published } : {}),
+    ...(post.Category ? { articleSection: post.Category } : {}),
+    wordCount: postWordCount(post),
     ...(tags.length ? { keywords: tags.join(', ') } : {}) };
 }
 
